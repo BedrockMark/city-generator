@@ -115,7 +115,7 @@ class CityView extends Phaser.Scene {
     for (const o of objs) {
       if (o.kind === 'sprite') {
         const cut = o.solid === undefined ? 0 : Math.max(0, Math.min(o.h, o.solid - o.y));
-        if (!ghost || cut <= 0) rt.drawFrame(o.file, undefined, o.x, o.y);
+        if (!ghost || cut <= 0) rt.drawFrame(o.file, '__BASE', o.x, o.y);
         else {
           rt.drawFrame(o.file, this.band(o.file, 0, cut), o.x, o.y, 0.28);
           if (cut < o.h) rt.drawFrame(o.file, this.band(o.file, cut, o.h), o.x, o.y + cut);
