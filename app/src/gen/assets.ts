@@ -3,6 +3,7 @@ import spritesRaw from './data/sprites.json';
 import modularRaw from './data/modular.json';
 import autotileRaw from './data/autotile.json';
 import charsRaw from './data/characters.json';
+import opaqueRaw from './data/opaque.json';
 
 export interface SpriteInfo { key: string; file: string; w: number; h: number; bb: [number, number, number, number] }
 
@@ -37,3 +38,13 @@ export interface CharData {
   themes: { outfits: Record<string, { theme: string }>; accessories: Record<string, string> };
 }
 export const CHARS = charsRaw as unknown as CharData;
+
+/** coarse opacity masks of building sprites (tools/export_opaque.py): one bit per 4x4 px block, set when fully opaque */
+const OPAQUE = opaqueRaw as unknown as Record<string, [number, number, string[]]>;
+export function opaqueAt(key: string, px: number, py: number): boolean {
+  const m = OPAQUE[key];
+  if (!m) return false;
+  const bx = Math.floor(px / 4), by = Math.floor(py / 4);
+  if (bx < 0 || by < 0 || bx >= m[0] || by >= m[1]) return false;
+  return ((parseInt(m[2][by][bx >> 2], 16) >> (3 - (bx & 3))) & 1) === 1;
+}

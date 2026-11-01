@@ -7,7 +7,7 @@ import { Rng } from './rng';
 import { paintWalkCell, asphalt, slab, type Layout } from './layout';
 import type { BlockPlan, PlacedBuilding } from './block';
 import { SceneBuilder, rect } from './place';
-import { spr, variants, hasSprite } from './assets';
+import { spr, variants, hasSprite, opaqueAt } from './assets';
 import { makePerson, frameFor } from './people';
 import { person } from './vignettes';
 import { TILE } from './types';
@@ -50,6 +50,8 @@ export function yardSpaces(L: Layout, plan: BlockPlan, sb: SceneBuilder, r: Rng)
   const isWalk = (x: number, y: number) => L.cls[y]?.[x] === 'walk';
   const used = { parking: 0, garden: 0, service: 0, backyard: 0 };
   const rects: { rc: CellRect; kind: Kind; b?: PlacedBuilding; side?: 'N' | 'S' | 'E' | 'W' }[] = [];
+  const lawnBehind: [number, number][] = [];
+  GRASS = L.cls.map(row => row.map(() => false));
   // ---- cut rectangles, biggest first, across all components ----
   // visible ground first (parking, gardens, strips ...), then the ground hidden behind buildings (backyards)
   let hiddenPass = false;
@@ -58,7 +60,23 @@ export function yardSpaces(L: Layout, plan: BlockPlan, sb: SceneBuilder, r: Rng)
     const cells: [number, number][] = [];
     for (let y = 0; y < L.rows; y++) for (let x = 0; x < L.cols; x++) if (avail(x, y)) cells.push([x, y]);
     const rc = bestRect(cells, avail);
-    if (!rc || rc.w * rc.h < 2) { if (hiddenPass) break; hiddenPass = true; continue; }
+    if (!rc || rc.w * rc.h < 2) {
+      if (hiddenPass) break;
+      hiddenPass = true;
+      // lawns carry on behind buildings: hidden ground within 3 cells of a garden / green strip becomes lawn too
+      // (so no lawn edge runs along the roof line); deeper hidden ground stays backyard
+      let ring: [number, number][] = [];
+      for (const { rc: g, kind: k } of rects) if (k === 'garden' || k === 'strip') ring.push(...cellsOf(g));
+      for (let depth = 0; depth < 3 && ring.length; depth++) {
+        const next: [number, number][] = [];
+        for (const [x, y] of ring) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const nx = x + dx, ny = y + dy;
+          if (free[ny]?.[nx] && plan.hidden[ny][nx]) { free[ny][nx] = false; lawnBehind.push([nx, ny]); next.push([nx, ny]); }
+        }
+        ring = next;
+      }
+      continue;
+    }
     for (const [x, y] of cellsOf(rc)) free[y][x] = false;
     const hid = cellsOf(rc).filter(([x, y]) => plan.hidden[y][x]).length / (rc.w * rc.h);
     const sideFrac = (s: 'N' | 'S' | 'E' | 'W') => {
@@ -87,9 +105,11 @@ export function yardSpaces(L: Layout, plan: BlockPlan, sb: SceneBuilder, r: Rng)
     else if (kind === 'passage') passage(sb, rr, rc);
     else if (kind === 'strip') strip(L, sb, rr, rc, side, plan);
     else if (kind === 'service') service(sb, rr, rc);
-    else if (kind === 'backyard') backyard(sb, rr, rc);
-    else if (kind === 'paved' && rc.w * rc.h >= 2 && rr.chance(0.5)) sb.putFoot(rr.pick(variants('17_Garden/Bush_Potted')), (rc.x + 0.5) * T, (rc.y + 1) * T - 2, 'plant', { group: 'yard' });
+    else if (kind === 'backyard') backyard(sb, rr, rc, plan);
+    else if (kind === 'paved' && rc.w * rc.h >= 2 && rr.chance(0.5) && !plan.hidden[rc.y][rc.x]) sb.putFoot(rr.pick(variants('17_Garden/Bush_Potted')), (rc.x + 0.5) * T, (rc.y + 1) * T - 2, 'plant', { group: 'yard' });
   }
+  for (const [x, y] of lawnBehind) GRASS[y][x] = true;
+  paintGrass(L);
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -168,13 +188,32 @@ function parking(L: Layout, sb: SceneBuilder, rr: Rng, rc: CellRect, plan: Block
 
 // ------------------------------------------------------------------------------------------------
 
-/** grass 9-slice (1_Terrains cols 0-2, rows 11-13, transparent edges) */
+/** lawn cells of the block; painted once at the end so touching lawns (and lawn continuing behind a building) merge */
+let GRASS: boolean[][] = [];
 function grass(L: Layout, rc: CellRect) {
-  for (let y = rc.y; y < rc.y + rc.h; y++) for (let x = rc.x; x < rc.x + rc.w; x++) {
-    const cx = rc.w === 1 ? 1 : x === rc.x ? 0 : x === rc.x + rc.w - 1 ? 2 : 1;
-    const cy = rc.h === 1 ? 12 : y === rc.y ? 11 : y === rc.y + rc.h - 1 ? 13 : 12;
-    L.over[y][x] = ['terr', cx, cy];
+  void L;
+  for (let y = rc.y; y < rc.y + rc.h; y++) for (let x = rc.x; x < rc.x + rc.w; x++) GRASS[y][x] = true;
+}
+/** grass 9-slice (1_Terrains cols 0-2, rows 11-13, transparent edges), edge pieces chosen from the lawn's neighbours */
+function paintGrass(L: Layout) {
+  const g = (x: number, y: number) => GRASS[y]?.[x] === true;
+  for (let y = 0; y < L.rows; y++) for (let x = 0; x < L.cols; x++) {
+    if (!g(x, y)) continue;
+    const l = g(x - 1, y), r = g(x + 1, y), u = g(x, y - 1), d = g(x, y + 1);
+    L.over[y][x] = ['terr', !l && r ? 0 : l && !r ? 2 : 1, !u && d ? 11 : u && !d ? 13 : 12];
   }
+}
+
+/** the rect (px) is completely hidden by a building's opaque pixels and lies behind its solid footprint */
+function coveringBuilding(plan: BlockPlan, r: { x0: number; y0: number; x1: number; y1: number }): boolean {
+  return plan.buildings.some(({ plan: b, cx, cy }) => {
+    const x0 = cx * T, y0 = cy * T, solid = (cy + b.h - b.foot) * T;
+    if (r.x0 < x0 || r.x1 > x0 + b.w * T || r.y0 < y0 || r.y1 > solid) return false;
+    const xs: number[] = [], ys: number[] = [];
+    for (let x = r.x0; x < r.x1; x += 2) xs.push(x); xs.push(r.x1 - 1);
+    for (let y = r.y0; y < r.y1; y += 2) ys.push(y); ys.push(r.y1 - 1);
+    return ys.every(y => xs.every(x => b.parts.some(p => opaqueAt(p.key, x - x0 - p.dx, y - y0 - p.dy))));
+  });
 }
 
 const SMALL_TREES = [C + 'Tree_1', C + 'Tree_2', C + 'Tree_3', C + 'Tree_4', C + 'Tree_8'];
@@ -335,7 +374,7 @@ function service(sb: SceneBuilder, rr: Rng, rc: CellRect) {
 }
 
 /** ground behind a building: AC units, laundry, crates, barrels, a smoker on a break */
-function backyard(sb: SceneBuilder, rr: Rng, rc: CellRect) {
+function backyard(sb: SceneBuilder, rr: Rng, rc: CellRect, plan: BlockPlan) {
   const x0 = rc.x * T, x1 = (rc.x + rc.w) * T, y0 = rc.y * T, y1 = (rc.y + rc.h) * T;
   const ac = ['6_Garage_Sales/Air_Conditioner_Unit_1', '6_Garage_Sales/Air_Conditioner_Unit_2', '6_Garage_Sales/Air_Conditioner_Unit_3', '9_Shopping_Center_and_Markets/Air_Conditioner_Unit_3', '9_Shopping_Center_and_Markets/Air_Conditioner_Unit_4'].filter(hasSprite);
   const items: [string[], string, number][] = [
@@ -344,14 +383,22 @@ function backyard(sb: SceneBuilder, rr: Rng, rc: CellRect) {
     [variants('17_Garden/Bush_Potted'), 'plant', 1],
   ];
   const n = Math.max(2, Math.min(7, Math.round(rc.w * rc.h / 8)));
-  for (let i = 0, k = 0; i < n * 3 && k < n; i++) {
+  for (let i = 0, k = 0; i < n * 8 && k < n; i++) {
     const [pool, cls] = rr.weighted(items.map(it => [[it[0], it[1]] as const, it[2]] as const));
     if (!pool.length) continue;
     // against the back wall (top) or along the sides, rarely in the middle
     const fx = rr.chance(0.6) ? x0 + rr.int(10, Math.max(11, x1 - x0 - 10)) : (rr.chance(0.5) ? x0 + 10 : x1 - 10);
     const fy = rr.chance(0.6) ? y0 + rr.int(18, 26) : y0 + rr.int(18, Math.max(19, y1 - y0 - 2));
     if (fy > y1) continue;
-    if (sb.putFoot(rr.pick(pool), fx, fy, cls, { group: 'backyard', pad: 2 })) k++;
+    // behind the building means entirely behind it: nothing may stick out above the roof line (it would read as a roof prop)
+    const key = rr.pick(pool), sp = spr(key);
+    const sx = Math.round(fx - (sp.bb[0] + sp.bb[2]) / 2), sy = Math.round(fy - sp.bb[3]);
+    if (!coveringBuilding(plan, { x0: sx + sp.bb[0], y0: sy + sp.bb[1], x1: sx + sp.bb[2], y1: sy + sp.bb[3] })) continue;
+    if (sb.putFoot(key, fx, fy, cls, { group: 'backyard', pad: 2 })) k++;
   }
-  if (rr.chance(0.5)) person(sb, rr, x0 + rr.int(10, Math.max(11, x1 - x0 - 10)), y0 + rr.int(24, Math.max(25, y1 - y0 - 4)), rr.pick(['phone', 'stand'] as const), rr.pick(['left', 'right', 'down'] as const), 'resident', 'backyard');
+  for (let t = 0; t < 6 && rr.chance(t === 0 ? 0.6 : 1); t++) {
+    const fx = x0 + rr.int(10, Math.max(11, x1 - x0 - 10)), fy = y0 + rr.int(24, Math.max(25, y1 - y0 - 2));
+    if (!coveringBuilding(plan, { x0: fx - 6, y0: fy - 28, x1: fx + 6, y1: fy })) continue;
+    if (person(sb, rr, fx, fy, rr.pick(['phone', 'stand'] as const), rr.pick(['left', 'right', 'down'] as const), 'resident', 'backyard')) break;
+  }
 }

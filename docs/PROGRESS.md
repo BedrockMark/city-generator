@@ -7,7 +7,7 @@
   - 每版报告是 `docs/v<版本>.md`，截图在 `docs/v<版本>/`。
 - **v0.3.0 已完成，等待用户评价**：`docs/v0.3.0.md`。处理了 v0.2.0 的全部“需修正 / 不足”。
 - git：每个版本 commit 一次，并打 tag `v<版本>`。
-- 决策记录：`docs/NOTE.md`（D1–D21）。
+- 决策记录：`docs/NOTE.md`（D1–D22）。v0.3.0 之后修了两处，没有单独发版：虚化开关的 bug；楼后物件露出屋顶、花园被楼切断（D22）。
 
 ## 怎么运行
 - 查看器：`cd app && npx vite`，然后打开 http://localhost:5173/?seed=7
@@ -16,7 +16,7 @@
 - Python 渲染：`cd tools && uv run python render_generated.py ../work/gen/scene_1.json --scale 1 [--ghost]`。注意：它会把 PNG 写在 json 旁边，可能覆盖同名文件。
 - 评估：`cd tools && uv run python eval_generated.py <scene.json ...> --out report.md`
 - Phaser 实拍：先启动 vite，再 `cd app && npx tsx scripts/shots.ts <outDir> 2 3 5`（用系统自带的 Edge）。
-- 素材元数据有变动时：`cd tools && uv run python export_manifest.py`，写入 `app/src/gen/data/`。
+- 素材元数据有变动时：`cd tools && uv run python export_manifest.py && uv run python export_opaque.py`，写入 `app/src/gen/data/`。
 
 ## 代码结构（app/src/gen）
 - `rng.ts`：种子 RNG，`fork(label)` 派生独立的随机流。
