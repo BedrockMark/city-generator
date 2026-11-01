@@ -14,8 +14,10 @@ export interface Zone { kind: 'alley' | 'plaza' | 'pocket'; x0: number; y0: numb
 export interface BlockPlan {
   buildings: PlacedBuilding[];
   zones: Zone[];
-  /** free interior cells after buildings / zones (the courtyard) */
+  /** free interior cells after buildings / zones (the courtyard); includes ground hidden behind buildings */
   yard: boolean[][];
+  /** yard cells covered by the upper part of a building sprite (behind the building, seen only in ghost view) */
+  hidden: boolean[][];
   /** per column of the main interior: bottom/top interior rows */
   yb: Map<number, number>; yt: Map<number, number>;
 }
@@ -37,7 +39,9 @@ export function planMainBlock(L: Layout, r0: Rng): BlockPlan {
   const nAlley = r.weighted([[0, 3], [1, 4], [2, 1]] as const);
   for (let i = 0; i < nAlley; i++) {
     const w = r.int(1, 2), x = xs[r.int(Math.floor(W * 0.2), Math.floor(W * 0.8))];
-    const y1 = (yb.get(x) ?? L.by1 - 1) + 1, y0 = y1 - r.int(5, Math.max(5, Math.floor((L.by1 - L.by0) * 0.6)));
+    const y1 = (yb.get(x) ?? L.by1 - 1) + 1;
+    // the inner end stays inside the block (notched blocks are short in some columns)
+    const y0 = Math.max(y1 - r.int(5, Math.max(5, Math.floor((L.by1 - L.by0) * 0.6))), ...[x, x + w - 1].map(c => yt.get(c) ?? L.by0));
     carve({ kind: 'alley', x0: x, y0, x1: x + w, y1 });
   }
   if (r.chance(0.45)) {
@@ -58,19 +62,29 @@ export function planMainBlock(L: Layout, r0: Rng): BlockPlan {
     },
   }, r);
   const buildings: PlacedBuilding[] = placed.map(p => ({ plan: p.plan, cx: p.cx, cy: p.cy, side: (p.cy + p.plan.h - 1 === yb.get(p.cx) ? 'S' : 'N') as 'S' | 'N' }));
-  for (const z of zones) if (z.kind === 'alley') for (let y = z.y0; y < z.y1; y++) for (let x = z.x0; x < z.x1; x++) if (L.inP[y]?.[x]) yard[y][x] = true;
-  return { buildings, zones, yard, yb, yt };
+  // the ground behind a building (sprite rows above its roof-sized footprint) is yard too, just hidden
+  const hidden = yard.map(row => row.map(() => false));
+  for (const { plan: b, cx, cy } of placed) for (let y = cy; y < cy + b.h - b.foot; y++) for (let x = cx; x < cx + b.w; x++)
+    if (L.inP[y]?.[x]) { yard[y][x] = true; hidden[y][x] = true; }
+  return { buildings, zones, yard, hidden, yb, yt };
 }
 
-/** emit building sprites; returns keep-clear zones for doors */
-export function emitBuildings(plan: BlockPlan, sb: SceneBuilder) {
+/** emit building sprites; the solid footprint is the bottom `foot` rows; doors keep a clear path to the street */
+export function emitBuildings(L: Layout, plan: BlockPlan, sb: SceneBuilder) {
   for (const pb of plan.buildings) {
     const { plan: b, cx, cy } = pb;
-    const x0 = cx * TILE, y0 = cy * TILE, bottom = (cy + b.h) * TILE;
+    const x0 = cx * TILE, y0 = cy * TILE, bottom = (cy + b.h) * TILE, solid = bottom - b.foot * TILE;
     for (const p of b.parts) {
-      sb.putAt(p.key, x0 + p.dx, y0 + p.dy, 'building', { force: true, occupy: false, foot: bottom - 1, sub: p.sub, group: b.id });
+      const o = sb.putAt(p.key, x0 + p.dx, y0 + p.dy, 'building', { force: true, occupy: false, foot: bottom - 1, sub: p.sub, group: b.id });
+      if (o) o.solid = solid;
     }
-    sb.occupy(rect(x0, y0, x0 + b.w * TILE, bottom), 'building');
-    for (const d of b.doors) sb.clear(rect(x0 + d - 12, bottom, x0 + d + 12, bottom + 14), 'door');
+    sb.occupy(rect(x0, solid, x0 + b.w * TILE, bottom), 'building');
+    for (const d of b.doors) {
+      // path from the door down to the curb (or 2 rows into a courtyard)
+      let depth = 0;
+      const dc = Math.floor((x0 + d) / TILE);
+      for (let y = cy + b.h; y < L.rows && depth < 5; y++) { const c = L.cls[y][dc]; if (c === 'road' || (c !== 'walk' && c !== 'nwalk' && depth >= 2)) break; depth++; }
+      sb.clear(rect(x0 + d - 12, bottom, x0 + d + 12, bottom + Math.max(14, depth * TILE - 2)), 'door');
+    }
   }
 }

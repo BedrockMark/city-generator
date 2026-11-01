@@ -21,7 +21,7 @@ for (const [i, s] of seeds.entries()) {
   const downloads: Promise<void>[] = [];
   const got = new Promise<void>((resolve) => {
     let n = 0;
-    page.on('download', d => { downloads.push(d.saveAs(join(outDir, d.suggestedFilename()))); if (++n === 2) resolve(); });
+    page.on('download', d => { downloads.push(d.saveAs(join(outDir, d.suggestedFilename()))); if (++n === 3) resolve(); });
   });
   await page.click('#export');
   await got; await Promise.all(downloads);

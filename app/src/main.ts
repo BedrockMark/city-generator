@@ -34,12 +34,14 @@ class CityView extends Phaser.Scene {
     $('zout').onclick = () => this.zoomBy(1 / 1.25);
     $('fit').onclick = () => this.fit();
     $('grid').onchange = () => this.gridGfx?.setVisible($<HTMLInputElement>('grid').checked);
+    $('ghost').onchange = () => { if (this.current) this.draw(this.current, false); };
     $('export').onclick = () => this.exportShot();
     window.addEventListener('keydown', (e) => {
       if ((e.target as HTMLElement).tagName === 'INPUT') return;
       if (e.key === 'r' || e.key === 'R') $('regen').click();
       if (e.key === 'f' || e.key === 'F') this.fit();
       if (e.key === 'e' || e.key === 'E') this.exportShot();
+      if (e.key === 'g' || e.key === 'G') { const g = $<HTMLInputElement>('ghost'); g.checked = !g.checked; g.onchange?.(new Event('change')); }
     });
     this.scale.on('resize', () => this.fit());
   }
@@ -90,9 +92,17 @@ class CityView extends Phaser.Scene {
     return row * Math.floor(w / fw) + col;
   }
 
-  private draw(sc: GenScene) {
+  /** sub-frame of an image texture (rows y0..y1), created on demand */
+  private band(file: string, y0: number, y1: number): string {
+    const tex = this.textures.get(file);
+    const name = `band${y0}_${y1}`;
+    if (!tex.has(name)) tex.add(name, 0, 0, y0, tex.source[0].width, y1 - y0);
+    return name;
+  }
+
+  /** ground + objects into a render texture; ghost: building parts above their footprint drawn translucent */
+  private render(sc: GenScene, ghost: boolean): Phaser.GameObjects.RenderTexture {
     const W = sc.cols * 16, H = sc.rows * 16;
-    this.world?.destroy(); this.gridGfx?.destroy();
     const rt = this.add.renderTexture(0, 0, W, H).setOrigin(0, 0);
     // ground layers, then objects sorted by foot (same rule as tools/render_generated.py)
     for (const layer of sc.ground) for (let y = 0; y < sc.rows; y++) for (let x = 0; x < sc.cols; x++) {
@@ -103,23 +113,36 @@ class CityView extends Phaser.Scene {
     }
     const objs = [...sc.objects].sort((a, b) => a.foot - b.foot || (a.sub ?? 0) - (b.sub ?? 0));
     for (const o of objs) {
-      if (o.kind === 'sprite') rt.drawFrame(o.file, undefined, o.x, o.y);
-      else for (const l of o.layers ?? []) rt.drawFrame(l, this.frameIndex(l, o.frame![0], o.frame![1], 16), o.x, o.y);
+      if (o.kind === 'sprite') {
+        const cut = o.solid === undefined ? 0 : Math.max(0, Math.min(o.h, o.solid - o.y));
+        if (!ghost || cut <= 0) rt.drawFrame(o.file, undefined, o.x, o.y);
+        else {
+          rt.drawFrame(o.file, this.band(o.file, 0, cut), o.x, o.y, 0.28);
+          if (cut < o.h) rt.drawFrame(o.file, this.band(o.file, cut, o.h), o.x, o.y + cut);
+        }
+      } else for (const l of o.layers ?? []) rt.drawFrame(l, this.frameIndex(l, o.frame![0], o.frame![1], 16), o.x, o.y);
     }
+    return rt;
+  }
+
+  private draw(sc: GenScene, refit = true) {
+    const W = sc.cols * 16, H = sc.rows * 16;
+    this.world?.destroy(); this.gridGfx?.destroy();
+    const rt = this.render(sc, $<HTMLInputElement>('ghost').checked);
     this.world = rt;
     const g = this.add.graphics().setVisible($<HTMLInputElement>('grid').checked);
     g.lineStyle(1, 0xff00ff, 0.25);
     for (let x = 0; x <= sc.cols; x += 4) g.lineBetween(x * 16, 0, x * 16, H);
     for (let y = 0; y <= sc.rows; y += 4) g.lineBetween(0, y * 16, W, y * 16);
     this.gridGfx = g;
-    this.fit();
+    if (refit) this.fit();
   }
 
   private exportShot() {
     if (!this.world || !this.current) return;
     const sc = this.current;
     const base = `citygen_v${VERSION}_seed${sc.seed}`;
-    this.world.snapshot((img) => {
+    const save = (rt: Phaser.GameObjects.RenderTexture, name: string, done?: () => void) => rt.snapshot((img) => {
       const im = img as HTMLImageElement;
       const S = 2;
       const c = document.createElement('canvas');
@@ -127,9 +150,13 @@ class CityView extends Phaser.Scene {
       const ctx = c.getContext('2d')!;
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(im, 0, 0, c.width, c.height);
-      c.toBlob((b) => b && download(b, `${base}.png`), 'image/png');
-      download(new Blob([JSON.stringify(sc)], { type: 'application/json' }), `${base}.json`);
+      c.toBlob((b) => { if (b) download(b, name); done?.(); }, 'image/png');
     });
+    // normal + ghost view (both independent of the on-screen toggle), then the scene JSON
+    const normal = this.render(sc, false).setVisible(false), ghost = this.render(sc, true).setVisible(false);
+    save(normal, `${base}.png`, () => normal.destroy());
+    save(ghost, `${base}_ghost.png`, () => ghost.destroy());
+    download(new Blob([JSON.stringify(sc)], { type: 'application/json' }), `${base}.json`);
   }
 }
 

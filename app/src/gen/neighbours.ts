@@ -48,5 +48,5 @@ export function planNeighbours(L: Layout, r0: Rng): BlockPlan {
     const below = L.cls[p.cy + p.plan.h]?.[p.cx];
     return { plan: p.plan, cx: p.cx, cy: p.cy, side: (below === 'nwalk' ? 'S' : 'N') as 'S' | 'N' };
   });
-  return { buildings, zones: [], yard, yb: new Map(), yt: new Map() };
+  return { buildings, zones: [], yard, hidden: yard, yb: new Map(), yt: new Map() };
 }

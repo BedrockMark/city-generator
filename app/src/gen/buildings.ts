@@ -8,6 +8,8 @@ export type FrontKind = 'cafe' | 'bakery' | 'retail' | 'closed' | 'gym' | 'condo
 export interface BuildingPlan {
   id: string;
   w: number; h: number;                    // cells (full sprite rect)
+  /** footprint depth in cells (bottom rows of the sprite rect); the rows above are ground hidden behind the building */
+  foot: number;
   parts: { key: string; dx: number; dy: number; sub: number }[];   // px offsets from top-left
   doors: number[];                         // door centre x offsets (px) on the bottom edge
   front: FrontKind;
@@ -54,7 +56,8 @@ export function modularStack(r: Rng, opts: { floors?: number; front?: FrontKind;
   parts.push({ key: gf.key, dx: 0, dy: y - (gfS.h - 3 * TILE), sub: sub++ });
   y += 3 * TILE;
   const front: FrontKind = fam.front === 'condo' ? 'condo' : wantClosed ? 'closed' : fam.front;
-  return { id: `b${nextId++}`, w: 7, h: y / TILE, parts, doors: [fam.door * TILE], front, tall: floors >= 2,
+  // footprint = roof size: in this 3/4 view the roof is the building's plan
+  return { id: `b${nextId++}`, w: 7, h: y / TILE, foot: Math.min(roofH, y / TILE), parts, doors: [fam.door * TILE], front, tall: floors >= 2,
     label: `${fam.fam.replace('Ground_Floor_', '')}/${colour}/${floors}f` };
 }
 
@@ -77,7 +80,8 @@ export function singleBuilding(r: Rng, filter?: (s: typeof SINGLES[number]) => b
   const pool = SINGLES.filter(s => hasSprite(s.key) && (!filter || filter(s)));
   const s = r.weighted(pool.map(p => [p, p.weight] as const));
   const sp = spr(s.key);
-  return { id: `b${nextId++}`, w: sp.w / TILE, h: sp.h / TILE, parts: [{ key: s.key, dx: 0, dy: 0, sub: 0 }],
+  const h = sp.h / TILE;
+  return { id: `b${nextId++}`, w: sp.w / TILE, h, foot: Math.max(3, Math.min(h - 2, Math.round(h * 0.5))), parts: [{ key: s.key, dx: 0, dy: 0, sub: 0 }],
     doors: s.doors.map(d => d * TILE), front: s.front, tall: sp.h / TILE >= 14, label: s.key.split('/')[1] };
 }
 

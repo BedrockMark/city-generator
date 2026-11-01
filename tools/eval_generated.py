@@ -80,8 +80,21 @@ def gen_metrics(sc):
                 if main[fy, fx]:
                     if o['kind'] == 'char': n_people += 1
                     else: n_main += 1
+    # placement sanity: furniture standing in the carriageway; sidewalk cut through by furniture
+    on_road = sum(1 for o in sc['objects'] if o['kind'] == 'sprite' and o['cls'] not in ('vehicle', 'manhole', 'roadworks', 'building')
+                  and 0 <= (o['foot'] - 1) // T < R and 0 <= (o['x'] + o['w'] // 2) // T < C and cls[(o['foot'] - 1) // T, (o['x'] + o['w'] // 2) // T] == 'road')
+    S = 4   # 4-px grid over the main sidewalk; furniture footprint ~ middle half of the sprite width, 6 px above the foot
+    walk = np.kron(cls == 'walk', np.ones((T // S, T // S), bool))
+    free = walk.copy()
+    for o in sc['objects']:
+        if o['kind'] != 'sprite' or o['cls'] in ('building', 'vehicle', 'manhole'): continue
+        x0, x1 = (o['x'] + o['w'] // 4) // S, (o['x'] + 3 * o['w'] // 4) // S + 1
+        free[max(0, (o['foot'] - 6) // S):max(0, o['foot'] // S + 1), max(0, x0):max(0, x1)] = False
+    from scipy.ndimage import distance_transform_edt as edt
+    centre = edt(walk) * S >= 12                      # sidewalk centre line (>= 12 px from both edges)
+    pinched = round(100 * float((centre & (edt(free) * S < 8)).sum()) / max(int(centre.sum()), 1), 1)
     open_main = main & ~occ
-    return dict(main_cells=int(main.sum()), objects_per100=round(100 * n_main / max(main.sum(), 1), 1),
+    return dict(on_road=on_road, pinched=pinched, main_cells=int(main.sum()), objects_per100=round(100 * n_main / max(main.sum(), 1), 1),
                 people_per100=round(100 * n_people / max(main.sum(), 1), 1),
                 largest_empty_patch=emptiness(main, occ),
                 open_frac=round(float((main & ~binary_dilation(occ, iterations=1)).sum() / max(main.sum(), 1)), 3))
@@ -112,12 +125,12 @@ def main():
     refs = [novelty.load(n) for n in ref_names() if (WORK/'scenes'/f'{n}.json').exists()]
     gens = [(p, json.load(open(p))) for p in args]
     conv = [(p, to_ref_format(sc)) for p, sc in gens]
-    L = ['| scene | copied windows | largest copied | copied objects | self-repeat (constellations) | obj/100 | people/100 | largest empty patch | open frac |',
-         '|---|---|---|---|---|---|---|---|---|']
+    L = ['| scene | copied windows | largest copied | copied objects | self-repeat (constellations) | obj/100 | people/100 | largest empty patch | open frac | furniture on road | sidewalk centre pinched % |',
+         '|---|---|---|---|---|---|---|---|---|---|---|']
     for (p, sc), (_, cv) in zip(gens, conv):
         c = novelty.compare(cv, refs); s = novelty.self_constellations(cv); m = gen_metrics(sc)
         L.append(f"| {sc['seed']} | {c['copied_window_frac']} | {c['largest_copied_region_cells']} | {c['copied_object_frac']} | "
-                 f"{s['repeated_constellation_frac']} | {m['objects_per100']} | {m['people_per100']} | {m['largest_empty_patch']} | {m['open_frac']} |")
+                 f"{s['repeated_constellation_frac']} | {m['objects_per100']} | {m['people_per100']} | {m['largest_empty_patch']} | {m['open_frac']} | {m['on_road']} | {m['pinched']} |")
     # diversity between seeds
     if len(conv) > 1:
         fr = []

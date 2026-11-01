@@ -202,17 +202,23 @@ const ASPHALT: [TileRef, number][] = [
   [['city', 2, 6], 6], [['city', 4, 6], 3], [['city', 0, 7], 1.5], [['city', 2, 7], 1.5], [['city', 4, 7], 1],
 ];
 
-function paintGround(L: Layout, r: Rng) {
+/** sidewalk / lot cell: 47-blob autotile, "inside" = not road; picture border continues the cell itself */
+export function paintWalkCell(L: Layout, x: number, y: number) {
   const { rows, cols, cls } = L;
-  const isRoad = (x: number, y: number) => x >= 0 && y >= 0 && x < cols && y < rows ? cls[y][x] === 'road' : null;
-  // sidewalks / lots: 47-blob autotile, "inside" = not road; picture border continues the cell itself
-  for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
-    if (cls[y][x] === 'road') { L.base[y][x] = r.weighted(ASPHALT); continue; }
-    let m = 0;
-    const dirs: [number, number, number][] = [[0, -1, BITS.N], [1, -1, BITS.NE], [1, 0, BITS.E], [1, 1, BITS.SE], [0, 1, BITS.S], [-1, 1, BITS.SW], [-1, 0, BITS.W], [-1, -1, BITS.NW]];
-    for (const [dx, dy, b] of dirs) { const rr = isRoad(x + dx, y + dy); if (rr === false || rr === null) m |= b; }
-    const style = L.region[y][x] >= 0 ? L.regionStyle[L.region[y][x]] : L.mainStyle;
-    L.base[y][x] = canon(m) === 255 ? slab(style, x, y) : autotile(style, m);
+  const isRoad = (xx: number, yy: number) => xx >= 0 && yy >= 0 && xx < cols && yy < rows ? cls[yy][xx] === 'road' : null;
+  let m = 0;
+  const dirs: [number, number, number][] = [[0, -1, BITS.N], [1, -1, BITS.NE], [1, 0, BITS.E], [1, 1, BITS.SE], [0, 1, BITS.S], [-1, 1, BITS.SW], [-1, 0, BITS.W], [-1, -1, BITS.NW]];
+  for (const [dx, dy, b] of dirs) { const rr = isRoad(x + dx, y + dy); if (rr === false || rr === null) m |= b; }
+  const style = L.region[y][x] >= 0 ? L.regionStyle[L.region[y][x]] : L.mainStyle;
+  L.base[y][x] = canon(m) === 255 ? slab(style, x, y) : autotile(style, m);
+}
+
+export function asphalt(r: Rng): TileRef { return r.weighted(ASPHALT); }
+
+function paintGround(L: Layout, r: Rng) {
+  for (let y = 0; y < L.rows; y++) for (let x = 0; x < L.cols; x++) {
+    if (L.cls[y][x] === 'road') L.base[y][x] = r.weighted(ASPHALT);
+    else paintWalkCell(L, x, y);
   }
   roadMarkings(L, r);
 }

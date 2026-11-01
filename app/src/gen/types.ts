@@ -30,6 +30,9 @@ export interface Placed {
   /** depth-sort key in px (the y where the thing stands); ties broken by `sub` */
   foot: number;
   sub?: number;
+  /** buildings: px y of the footprint top. The sprite above it is not solid (ground behind the building);
+   *  the viewer's ghost mode draws that part translucent so what happens behind tall buildings is visible */
+  solid?: number;
   cls: string;          // semantic class (tree, lamp, building, person ...)
   group?: string;       // vignette / building id this element belongs to
 }
