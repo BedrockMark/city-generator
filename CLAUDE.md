@@ -1,0 +1,1 @@
+先读 docs/BRIEF.md: 如有，阅读 docs/NOTE.md 中的记录关键决策和被否决的方案及原因，以及在 docs/PROGRESS.md 中记录当前进度，以便新会话能接续工作。 docs/PROGRESS.md

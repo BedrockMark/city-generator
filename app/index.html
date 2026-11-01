@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <title>City Block Generator</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #1d1d24; color: #ddd; font: 13px/1.4 system-ui, sans-serif; overflow: hidden; }
+    #bar { position: fixed; top: 0; left: 0; right: 0; height: 40px; display: flex; gap: 8px; align-items: center; padding: 0 10px;
+           background: #2a2a33; border-bottom: 1px solid #444; z-index: 10; }
+    #bar input[type=checkbox] { width: auto; }
+    #bar input:not([type=checkbox]) { width: 140px; background: #15151a; color: #eee; border: 1px solid #555; padding: 4px 6px; }
+    #bar button { background: #3b3b48; color: #eee; border: 1px solid #555; padding: 4px 10px; cursor: pointer; }
+    #bar button:hover { background: #4b4b5c; }
+    #bar .sep { width: 1px; height: 24px; background: #555; }
+    #info { margin-left: auto; color: #9a9aa8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45vw; }
+    #game { position: fixed; top: 41px; left: 0; right: 0; bottom: 0; }
+  </style>
+</head>
+<body>
+  <div id="bar">
+    <label>种子 <input id="seed" /></label>
+    <button id="go" title="用输入框里的种子生成 (Enter)">生成</button>
+    <button id="regen" title="随机新种子并重新生成 (R)">重新生成 🎲</button>
+    <span class="sep"></span>
+    <button id="zin">＋</button><button id="zout">－</button><button id="fit" title="适应窗口 (F)">适应</button>
+    <label><input type="checkbox" id="grid" /> 网格</label>
+    <span class="sep"></span>
+    <button id="export" title="下载 PNG(2x) + scene JSON (E)">导出截图</button>
+    <span id="info"></span>
+  </div>
+  <div id="game"></div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
