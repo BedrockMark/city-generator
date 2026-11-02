@@ -22,7 +22,7 @@ export function planNeighbours(L: Layout, r0: Rng): BlockPlan {
     cols: L.cols + 2 * E, rows: L.rows + E + EB, buildable: (x, y) => virt(x - E, y - E),
     mix: { modular: 2, single: 2 }, minH: 7, gapAfter: [[0, 4], [1, 3], [2, 2]], pairChance: 0.3,
   }, r);
-  const placed = pe.map(p => ({ ...p, cx: p.cx - E, cy: p.cy - E }))
+  const placed = pe.map(p => ({ ...p, cx: p.cx - E, cy: p.cy - E, why: `邻近街区（同一打包器；画面外按到路的距离延续地块）。${p.why}` }))
     .filter(p => p.cx + p.plan.w > 0 && p.cy + p.plan.h > 0 && p.cx < L.cols && p.cy < L.rows);
   // regions cut by the picture bottom with a street above: buildings top-aligned to their street, running
   // off the bottom edge (we see roofs and upper floors)
@@ -41,12 +41,12 @@ export function planNeighbours(L: Layout, r0: Rng): BlockPlan {
     const b = pickBuilding(r, 16, 9, 30, { modular: 2, single: 2 });
     let ok = !!b;
     if (b) for (let xx = x; xx < Math.min(L.cols, x + b.w); xx++) if (topRow.get(xx) !== y) ok = false;
-    if (b && ok) { placed.push({ plan: b, cx: x, cy: y }); x += b.w + r.weighted([[0, 3], [1, 2], [2, 1]] as const); } else x++;
+    if (b && ok) { placed.push({ plan: b, cx: x, cy: y, why: '邻近街区：画面下沿被裁切的地块，楼顶对齐街道、向下伸出画面（看到屋顶和上层）' }); x += b.w + r.choose('neigh.gap', {}, { weights: [[0, 3], [1, 2], [2, 1]] as const }); } else x++;
   }
   const yard = L.cls.map(row => row.map(() => false));
   const buildings: PlacedBuilding[] = placed.map(p => {
     const below = L.cls[p.cy + p.plan.h]?.[p.cx];
-    return { plan: p.plan, cx: p.cx, cy: p.cy, side: (below === 'nwalk' ? 'S' : 'N') as 'S' | 'N' };
+    return { plan: p.plan, cx: p.cx, cy: p.cy, side: (below === 'nwalk' ? 'S' : 'N') as 'S' | 'N', why: p.why };
   });
   return { buildings, zones: [], yard, hidden: yard, yb: new Map(), yt: new Map() };
 }

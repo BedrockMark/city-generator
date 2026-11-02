@@ -20,7 +20,7 @@ export interface PackOpts {
   pairChance?: number;
 }
 
-export interface Packed { plan: BuildingPlan; cx: number; cy: number }
+export interface Packed { plan: BuildingPlan; cx: number; cy: number; why: string }
 
 export function pack(o: PackOpts, r: Rng): { placed: Packed[]; yard: boolean[][] } {
   const { cols, rows } = o;
@@ -47,7 +47,7 @@ export function pack(o: PackOpts, r: Rng): { placed: Packed[]; yard: boolean[][]
     // a random free run in that row
     const runs: [number, number][] = [];
     for (let x = 0; x < cols; x++) { if (!free[yS][x]) continue; let e = x; while (e < cols && free[yS][e]) e++; runs.push([x, e]); x = e; }
-    const [a, b] = r.pick(runs);
+    const [a, b] = r.choose('pack.run', { row: yS }, runs);
     let x = a;
     while (x < b) {
       // extend the run through overflow on the right edge
@@ -58,24 +58,30 @@ export function pack(o: PackOpts, r: Rng): { placed: Packed[]; yard: boolean[][]
       let bp: BuildingPlan | null = null;
       if (rem >= 5 && avail >= (o.minH ?? 8)) {
         for (let t = 0; t < 8 && !bp; t++) {
+          const mk = r.mark();
           // fronts allowed here depend on what lies in front of the facade (street vs inner yard)
           const allow = o.frontFilter ? o.frontFilter(x, Math.min(rem, 7), yS) : null;
           const c = pickBuilding(r, rem, o.minH ?? 8, avail, o.mix, allow ?? undefined);
           if (c && fits(c, x, yS) && (!o.frontFilter || !o.frontFilter(x, c.w, yS) || o.frontFilter(x, c.w, yS)!.includes(c.front))) bp = c;
+          else r.reject(mk, 'building:slot');
         }
       }
       if (!bp) { yard[yS][x] = inside(x, yS); free[yS][x] = false; x++; continue; }
-      placed.push({ plan: bp, cx: x, cy: yS - bp.h + 1 }); mark(bp, x, yS);
+      const allowed = o.frontFilter ? o.frontFilter(x, bp.w, yS) : null;
+      placed.push({ plan: bp, cx: x, cy: yS - bp.h + 1, why: `打包：第 ${yS} 行是最低的空行，放在空段 ${a}–${b - 1} 的 x=${x} 处，底边对齐；${!o.frontFilter ? '' : allowed ? '立面不临街 → 只能是住宅；' : '立面临街 → 可为店铺；'}可用高度 ${avail} 格` });
+      mark(bp, x, yS);
       x += bp.w;
       // continuous facade: a second modular stack in the same colourway right next to it
       const m = bp.label.split('/');
-      if (m.length === 3 && r.chance(o.pairChance ?? 0.35)) {
+      if (m.length === 3 && r.choose('pack.pair', {}, { p: o.pairChance ?? 0.35 })) {
         // same colourway and height, but never the same storefront family twice in a row
+        const mk = r.mark();
         const b2 = modularStack(r, { colour: m[1] as 'red' | 'blue' | 'grey', floors: +m[2][0], avoidFamily: m[0] });
         const allow2 = o.frontFilter ? o.frontFilter(x, b2.w, yS) : null;
-        if (b2.h === bp.h && fits(b2, x, yS) && (!allow2 || allow2.includes(b2.front))) { placed.push({ plan: b2, cx: x, cy: yS - b2.h + 1 }); mark(b2, x, yS); x += b2.w; }
+        if (b2.h === bp.h && fits(b2, x, yS) && (!allow2 || allow2.includes(b2.front))) { placed.push({ plan: b2, cx: x, cy: yS - b2.h + 1, why: `连续立面：紧接 ${bp.id}（${bp.label}），同色同高，但底商换一家（D15）` }); mark(b2, x, yS); x += b2.w; }
+        else r.reject(mk, 'building:pair');
       }
-      const gap = r.weighted(o.gapAfter ?? [[0, 5], [1, 2], [2, 1]]);
+      const gap = r.choose('pack.gap', {}, { weights: o.gapAfter ?? [[0, 5], [1, 2], [2, 1]] });
       for (let g = 0; g < gap && x < b; g++, x++) { yard[yS][x] = true; free[yS][x] = false; }
     }
   }

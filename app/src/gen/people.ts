@@ -29,21 +29,21 @@ export function makePerson(r: Rng, role = 'citizen', o: { kid?: boolean } = {}):
   const L = CHARS.layers;
   const kid = o.kid ?? false;
   if (kid) {
-    const outfit = r.pick(L.Outfits_kids);
+    const outfit = r.choose('person.kidOutfit', { role }, L.Outfits_kids);
     const noHair = /pajama/.test(outfit);
-    return { kid, role, layers: [r.pick(L.Bodies_kids), r.pick(L.Eyes_kids), outfit, ...(noHair ? [] : [r.pick(L.Hairstyles_kids)])] };
+    return { kid, role, layers: [r.tex('person.body', L.Bodies_kids), r.tex('person.eyes', L.Eyes_kids), outfit, ...(noHair ? [] : [r.tex('person.hair', L.Hairstyles_kids)])] };
   }
-  let outfit = r.pick(CASUAL);
-  let acc: string | null = r.chance(0.28) ? r.pick(CASUAL_ACC) : null;
+  let outfit = r.choose('person.outfit', { role }, CASUAL);
+  let acc: string | null = r.choose('person.hasAccessory', { role }, { p: 0.28 }) ? r.choose('person.accessory', { role }, CASUAL_ACC) : null;
   const byGroup = (g: string) => L.Outfits.filter(f => outfitGroup(f) === g);
   const accBy = (rx: RegExp) => L.Accessories.filter(f => rx.test(f));
-  if (role === 'police') { outfit = r.pick(byGroup('29')); acc = r.pick(accBy(/Policeman_Hat/)); }
-  if (role === 'postman') { outfit = r.pick(byGroup('Postman')); acc = r.pick(accBy(/Postman/)); }
-  if (role === 'worker') { acc = r.pick(accBy(/Worker_Helmet|Worker_Jacket/)); }
-  if (role === 'chef') { acc = r.pick(accBy(/Chef/)); }
-  if (role === 'business') { outfit = r.pick([...byGroup('05'), ...byGroup('06'), ...byGroup('22'), ...byGroup('26'), ...byGroup('27')]); acc = r.chance(0.2) ? r.pick(accBy(/Glasses/)) : null; }
-  const hair = r.pick(L.Hairstyles);
-  const layers = [r.pick(L.Bodies), r.pick(L.Eyes), outfit, hair, ...(acc ? [acc] : [])];
+  if (role === 'police') { outfit = r.choose('person.roleOutfit', { role }, byGroup('29')); acc = r.choose('person.roleAccessory', { role }, accBy(/Policeman_Hat/)); }
+  if (role === 'postman') { outfit = r.choose('person.roleOutfit', { role }, byGroup('Postman')); acc = r.choose('person.roleAccessory', { role }, accBy(/Postman/)); }
+  if (role === 'worker') { acc = r.choose('person.roleAccessory', { role }, accBy(/Worker_Helmet|Worker_Jacket/)); }
+  if (role === 'chef') { acc = r.choose('person.roleAccessory', { role }, accBy(/Chef/)); }
+  if (role === 'business') { outfit = r.choose('person.roleOutfit', { role }, [...byGroup('05'), ...byGroup('06'), ...byGroup('22'), ...byGroup('26'), ...byGroup('27')]); acc = r.choose('person.hasAccessory', { role }, { p: 0.2 }) ? r.choose('person.roleAccessory', { role }, accBy(/Glasses/)) : null; }
+  const hair = r.tex('person.hair', L.Hairstyles);
+  const layers = [r.tex('person.body', L.Bodies), r.tex('person.eyes', L.Eyes), outfit, hair, ...(acc ? [acc] : [])];
   void accGroup;
   return { kid, role, layers };
 }

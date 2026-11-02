@@ -7,13 +7,48 @@
     html, body { margin: 0; height: 100%; background: #1d1d24; color: #ddd; font: 13px/1.4 system-ui, sans-serif; overflow: hidden; }
     #bar { position: fixed; top: 0; left: 0; right: 0; height: 40px; display: flex; gap: 8px; align-items: center; padding: 0 10px;
            background: #2a2a33; border-bottom: 1px solid #444; z-index: 10; }
+    #bar > * { white-space: nowrap; flex-shrink: 0; }
     #bar input[type=checkbox] { width: auto; }
-    #bar input:not([type=checkbox]) { width: 140px; background: #15151a; color: #eee; border: 1px solid #555; padding: 4px 6px; }
-    #bar button { background: #3b3b48; color: #eee; border: 1px solid #555; padding: 4px 10px; cursor: pointer; }
-    #bar button:hover { background: #4b4b5c; }
+    #bar input#seed { width: 110px; background: #15151a; color: #eee; border: 1px solid #555; padding: 4px 6px; }
+    #bar input[type=range] { width: 90px; vertical-align: middle; }
+    button { background: #3b3b48; color: #eee; border: 1px solid #555; padding: 4px 10px; cursor: pointer; font: inherit; }
+    button:hover { background: #4b4b5c; }
+    button.on { background: #5b4bd0; border-color: #8a7cff; }
     #bar .sep { width: 1px; height: 24px; background: #555; }
-    #info { margin-left: auto; color: #9a9aa8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45vw; }
+    #info { flex-shrink: 1 !important; min-width: 0; margin-left: auto; color: #9a9aa8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 32vw; }
     #game { position: fixed; top: 41px; left: 0; right: 0; bottom: 0; }
+    body.anno #game { right: 360px; }
+    #overlay { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 2; }
+    #expmenu { position: fixed; top: 42px; display: none; background: #2a2a33; border: 1px solid #555; padding: 8px 12px; z-index: 20; min-width: 260px; }
+    #expmenu.open { display: block; }
+    #expmenu label { display: block; margin: 3px 0; }
+    #side { position: fixed; top: 41px; right: 0; bottom: 0; width: 360px; background: #23232b; border-left: 1px solid #444; overflow-y: auto; display: none; z-index: 5; }
+    body.anno #side { display: block; }
+    #side section { padding: 8px 12px; border-bottom: 1px solid #383844; }
+    #side h3 { margin: 0 0 6px; font-size: 13px; color: #c8c8ff; }
+    #side .row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    #side .sw { display: inline-block; width: 10px; height: 10px; border: 1px solid #000; vertical-align: middle; margin-right: 4px; }
+    #side .legend label { display: inline-flex; align-items: center; width: 160px; font-size: 12px; cursor: pointer; }
+    #side .legend .cnt { color: #888; margin-left: 4px; }
+    #side .mini { font-size: 11px; color: #9a9aa8; }
+    #side .exp { color: #ff2bd6; font-weight: 600; }
+    #detail { min-height: 140px; }
+    #detail table { border-collapse: collapse; width: 100%; font-size: 12px; }
+    #detail td { padding: 2px 4px; vertical-align: top; border-bottom: 1px solid #30303a; word-break: break-all; }
+    #detail td:first-child { color: #9a9aa8; white-space: nowrap; width: 52px; }
+    #thumb { image-rendering: pixelated; max-width: 96px; max-height: 120px; background: #444 repeating-conic-gradient(#555 0 25%, #444 0 50%) 0 0/8px 8px; }
+    .char { position: relative; width: 32px; height: 64px; display: inline-block; }
+    .char div { position: absolute; left: 0; top: 0; width: 16px; height: 32px; transform: scale(2); transform-origin: 0 0; image-rendering: pixelated; }
+    .chip { display: inline-block; padding: 1px 7px; margin: 2px; border: 1px solid #555; border-radius: 10px; cursor: pointer; font-size: 12px; user-select: none; }
+    .chip.on { background: #555; border-color: #aaa; }
+    .good .chip.on { background: #1e6b37; border-color: #36d36b; }
+    .bad .chip.on { background: #7a1f1f; border-color: #ff4040; }
+    #lblText { width: 100%; box-sizing: border-box; background: #15151a; color: #eee; border: 1px solid #555; height: 48px; font: inherit; }
+    #lblList div { font-size: 12px; padding: 3px 0; border-bottom: 1px solid #30303a; cursor: pointer; }
+    #lblList div:hover { background: #2c2c36; }
+    #lblList .g { color: #36d36b; } #lblList .b { color: #ff4040; }
+    #lblList button { float: right; padding: 0 6px; font-size: 11px; }
+    #toast { position: fixed; bottom: 16px; left: 16px; background: #000c; padding: 6px 12px; border-radius: 4px; display: none; z-index: 30; }
   </style>
 </head>
 <body>
@@ -26,10 +61,40 @@
     <label><input type="checkbox" id="grid" /> 网格</label>
     <label title="楼的非碰撞部分（屋顶以上）半透明，显示楼后的内容 (G)"><input type="checkbox" id="ghost" /> 虚化楼上层</label>
     <span class="sep"></span>
-    <button id="export" title="下载 PNG(2x) + 虚化版 PNG + scene JSON (E)">导出截图</button>
+    <label title="创新度 0–1（0 = 完全保守）。随导出和标注记录；阶段 7 才影响生成">创新度 <input type="range" id="novelty" min="0" max="1" step="0.05" /> <span id="noveltyVal"></span></label>
+    <button id="expbtn" title="实验功能开关">实验 ▾</button>
+    <button id="anno" title="标注层：小组、区域、原因、好 / 坏标注 (A)">标注 (A)</button>
+    <span class="sep"></span>
+    <button id="export" title="下载 PNG(2x) + 虚化版 + 标注版 PNG + scene JSON (+ 标注 JSON) (E)">导出截图</button>
     <span id="info"></span>
   </div>
-  <div id="game"></div>
+  <div id="expmenu"></div>
+  <div id="game"><canvas id="overlay"></canvas></div>
+  <div id="side">
+    <section>
+      <h3>图层</h3>
+      <div class="row">
+        <label><input type="checkbox" id="lyGroups" checked /> 小组</label>
+        <label><input type="checkbox" id="lyZones" /> 区域（为什么空）</label>
+        <label><input type="checkbox" id="lyBuildings" /> 建筑外框</label>
+        <label><input type="checkbox" id="lyLabels" checked /> 我的标注</label>
+      </div>
+      <div class="mini">悬停看详情，单击固定（Esc 取消）；Shift+拖动框选区域；空白处单击 = “这里为什么是空的”。<br/>
+        <span class="exp">■ 粉色虚线 = 实验功能产物</span>　<span style="color:#00e5ff">■ 青色点线 = 新贴图</span></div>
+    </section>
+    <section class="legend"><h3>小组类型 <button id="grpAll" style="padding:0 6px;font-size:11px">全选</button> <button id="grpNone" style="padding:0 6px;font-size:11px">全不选</button></h3><div id="legendGroups"></div></section>
+    <section class="legend" id="zoneLegendSec" style="display:none"><h3>区域类型</h3><div id="legendZones"></div></section>
+    <section id="detail"><h3>详情</h3><div id="detailBody" class="mini">把鼠标移到物件、建筑或空地上。</div></section>
+    <section id="lblForm">
+      <h3>标注所选 <span id="lblTarget" class="mini"></span></h3>
+      <div class="row"><button id="lblGood">好 (1)</button><button id="lblBad">坏 (2)</button></div>
+      <div id="lblTags" style="margin:4px 0"></div>
+      <textarea id="lblText" placeholder="原因（可选）"></textarea>
+      <div class="row"><button id="lblSave">保存标注 (Ctrl+Enter)</button><span id="lblStore" class="mini"></span></div>
+    </section>
+    <section><h3>本图标注 <span id="lblCount" class="mini"></span></h3><div id="lblList"></div></section>
+  </div>
+  <div id="toast"></div>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

@@ -34,7 +34,64 @@ export interface Placed {
    *  the viewer's ghost mode draws that part translucent so what happens behind tall buildings is visible */
   solid?: number;
   cls: string;          // semantic class (tree, lamp, building, person ...)
-  group?: string;       // vignette / building id this element belongs to
+  // ---- explanation (stage 4); never read by the generator itself ----
+  /** object id within the scene ("o12"); stable for a given version + seed + options */
+  id?: string;
+  /** group type (bus, front, curb-trees, building ...) and group instance id (bus#0, front:b7, bld:b3) */
+  group?: string;
+  gid?: string;
+  /** one sentence: why this thing is here */
+  reason?: string;
+  /** what it is attached to (door, crossing, curb run, table ...) */
+  anchor?: Anchor;
+  /** id of the experimental feature that produced it (exp-03), if any */
+  exp?: string;
+  /** sprite chosen because it is rarely / never used (novelty, stage 7) */
+  novel?: boolean;
+}
+
+/** the thing a placement or group hangs off; (x, y) is the point the viewer draws the link line to */
+export interface Anchor { kind: 'door' | 'crossing' | 'curb' | 'zone' | 'yard' | 'road' | 'building' | 'object' | 'block' | 'slot'; ref: string; x: number; y: number }
+
+export interface PxRect { x0: number; y0: number; x1: number; y1: number }
+
+export interface GroupRec {
+  gid: string;
+  type: string;
+  /** trigger: why this group instance exists */
+  reason: string;
+  anchor?: Anchor;
+  exp?: string;
+  /** object ids, and the union of their opaque boxes (px) */
+  members: string[];
+  bbox?: PxRect;
+}
+
+export interface BuildingRec {
+  gid: string;
+  id: string;
+  label: string;
+  front: string;
+  block: 'main' | 'neigh';
+  /** S = facade on the street, N = facade on the courtyard */
+  side: 'S' | 'N';
+  /** whole sprite rect and the solid footprint (roof-sized, D16), px */
+  rect: PxRect;
+  solid: PxRect;
+  doors: { x: number; y: number }[];
+  /** why the packer put it here */
+  reason: string;
+}
+
+/** an area with a purpose: keep-clear zones (why it is empty), yard allocation, curb runs, carriageway */
+export interface ZoneRec {
+  id: string;
+  layer: 'keepclear' | 'yard' | 'curb' | 'road' | 'block';
+  kind: string;
+  rect: PxRect;
+  reason: string;
+  gid?: string;
+  exp?: string;
 }
 
 export interface Scene {
@@ -48,4 +105,20 @@ export interface Scene {
   objects: Placed[];
   cells: CellClass[][];
   notes: string[];
+  // ---- explanation (stage 4) ----
+  options?: GenOptions;
+  groups?: GroupRec[];
+  buildings?: BuildingRec[];
+  zones?: ZoneRec[];
+  /** random decision trace (rng.ts Trace) */
+  trace?: { decisions: unknown[]; streams: Record<string, unknown>; textures: Record<string, Record<string, number>>; unlabelled: number };
+}
+
+export interface GenOptions {
+  /** 0..1, 0 = fully conservative (stage 7; recorded with every export) */
+  novelty: number;
+  /** master switch for experimental features */
+  experiments: boolean;
+  /** per-feature switches (missing = registry default) */
+  exp: Record<string, boolean>;
 }

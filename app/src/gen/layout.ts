@@ -68,15 +68,15 @@ export function makeLayout(rng: Rng): Layout {
   const W = Math.max(18, Math.min(40, Math.round(Math.sqrt(area * aspect))));
   const H = Math.max(13, Math.min(28, Math.round(area / W)));
   // ---- widths (decided first: notch sizes depend on them) ----
-  const rH = r.weighted([[5, 5], [7, 2]] as const);         // horizontal roads (north/south)
-  const rV = r.weighted([[5, 4], [7, 2], [9, 1]] as const); // vertical roads (east/west)
-  const sw = r.weighted([[2, 3], [3, 2]] as const);
-  const sw2 = r.weighted([[2, 3], [3, 1]] as const);
+  const rH = r.choose('layout.roadH', {}, { weights: [[5, 5], [7, 2]] as const });         // horizontal roads (north/south)
+  const rV = r.choose('layout.roadV', {}, { weights: [[5, 4], [7, 2], [9, 1]] as const }); // vertical roads (east/west)
+  const sw = r.choose('layout.sidewalk', {}, { weights: [[2, 3], [3, 2]] as const });
+  const sw2 = r.choose('layout.sidewalkNeigh', {}, { weights: [[2, 3], [3, 1]] as const });
   // ---- shape ----
   //  rect  : plain rectangle
   //  jog   : one side steps inward by 2-4 cells -> the street there is offset (pure dilation follows it)
   //  notch : a corner is cut out and holds a small island block reached by a short street (T-junctions)
-  let shape: string = r.weighted([['rect', 3], ['notch', 4], ['jog', 3], ['notchjog', 1]] as const);
+  let shape: string = r.choose('layout.shape', { area, W, H }, { weights: [['rect', 3], ['notch', 4], ['jog', 3], ['notchjog', 1]] as const });
   const P = grid(H, W, true);
   const carve = (x0: number, y0: number, w: number, h: number) => {
     for (let y = Math.max(0, y0); y < Math.min(H, y0 + h); y++) for (let x = Math.max(0, x0); x < Math.min(W, x0 + w); x++) P[y][x] = false;
@@ -86,17 +86,17 @@ export function makeLayout(rng: Rng): Layout {
     const minW = sw + rV + 2 * sw2 + 2, minH = sw + rH + 2 * sw2 + 2;
     const maxW = Math.floor(W * 0.6), maxH = Math.floor(H * 0.7);
     if (minW > maxW || minH > maxH) shape = shape === 'notchjog' ? 'jog' : 'rect';
-    else { notchCorner = r.int(0, 3); const nw = r.int(minW, maxW), nh = r.int(minH, maxH);
+    else { notchCorner = r.choose('layout.notchCorner', {}, [0, 1, 2, 3]); const nw = r.int(minW, maxW), nh = r.int(minH, maxH);
       carve(notchCorner & 1 ? W - nw : 0, notchCorner & 2 ? H - nh : 0, nw, nh); }
   }
   if (shape === 'jog' || shape === 'notchjog') {
     // one side steps inward by k cells over a part of its length (not the notched corner's sides)
     const k = r.int(2, 4);
-    let side = r.int(0, 3);
+    let side = r.choose('layout.jogSide', {}, [0, 1, 2, 3]);
     if (notchCorner >= 0) side = (notchCorner & 2) ? 0 : 1;       // N(0) or S(1) side opposite to the notch
-    if (side < 2) { const t = r.int(Math.floor(W * 0.3), Math.floor(W * 0.7)); const left = notchCorner >= 0 ? !(notchCorner & 1) : r.chance(0.5);
+    if (side < 2) { const t = r.int(Math.floor(W * 0.3), Math.floor(W * 0.7)); const left = notchCorner >= 0 ? !(notchCorner & 1) : r.choose('layout.jogLeft', {}, { p: 0.5 });
       carve(left ? 0 : t, side === 0 ? 0 : H - k, left ? t : W - t, k); }
-    else { const t = r.int(Math.floor(H * 0.3), Math.floor(H * 0.7)); const top = r.chance(0.5);
+    else { const t = r.int(Math.floor(H * 0.3), Math.floor(H * 0.7)); const top = r.choose('layout.jogTop', {}, { p: 0.5 });
       carve(side === 2 ? 0 : W - k, top ? 0 : t, k, top ? t : H - t); }
   }
   // ---- margins & placement ----
@@ -164,8 +164,8 @@ export function makeLayout(rng: Rng): Layout {
         if (cls[ny][nx] === 'nlot' || cls[ny][nx] === 'nwalk') { region[ny][nx] = nreg; st.push([nx, ny]); } } }
     nreg++;
   }
-  const mainStyle = r.pick(SIDEWALK_STYLES);
-  const regionStyle = Array.from({ length: nreg }, () => r.pick(SIDEWALK_STYLES));
+  const mainStyle = r.choose('layout.mainPaving', {}, SIDEWALK_STYLES);
+  const regionStyle = Array.from({ length: nreg }, (_, i) => r.choose('layout.neighPaving', { region: i }, SIDEWALK_STYLES));
   const L: Layout = { cols, rows, cls, inP, bx0: ox, by0: oy, bx1: ox + W, by1: oy + H, rH, rV, sw, sw2, roadDist: chebDist(road), shape, region, regionStyle,
     mainStyle, segs: [], crossings: [], base: grid<TileRef | null>(rows, cols, null), over: grid<TileRef | null>(rows, cols, null),
     mark: grid(rows, cols, '') };
@@ -213,11 +213,11 @@ export function paintWalkCell(L: Layout, x: number, y: number) {
   L.base[y][x] = canon(m) === 255 ? slab(style, x, y) : autotile(style, m);
 }
 
-export function asphalt(r: Rng): TileRef { return r.weighted(ASPHALT); }
+export function asphalt(r: Rng): TileRef { return r.tex('asphalt', { weights: ASPHALT }); }
 
 function paintGround(L: Layout, r: Rng) {
   for (let y = 0; y < L.rows; y++) for (let x = 0; x < L.cols; x++) {
-    if (L.cls[y][x] === 'road') L.base[y][x] = r.weighted(ASPHALT);
+    if (L.cls[y][x] === 'road') L.base[y][x] = r.tex('asphalt', { weights: ASPHALT });
     else paintWalkCell(L, x, y);
   }
   roadMarkings(L, r);
@@ -276,8 +276,8 @@ function roadMarkings(L: Layout, r: Rng) {
   for (const c of cands) byKey.set(c.key, [...(byKey.get(c.key) ?? []), c]);
   for (const group of byKey.values()) {
     const main = group.some(c => c.main);
-    const k = main ? r.weighted([[0, 1], [1, 4], [2, 3]] as const) : r.weighted([[0, 5], [1, 4], [2, 1]] as const);
-    r.shuffle(group).sort((p, q) => +q.main - +p.main);
+    const k = r.choose('crossing.count', { main }, { weights: main ? [[0, 1], [1, 4], [2, 3]] as const : [[0, 5], [1, 4], [2, 1]] as const });
+    r.order('crossing.order', { main }, group).sort((p, q) => +q.main - +p.main);
     for (const c of group.slice(0, k)) {
       const sg = c.s;
       L.crossings.push({ axis: sg.axis, band0: sg.band0, band1: sg.band1, at: c.at });

@@ -1,25 +1,29 @@
 // Top-level generator: seed -> Scene.
-import { Rng } from './rng';
+import { Rng, Trace } from './rng';
 import { makeLayout } from './layout';
 import { planMainBlock, emitBuildings } from './block';
 import { planNeighbours } from './neighbours';
 import { SceneBuilder } from './place';
 import { resetIds } from './buildings';
+import { explainGround } from './explain';
 import { curbRuns, reserveWalkways, crossingVignettes, curbStrips, frontVignettes, zoneVignettes, islandSquares, busStop, cars, roadDetails, walkers } from './vignettes';
 import { yardSpaces } from './yard';
-import { SHEETS, TILE, type Scene } from './types';
+import { SHEETS, TILE, type Scene, type GenOptions } from './types';
+import { withDefaults } from './exp';
 
-export const VERSION = '0.3.0';
+export const VERSION = '0.4.0';
 
-export function generate(seed: string): Scene {
+export function generate(seed: string, options: Partial<GenOptions> = {}): Scene {
+  const opts = withDefaults(options);
   resetIds();
-  const rng = new Rng(seed);
+  const trace = new Trace(seed);
+  const rng = new Rng(seed, trace);
   const L = makeLayout(rng);
   const sb = new SceneBuilder(L.cols, L.rows, L.cls);
   const main = planMainBlock(L, rng);
   const neigh = planNeighbours(L, rng);
-  emitBuildings(L, main, sb);
-  emitBuildings(L, neigh, sb);
+  emitBuildings(L, main, sb, 'main');
+  emitBuildings(L, neigh, sb, 'neigh');
   // yard spaces first: parking driveways cut the curb, which changes the curb runs
   yardSpaces(L, main, sb, rng.fork('yard'));
   const runs = curbRuns(L);
@@ -35,11 +39,14 @@ export function generate(seed: string): Scene {
   cars(L, sb, rng.fork('cars'), runs);
   roadDetails(L, sb, rng.fork('road'));
   walkers(L, sb, rng.fork('walk'), runs);
+  explainGround(L, sb, runs);
+  sb.finish();
   return {
     version: VERSION, seed,
     params: { shape: L.shape, interior: [L.bx1 - L.bx0, L.by1 - L.by0], roads: { h: L.rH, v: L.rV }, sidewalk: L.sw,
       buildings: main.buildings.map(b => b.plan.label) },
     cols: L.cols, rows: L.rows, tile: TILE, sheets: SHEETS,
     ground: [L.base, L.over], objects: sb.objects, cells: L.cls, notes: [],
+    options: opts, groups: [...sb.groups.values()], buildings: sb.buildings, zones: sb.zones, trace: trace.toJSON(),
   };
 }

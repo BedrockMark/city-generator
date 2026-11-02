@@ -10,7 +10,7 @@ export interface BuildingPlan {
   w: number; h: number;                    // cells (full sprite rect)
   /** footprint depth in cells (bottom rows of the sprite rect); the rows above are ground hidden behind the building */
   foot: number;
-  parts: { key: string; dx: number; dy: number; sub: number }[];   // px offsets from top-left
+  parts: { key: string; dx: number; dy: number; sub: number; role: 'roof' | 'mid' | 'ground' | 'whole' }[];   // px offsets from top-left
   doors: number[];                         // door centre x offsets (px) on the bottom edge
   front: FrontKind;
   tall: boolean;
@@ -34,26 +34,26 @@ let nextId = 0;
 
 /** roof + n middle floors + ground floor, one colourway; ground-floor sign may overhang the floor above */
 export function modularStack(r: Rng, opts: { floors?: number; front?: FrontKind; colour?: 'red' | 'blue' | 'grey'; avoidFamily?: string } = {}): BuildingPlan {
-  const colour = opts.colour ?? r.pick(['red', 'blue', 'grey'] as const);
+  const colour = opts.colour ?? r.choose('bld.colour', {}, ['red', 'blue', 'grey'] as const);
   const famPool = GF_FAMILIES.filter(f => (!opts.front || f.front === opts.front || (opts.front === 'closed' && f.front === 'retail')) && !(opts.avoidFamily && f.fam.endsWith(opts.avoidFamily)));
-  const fam = r.weighted((famPool.length ? famPool : GF_FAMILIES).map(f => [f, f.w] as const));
+  const fam = r.choose('bld.groundFloor', { front: opts.front ?? 'any' }, { weights: (famPool.length ? famPool : GF_FAMILIES).map(f => [f, f.w] as const) });
   const gfAll = pieces(fam.fam, colour);
   // odd variants are open storefronts, even ones shuttered (verified on the contact sheets)
-  const wantClosed = opts.front === 'closed' || (fam.front !== 'condo' && r.chance(0.15));
+  const wantClosed = opts.front === 'closed' || (fam.front !== 'condo' && r.choose('bld.shuttered', { fam: fam.fam }, { p: 0.15 }));
   const gfPool = gfAll.filter(p => fam.front === 'condo' || ((p.v % 2 === 0) === wantClosed));
-  const gf = r.pick(gfPool.length ? gfPool : gfAll);
-  const floors = opts.floors ?? r.weighted([[0, 2], [1, 4], [2, 3], [3, 1]] as const);
-  const mids = Array.from({ length: floors }, () => r.pick(pieces('Middle_Floor', colour)));
+  const gf = r.choose('bld.groundFloorVariant', { fam: fam.fam }, gfPool.length ? gfPool : gfAll);
+  const floors = opts.floors ?? r.choose('bld.floors', {}, { weights: [[0, 2], [1, 4], [2, 3], [3, 1]] as const });
+  const mids = Array.from({ length: floors }, () => r.choose('bld.middleFloor', { colour }, pieces('Middle_Floor', colour)));
   // repeat the same middle floor most of the time (as in the refs), sometimes mix
-  if (floors > 1 && r.chance(0.6)) mids.fill(mids[0]);
-  const roof = r.pick(pieces('Roof'));
+  if (floors > 1 && r.choose('bld.sameMiddle', { floors }, { p: 0.6 })) mids.fill(mids[0]);
+  const roof = r.choose('bld.roof', {}, pieces('Roof'));
   const roofH = spr(roof.key).h / TILE;
   const parts: BuildingPlan['parts'] = [];
   let y = 0, sub = 0;
-  parts.push({ key: roof.key, dx: 0, dy: y, sub: sub++ }); y += roofH * TILE;
-  for (const m of mids) { parts.push({ key: m.key, dx: 0, dy: y, sub: sub++ }); y += 4 * TILE; }
+  parts.push({ key: roof.key, dx: 0, dy: y, sub: sub++, role: 'roof' }); y += roofH * TILE;
+  for (const m of mids) { parts.push({ key: m.key, dx: 0, dy: y, sub: sub++, role: 'mid' }); y += 4 * TILE; }
   const gfS = spr(gf.key);
-  parts.push({ key: gf.key, dx: 0, dy: y - (gfS.h - 3 * TILE), sub: sub++ });
+  parts.push({ key: gf.key, dx: 0, dy: y - (gfS.h - 3 * TILE), sub: sub++, role: 'ground' });
   y += 3 * TILE;
   const front: FrontKind = fam.front === 'condo' ? 'condo' : wantClosed ? 'closed' : fam.front;
   // footprint = roof size: in this 3/4 view the roof is the building's plan
@@ -78,10 +78,10 @@ const SINGLES: { key: string; front: FrontKind; doors: number[]; weight: number 
 
 export function singleBuilding(r: Rng, filter?: (s: typeof SINGLES[number]) => boolean): BuildingPlan {
   const pool = SINGLES.filter(s => hasSprite(s.key) && (!filter || filter(s)));
-  const s = r.weighted(pool.map(p => [p, p.weight] as const));
+  const s = r.choose('bld.single', {}, { weights: pool.map(p => [p, p.weight] as const) });
   const sp = spr(s.key);
   const h = sp.h / TILE;
-  return { id: `b${nextId++}`, w: sp.w / TILE, h, foot: Math.max(3, Math.min(h - 2, Math.round(h * 0.5))), parts: [{ key: s.key, dx: 0, dy: 0, sub: 0 }],
+  return { id: `b${nextId++}`, w: sp.w / TILE, h, foot: Math.max(3, Math.min(h - 2, Math.round(h * 0.5))), parts: [{ key: s.key, dx: 0, dy: 0, sub: 0, role: 'whole' }],
     doors: s.doors.map(d => d * TILE), front: s.front, tall: sp.h / TILE >= 14, label: s.key.split('/')[1] };
 }
 
@@ -90,11 +90,13 @@ export function singleBuilding(r: Rng, filter?: (s: typeof SINGLES[number]) => b
 export function pickBuilding(r: Rng, maxW: number, minH: number, maxH: number, mix: { modular: number; single: number }, fronts?: FrontKind[]): BuildingPlan | null {
   const resOnly = fronts && fronts.every(f => f === 'condo' || f === 'house');
   for (let tries = 0; tries < 40; tries++) {
-    const floors = maxH < 13 ? 0 : maxH < 17 ? r.weighted([[0, 2], [1, 4]] as const) : r.weighted([[0, 1], [1, 4], [2, 3], [3, 1]] as const);
-    const b = r.weighted([['m', mix.modular], ['s', mix.single]] as const) === 'm'
+    const m = r.mark();
+    const floors = maxH < 13 ? 0 : r.choose('bld.floorsFit', { maxH }, { weights: maxH < 17 ? [[0, 2], [1, 4]] as const : [[0, 1], [1, 4], [2, 3], [3, 1]] as const });
+    const b = r.choose('bld.modularOrSingle', { resOnly: !!resOnly }, { weights: [['m', mix.modular], ['s', mix.single]] as const }) === 'm'
       ? modularStack(r, { floors, front: resOnly ? 'condo' : undefined })
       : singleBuilding(r, fronts ? s => fronts.includes(s.front) : undefined);
     if (b.w <= maxW && b.h <= maxH && b.h >= minH && (!fronts || fronts.includes(b.front))) return b;
+    r.reject(m, 'building:size');
   }
   return null;
 }
