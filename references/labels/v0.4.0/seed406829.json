@@ -1,0 +1,169 @@
+{
+ "version": "0.4.0",
+ "seed": "406829",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-03T01:44:33.453Z",
+   "version": "0.4.0",
+   "seed": "406829",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {}
+   },
+   "scene": "seed406829.scene.json",
+   "verdict": "good",
+   "tags": [
+    "有特色"
+   ],
+   "text": "很有趣的广场，让人眼前一亮，可以放在正中央/偏上作为整个街区的重点，这样前面可以有一个大留白",
+   "target": {
+    "kind": "object",
+    "rect": {
+     "x0": 338,
+     "y0": 421,
+     "x1": 447,
+     "y1": 609
+    },
+    "objects": [
+     {
+      "id": "o82",
+      "key": "3_City_Props/Kiosk_Icecream",
+      "cls": "kiosk",
+      "gid": "plaza#0",
+      "x": 335,
+      "y": 417
+     }
+    ],
+    "gids": [
+     "plaza#0"
+    ],
+    "zones": [
+     "k2",
+     "z2",
+     "z4",
+     "z7",
+     "z8",
+     "z13"
+    ]
+   }
+  },
+  {
+   "id": "L2",
+   "created": "2026-11-03T01:44:44.005Z",
+   "version": "0.4.0",
+   "seed": "406829",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {}
+   },
+   "scene": "seed406829.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "位置不合理",
+    "太挤"
+   ],
+   "text": "",
+   "target": {
+    "kind": "building",
+    "rect": {
+     "x0": 320,
+     "y0": 272,
+     "x1": 432,
+     "y1": 560
+    },
+    "objects": [
+     {
+      "id": "o2",
+      "key": "5_Floor_Modular_Building/Roof_11",
+      "cls": "building",
+      "gid": "bld:b2",
+      "x": 320,
+      "y": 272
+     },
+     {
+      "id": "o3",
+      "key": "5_Floor_Modular_Building/Middle_Floor_12",
+      "cls": "building",
+      "gid": "bld:b2",
+      "x": 320,
+      "y": 384
+     },
+     {
+      "id": "o4",
+      "key": "5_Floor_Modular_Building/Middle_Floor_12",
+      "cls": "building",
+      "gid": "bld:b2",
+      "x": 320,
+      "y": 448
+     },
+     {
+      "id": "o5",
+      "key": "5_Floor_Modular_Building/Ground_Floor_Condo_5",
+      "cls": "building",
+      "gid": "bld:b2",
+      "x": 320,
+      "y": 512
+     }
+    ],
+    "gids": [
+     "bld:b2"
+    ],
+    "zones": [
+     "z7",
+     "z8",
+     "z10",
+     "z11",
+     "z12"
+    ]
+   }
+  },
+  {
+   "id": "L3",
+   "created": "2026-11-03T01:45:24.030Z",
+   "version": "0.4.0",
+   "seed": "406829",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {}
+   },
+   "scene": "seed406829.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "没有存在理由"
+   ],
+   "text": "看不清是什么，换一些素材",
+   "target": {
+    "kind": "object",
+    "rect": {
+     "x0": 528,
+     "y0": 628,
+     "x1": 541,
+     "y1": 634
+    },
+    "objects": [
+     {
+      "id": "o89",
+      "key": "3_City_Props/Shrub_3",
+      "cls": "plant",
+      "gid": "front:b1",
+      "x": 527,
+      "y": 624
+     }
+    ],
+    "gids": [
+     "front:b1"
+    ],
+    "zones": [
+     "z20"
+    ]
+   }
+  }
+ ]
+}

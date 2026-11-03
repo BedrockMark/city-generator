@@ -78,6 +78,7 @@ export class SceneBuilder {
     if (!o.force && !this.free(fp, { ignoreClear: o.ignoreClear, pad: o.pad })) return null;
     if (o.walk && !this.onWalk(fp)) return null;
     const p: Placed = { kind: 'sprite', key, file: s.file, x, y, w: s.w, h: s.h, foot: o.foot ?? (y + s.bb[3]), sub: o.sub ?? this.seq++, cls, ...this.explain(o) };
+    if (o.occupy !== false) p.fp = { ...fp };
     this.objects.push(p);
     if (o.occupy !== false) this.feet.push({ r: fp, cls });
     return p;
@@ -99,7 +100,7 @@ export class SceneBuilder {
     const x = fx - 8, y = fy - 30;
     const fp = rect(x + 4, fy - 5, x + 12, fy + 1);
     if (!o.force && !this.free(fp, { ignoreClear: true })) return null;
-    const p: Placed = { kind: 'char', key: layers[2] ?? layers[0], file: '', layers, frame, x, y, w: 16, h: 32, foot: fy, sub: this.seq++, cls: 'person:' + role, ...this.explain(o) };
+    const p: Placed = { kind: 'char', key: layers[2] ?? layers[0], file: '', layers, frame, x, y, w: 16, h: 32, foot: fy, sub: this.seq++, cls: 'person:' + role, ...this.explain(o), fp: { ...fp } };
     this.objects.push(p);
     this.feet.push({ r: fp, cls: 'person' });
     return p;

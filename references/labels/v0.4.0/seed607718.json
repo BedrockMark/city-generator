@@ -1,0 +1,121 @@
+{
+ "version": "0.4.0",
+ "seed": "607718",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-03T01:41:10.370Z",
+   "version": "0.4.0",
+   "seed": "607718",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {}
+   },
+   "scene": "seed607718.scene.json",
+   "verdict": "good",
+   "tags": [
+    "布局合理"
+   ],
+   "text": "合理打断了很长的绿地带，供人走过",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 320,
+     "y0": 400,
+     "x1": 336,
+     "y1": 416
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "k12",
+     "z1"
+    ]
+   }
+  },
+  {
+   "id": "L2",
+   "created": "2026-11-03T01:41:33.563Z",
+   "version": "0.4.0",
+   "seed": "607718",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {}
+   },
+   "scene": "seed607718.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "没有存在理由"
+   ],
+   "text": "",
+   "target": {
+    "kind": "object",
+    "rect": {
+     "x0": 163,
+     "y0": 158,
+     "x1": 205,
+     "y1": 222
+    },
+    "objects": [
+     {
+      "id": "o81",
+      "key": "3_City_Props/Tree_13",
+      "cls": "tree",
+      "gid": "island#0",
+      "x": 160,
+      "y": 158
+     }
+    ],
+    "gids": [
+     "island#0"
+    ],
+    "zones": [
+     "k22",
+     "k37",
+     "k46",
+     "k60",
+     "z6",
+     "z16",
+     "z31"
+    ]
+   }
+  },
+  {
+   "id": "L3",
+   "created": "2026-11-03T01:42:23.247Z",
+   "version": "0.4.0",
+   "seed": "607718",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {}
+   },
+   "scene": "seed607718.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "不通向任何地方"
+   ],
+   "text": "整条小路向上移动一点，在大楼后通路就会很好",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 512,
+     "y0": 256,
+     "x1": 528,
+     "y1": 272
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "k11",
+     "z0"
+    ]
+   }
+  }
+ ]
+}

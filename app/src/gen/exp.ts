@@ -21,7 +21,7 @@ export const EXPERIMENTS: Experiment[] = [
   // none yet: the first requested experimental feature becomes exp-01
 ];
 
-export const DEFAULT_OPTIONS: GenOptions = { novelty: 0.1, experiments: true, exp: {} };
+export const DEFAULT_OPTIONS: GenOptions = { novelty: 0.1, experiments: true, exp: {}, prune: true, pruneDraft: false };
 
 export function withDefaults(o: Partial<GenOptions> = {}): GenOptions {
   return { ...DEFAULT_OPTIONS, ...o, exp: { ...DEFAULT_OPTIONS.exp, ...(o.exp ?? {}) } };

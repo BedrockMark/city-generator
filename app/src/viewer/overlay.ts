@@ -12,7 +12,7 @@ export type Sel =
   | { kind: 'point'; x: number; y: number };
 
 export interface OverlayState {
-  layers: { groups: boolean; zones: boolean; buildings: boolean; labels: boolean };
+  layers: { groups: boolean; zones: boolean; buildings: boolean; labels: boolean; audit: boolean };
   hiddenTypes: Set<string>;
   hiddenZones: Set<string>;
   ghost: boolean;
@@ -26,6 +26,8 @@ export interface OverlayState {
 export const EXP_COLOR = '#ff2bd6';
 export const NOVEL_COLOR = '#00e5ff';
 const GOOD = '#36d36b', BAD = '#ff4040';
+const AUDIT_BAD = '#e53935', AUDIT_DOWN = '#8e24aa';
+const grow = (r: PxRect, d: number): PxRect => ({ x0: r.x0 - d, y0: r.y0 - d, x1: r.x1 + d, y1: r.y1 + d });
 
 const TYPE_COLORS: Record<string, string> = {
   bld: '#b0b0b0', front: '#ff9800', forecourt: '#ffb74d', bus: '#2196f3', crossing: '#f5f5f5',
@@ -156,6 +158,32 @@ export function drawOverlay(ctx: CanvasRenderingContext2D, sc: Scene, v: View, s
     for (const o of sc.objects) {
       if (o.exp && !(o.gid && groups.get(o.gid)?.exp)) box(objBox(o), EXP_COLOR, 2.5, [6, 3]);
       if (o.novel) { const b = objBox(o); box(b, NOVEL_COLOR, 2, [2, 2]); tag('新', X(b.x1) - 4, Y(b.y0), NOVEL_COLOR); }
+    }
+  }
+
+  // ---- stage 5: constraint audit ----
+  const au = sc.audit;
+  if (st.layers.audit && au) {
+    for (const d of au.downgraded) {
+      box(d.rect, AUDIT_DOWN, 2.5, [6, 3]);
+      ctx.globalAlpha = 0.15; ctx.fillStyle = AUDIT_DOWN; ctx.fillRect(...R(d.rect)); ctx.globalAlpha = 1;
+      tag(`降级 ${d.c}`, X(d.rect.x0), Y(d.rect.y0), AUDIT_DOWN, '#fff');
+    }
+    for (const g of au.regrounded ?? []) {
+      box(g.rect, '#26a69a', 2, [5, 3]);
+      tag(`${g.what === 'lawn' ? '改草坪' : g.what === 'pave' ? '补路' : '揭草坪'} ${g.c}`, X(g.rect.x0), Y(g.rect.y1) + font + 2, '#26a69a', '#fff');
+    }
+    for (const p of au.pruned) {
+      const b = { x0: p.x, y0: p.y, x1: p.x + p.w, y1: p.y + p.h };
+      const r = hasSprite(p.key) ? (() => { const bb = spr(p.key).bb; return { x0: p.x + bb[0], y0: p.y + bb[1], x1: p.x + bb[2], y1: p.y + bb[3] }; })() : b;
+      box(r, '#bdbdbd', 1.5, [3, 2]);
+      ctx.strokeStyle = '#bdbdbd'; ctx.lineWidth = 1.5; ctx.beginPath();
+      ctx.moveTo(X(r.x0), Y(r.y0)); ctx.lineTo(X(r.x1), Y(r.y1)); ctx.moveTo(X(r.x1), Y(r.y0)); ctx.lineTo(X(r.x0), Y(r.y1)); ctx.stroke();
+      if (v.s >= 2) tag(`删 ${p.c}`, X(r.x0), Y(r.y0), '#bdbdbd');
+    }
+    for (const vi of au.violations) {
+      box(grow(vi.rect, 1), AUDIT_BAD, 2, [4, 2]);
+      tag(vi.c, X(vi.rect.x0), Y(vi.rect.y0), AUDIT_BAD, '#fff');
     }
   }
 

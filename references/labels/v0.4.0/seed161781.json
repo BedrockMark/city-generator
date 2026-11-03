@@ -1,0 +1,40 @@
+{
+ "version": "0.4.0",
+ "seed": "161781",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-03T01:52:05.284Z",
+   "version": "0.4.0",
+   "seed": "161781",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {}
+   },
+   "scene": "seed161781.scene.json",
+   "verdict": "good",
+   "tags": [
+    "关系合理 / 有叙事",
+    "有特色"
+   ],
+   "text": "店家后有小公园是一个好选项，修复楼后生成问题后和右侧的公园合并就更好了",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 464,
+     "y0": 304,
+     "x1": 480,
+     "y1": 320
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "k13",
+     "z0"
+    ]
+   }
+  }
+ ]
+}

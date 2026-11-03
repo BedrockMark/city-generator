@@ -377,7 +377,8 @@ export function islandSquares(L: Layout, neigh: BlockPlan, sb: SceneBuilder, r: 
     const cw = '小广场的中心物';
     if (centre === 'kiosk') sb.putFoot(rr.choose('island.kioskModel', {}, [C + 'Kiosk_Infopoint_1', C + 'Kiosk_Coffee_Cup', C + 'Kiosk_Icecream', C + 'Kiosk_Mushroom'].filter(hasSprite)), cx, cy + 22, 'kiosk', { gid, why: cw, ignoreClear: true });
     if (centre === 'fountain') sb.putFoot(rr.choose('island.fountainModel', {}, variants(C + 'Fountain')), cx, cy + 14, 'utility', { gid, why: cw, ignoreClear: true });
-    if (centre === 'billboard') sb.putFoot(rr.choose('island.billboardModel', {}, variants(C + 'Billboard', [2, 3, 5, 6, 7, 8])), cx, cy + 30, 'info_sign', { gid, why: cw, ignoreClear: true });
+    // billboard centred on the island (its picture, not its foot; user label 941983 L3)
+    if (centre === 'billboard') { const k = rr.choose('island.billboardModel', {}, variants(C + 'Billboard', [2, 3, 5, 6, 7, 8])); sb.putFoot(k, cx, cy + Math.round((spr(k).bb[3] - spr(k).bb[1]) / 2), 'info_sign', { gid, why: cw, ignoreClear: true }); }
     if (centre === 'tree') sb.putFoot(C + 'Tree_13', cx, cy + 16, 'tree', { gid, why: cw, ignoreClear: ['walkway'] });
     for (const sx of [-1, 1]) if (rr.choose('island.sideTree', {}, { p: 0.7 })) sb.putFoot(rr.choose('island.sideTreeModel', {}, [C + 'Tree_11', C + 'Tree_13']), cx + sx * ((x1 - x0) / 2 - 1.5) * T, cy + rr.int(-8, 16), 'tree', { gid, why: '小广场两侧的树，局部对称', ignoreClear: ['walkway'] });
     if (rr.choose('island.bench', {}, { p: 0.7 })) sb.putFoot(C + 'Bench_2', cx + rr.int(-20, 20), y1 * T - 10, 'bench', { gid, why: '小广场南边的长椅，面朝观众一侧的街道', ignoreClear: ['walkway'] });

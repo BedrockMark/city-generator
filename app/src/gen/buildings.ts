@@ -57,7 +57,9 @@ export function modularStack(r: Rng, opts: { floors?: number; front?: FrontKind;
   y += 3 * TILE;
   const front: FrontKind = fam.front === 'condo' ? 'condo' : wantClosed ? 'closed' : fam.front;
   // footprint = roof size: in this 3/4 view the roof is the building's plan
-  return { id: `b${nextId++}`, w: 7, h: y / TILE, foot: Math.min(roofH, y / TILE), parts, doors: [fam.door * TILE], front, tall: floors >= 2,
+  // condo ground floors: odd variants have the door at 5 cells, even ones at 3.5 (measured; user label 684358 L2)
+  const door = fam.front === 'condo' && gf.v % 2 === 1 ? 5 : fam.door;
+  return { id: `b${nextId++}`, w: 7, h: y / TILE, foot: Math.min(roofH, y / TILE), parts, doors: [door * TILE], front, tall: floors >= 2,
     label: `${fam.fam.replace('Ground_Floor_', '')}/${colour}/${floors}f` };
 }
 

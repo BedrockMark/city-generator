@@ -48,6 +48,8 @@ export interface Placed {
   exp?: string;
   /** sprite chosen because it is rarely / never used (novelty, stage 7) */
   novel?: boolean;
+  /** ground footprint (px) the placement occupied; absent for things that do not stand on the ground */
+  fp?: PxRect;
 }
 
 /** the thing a placement or group hangs off; (x, y) is the point the viewer draws the link line to */
@@ -110,6 +112,8 @@ export interface Scene {
   groups?: GroupRec[];
   buildings?: BuildingRec[];
   zones?: ZoneRec[];
+  /** stage 5: constraint audit and rationalising repairs (rational/rationalize.ts Audit) */
+  audit?: import('./rational/rationalize').Audit;
   /** random decision trace (rng.ts Trace) */
   trace?: { decisions: unknown[]; streams: Record<string, unknown>; textures: Record<string, Record<string, number>>; unlabelled: number };
 }
@@ -121,4 +125,8 @@ export interface GenOptions {
   experiments: boolean;
   /** per-feature switches (missing = registry default) */
   exp: Record<string, boolean>;
+  /** stage 5: repair with the confirmed (active) constraints */
+  prune: boolean;
+  /** stage 5 preview: also repair with the draft constraints */
+  pruneDraft: boolean;
 }

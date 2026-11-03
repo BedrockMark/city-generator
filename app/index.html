@@ -63,6 +63,7 @@
     <span class="sep"></span>
     <label title="创新度 0–1（0 = 完全保守）。随导出和标注记录；阶段 7 才影响生成">创新度 <input type="range" id="novelty" min="0" max="1" step="0.05" /> <span id="noveltyVal"></span></label>
     <button id="expbtn" title="实验功能开关">实验 ▾</button>
+    <label title="阶段 5：把草案约束也当作生效，预览剪枝 / 降级的效果（URL pd=1）"><input type="checkbox" id="pruneDraft" /> 修复预览</label>
     <button id="anno" title="标注层：小组、区域、原因、好 / 坏标注 (A)">标注 (A)</button>
     <span class="sep"></span>
     <button id="export" title="下载 PNG(2x) + 虚化版 + 标注版 PNG + scene JSON (+ 标注 JSON) (E)">导出截图</button>
@@ -78,6 +79,7 @@
         <label><input type="checkbox" id="lyZones" /> 区域（为什么空）</label>
         <label><input type="checkbox" id="lyBuildings" /> 建筑外框</label>
         <label><input type="checkbox" id="lyLabels" checked /> 我的标注</label>
+        <label title="阶段 5：约束违规（红）、被剪掉的物件（灰虚框）、降级的区域（紫）、走不到街上的门（红点）"><input type="checkbox" id="lyAudit" checked /> 约束</label>
       </div>
       <div class="mini">悬停看详情，单击固定（Esc 取消）；Shift+拖动框选区域；空白处单击 = “这里为什么是空的”。<br/>
         <span class="exp">■ 粉色虚线 = 实验功能产物</span>　<span style="color:#00e5ff">■ 青色点线 = 新贴图</span></div>

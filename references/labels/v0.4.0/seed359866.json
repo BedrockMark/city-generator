@@ -1,0 +1,96 @@
+{
+ "version": "0.4.0",
+ "seed": "359866",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-03T01:53:41.667Z",
+   "version": "0.4.0",
+   "seed": "359866",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {}
+   },
+   "scene": "seed359866.scene.json",
+   "verdict": "good",
+   "tags": [
+    "有特色"
+   ],
+   "text": "",
+   "target": {
+    "kind": "object",
+    "rect": {
+     "x0": 357,
+     "y0": 295,
+     "x1": 443,
+     "y1": 431
+    },
+    "objects": [
+     {
+      "id": "o61",
+      "key": "3_City_Props/Kiosk_Coffee_Cup",
+      "cls": "kiosk",
+      "gid": "plaza#0",
+      "x": 350,
+      "y": 287
+     }
+    ],
+    "gids": [
+     "plaza#0"
+    ],
+    "zones": [
+     "z0",
+     "z4",
+     "z7"
+    ]
+   }
+  },
+  {
+   "id": "L2",
+   "created": "2026-11-03T01:53:50.717Z",
+   "version": "0.4.0",
+   "seed": "359866",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {}
+   },
+   "scene": "seed359866.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "太挤"
+   ],
+   "text": "",
+   "target": {
+    "kind": "object",
+    "rect": {
+     "x0": 428,
+     "y0": 428,
+     "x1": 470,
+     "y1": 492
+    },
+    "objects": [
+     {
+      "id": "o74",
+      "key": "3_City_Props/Tree_13",
+      "cls": "tree",
+      "gid": "curb-trees:run4",
+      "x": 425,
+      "y": 428
+     }
+    ],
+    "gids": [
+     "curb-trees:run4"
+    ],
+    "zones": [
+     "k14",
+     "z7",
+     "z12"
+    ]
+   }
+  }
+ ]
+}

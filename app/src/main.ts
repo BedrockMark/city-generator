@@ -26,7 +26,7 @@ class CityView extends Phaser.Scene {
   private drag?: { x: number; y: number; sx: number; sy: number; box?: { x: number; y: number }; moved: boolean };
   private opts: GenOptions = withDefaults();
   private anno = false;
-  private ov: OverlayState = { layers: { groups: true, zones: false, buildings: false, labels: true }, hiddenTypes: new Set(), hiddenZones: new Set(), ghost: false, labels: [] };
+  private ov: OverlayState = { layers: { groups: true, zones: false, buildings: false, labels: true, audit: true }, hiddenTypes: new Set(), hiddenZones: new Set(), ghost: false, labels: [] };
   private hidden = new Set<string>();
   private store?: LabelStore;
   private verdict: 'good' | 'bad' | null = null;
@@ -71,6 +71,10 @@ class CityView extends Phaser.Scene {
     if (nov !== null) this.opts.novelty = Math.max(0, Math.min(1, +nov || 0));
     if (xm !== null) this.opts.experiments = xm !== '0';
     if (ex) for (const kv of ex.split(',')) { const [k, v] = kv.split(':'); if (k) this.opts.exp[k] = v !== '0'; }
+    if (url.searchParams.get('pd') !== null) this.opts.pruneDraft = url.searchParams.get('pd') !== '0';
+    if (url.searchParams.get('p') !== null) this.opts.prune = url.searchParams.get('p') !== '0';
+    $<HTMLInputElement>('pruneDraft').checked = this.opts.pruneDraft;
+    $<HTMLInputElement>('pruneDraft').onchange = () => { this.opts.pruneDraft = $<HTMLInputElement>('pruneDraft').checked; this.reload(); };
     $<HTMLInputElement>('novelty').value = String(this.opts.novelty);
     $('noveltyVal').textContent = this.opts.novelty.toFixed(2);
     this.buildExpMenu();
@@ -88,7 +92,7 @@ class CityView extends Phaser.Scene {
     $<HTMLInputElement>('novelty').oninput = () => { $('noveltyVal').textContent = (+$<HTMLInputElement>('novelty').value).toFixed(2); };
     $<HTMLInputElement>('novelty').onchange = () => { this.opts.novelty = +$<HTMLInputElement>('novelty').value; this.reload(); };
     $('expbtn').onclick = () => { const m = $('expmenu'); m.style.left = `${$('expbtn').getBoundingClientRect().left}px`; m.classList.toggle('open'); };
-    for (const [id, k] of [['lyGroups', 'groups'], ['lyZones', 'zones'], ['lyBuildings', 'buildings'], ['lyLabels', 'labels']] as const)
+    for (const [id, k] of [['lyGroups', 'groups'], ['lyZones', 'zones'], ['lyBuildings', 'buildings'], ['lyLabels', 'labels'], ['lyAudit', 'audit']] as const)
       $<HTMLInputElement>(id).onchange = () => { this.ov.layers[k] = $<HTMLInputElement>(id).checked; $('zoneLegendSec').style.display = this.ov.layers.zones ? '' : 'none'; this.dirty = true; };
     $('grpAll').onclick = () => { this.ov.hiddenTypes.clear(); this.buildLegend(); this.dirty = true; };
     $('grpNone').onclick = () => { for (const g of this.current?.groups ?? []) this.ov.hiddenTypes.add(g.type); this.buildLegend(); this.dirty = true; };
@@ -165,6 +169,8 @@ class CityView extends Phaser.Scene {
     if (!this.opts.experiments) q.set('x', '0');
     const e = Object.entries(this.opts.exp).map(([k, v]) => `${k}:${v ? 1 : 0}`).join(',');
     if (e) q.set('e', e);
+    if (this.opts.pruneDraft) q.set('pd', '1');
+    if (!this.opts.prune) q.set('p', '0');
     history.replaceState(null, '', `?${q}`);
     const t0 = performance.now();
     const sc = generate(seed, this.opts);
@@ -192,7 +198,9 @@ class CityView extends Phaser.Scene {
       else this.load.spritesheet(file, ASSET_ROOT + file, { frameWidth: n.fw, frameHeight: n.fh });
     }
     const o = sc.options;
-    const optInfo = o ? ` · 创新度 ${o.novelty.toFixed(2)} · 实验${o.experiments ? '开' : '关'}` : '';
+    const au = sc.audit;
+    const optInfo = (o ? ` · 创新度 ${o.novelty.toFixed(2)} · 实验${o.experiments ? '开' : '关'}` : '')
+      + (au ? ` · 约束违规 ${au.violations.length}${au.pruned.length || au.downgraded.length || au.regrounded?.length ? ` · 剪掉 ${au.pruned.length} 个物件、降级 ${au.downgraded.length} 块、改地面 ${au.regrounded?.length ?? 0} 处` : ''}${o?.pruneDraft ? '（修复预览）' : ''}` : '');
     const done = () => {
       this.draw(sc, refit);
       $('info').textContent = `${source ? `文件 ${source} · ` : ''}v${sc.version} · seed ${sc.seed} · ${sc.cols}×${sc.rows} 格 · 内部 ${(sc.params.interior as number[]).join('×')} · ${sc.params.shape} · ${sc.objects.length} 物件${optInfo}${ms ? ` · 生成 ${ms.toFixed(0)} ms` : ''}`;
@@ -334,6 +342,7 @@ class CityView extends Phaser.Scene {
         h += row('建筑', `${esc(b.label)} · ${esc(b.front)} · ${b.block === 'main' ? '主街区' : '邻近街区'} · 立面朝${b.side === 'S' ? '街' : '内院'}`);
         h += row('外框', `${b.rect.x1 - b.rect.x0}×${b.rect.y1 - b.rect.y0}px，碰撞体积 ${b.solid.x1 - b.solid.x0}×${b.solid.y1 - b.solid.y0}px（屋顶大小），门 ${b.doors.length} 个`);
       }
+      for (const v of sc.audit?.violations.filter(v => v.target === o.id || v.objs.includes(o.id!)) ?? []) h += row(`<span style="color:#e53935">${esc(v.c)}</span>`, esc(v.msg));
       h += row('精灵', `<span class="mini">${esc(o.key)}</span>`);
       h += row('位置', `<span class="mini">x ${o.x} y ${o.y} · foot ${o.foot}</span>`);
       el.innerHTML = h + '</table>';
@@ -343,6 +352,11 @@ class CityView extends Phaser.Scene {
       let h = `<b>这里为什么是空的</b> <span class="mini">(${Math.round(s.x)}, ${Math.round(s.y)}) · ${esc(CELL_NAMES[cell] ?? cell)}</span><table>`;
       for (const z of zs) h += row(`<span class="sw" style="background:${zoneColor(z)}"></span>${esc(ZONE_LAYER_NAMES[z.layer])}`, `${z.exp ? `<span class="exp">[${esc(z.exp)}]</span> ` : ''}${esc(z.reason)}${z.gid ? ` <span class="mini">${esc(z.gid)}</span>` : ''}`);
       if (!zs.length) h += row('', '没有登记的区域：' + esc(CELL_NAMES[cell] ?? cell));
+      const au = sc.audit;
+      for (const p of au?.pruned.filter(p => s.x >= p.x && s.x < p.x + p.w && s.y >= p.y && s.y < p.y + p.h) ?? []) h += row(`<span style="color:#bdbdbd">删 ${esc(p.c)}</span>`, `${esc(p.key.split('/').pop())}（${esc(p.gid)}）：${esc(p.msg)}`);
+      for (const d of au?.downgraded.filter(d => s.x >= d.rect.x0 && s.x < d.rect.x1 && s.y >= d.rect.y0 && s.y < d.rect.y1) ?? []) h += row(`<span style="color:#8e24aa">降级 ${esc(d.c)}</span>`, esc(d.msg));
+      for (const g of au?.regrounded?.filter(g => s.x >= g.rect.x0 && s.x < g.rect.x1 && s.y >= g.rect.y0 && s.y < g.rect.y1) ?? []) h += row(`<span style="color:#26a69a">地面 ${esc(g.c)}</span>`, esc(g.msg));
+      for (const v of au?.violations.filter(v => s.x >= v.rect.x0 && s.x < v.rect.x1 && s.y >= v.rect.y0 && s.y < v.rect.y1) ?? []) h += row(`<span style="color:#e53935">${esc(v.c)}</span>`, esc(v.msg));
       el.innerHTML = h + '</table>';
     } else {
       const t = this.target(s);
@@ -455,7 +469,7 @@ class CityView extends Phaser.Scene {
     files.push([async () => {
       const c = scaled(await normal, 3);
       const st: OverlayState = { ...this.ov, layers: { ...this.ov.layers, labels: true }, hover: undefined, box: undefined, ghost: false };
-      if (!this.anno) st.layers = { groups: true, zones: false, buildings: false, labels: true };
+      if (!this.anno) st.layers = { groups: true, zones: false, buildings: false, labels: true, audit: true };
       drawOverlay(c.getContext('2d')!, sc, { s: 3, ox: 0, oy: 0 }, st);
       return png(c);
     }, `${base}_annotated.png`]);

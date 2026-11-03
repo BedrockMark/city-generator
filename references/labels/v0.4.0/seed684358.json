@@ -1,0 +1,160 @@
+{
+ "version": "0.4.0",
+ "seed": "684358",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-03T01:35:39.926Z",
+   "version": "0.4.0",
+   "seed": "684358",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {}
+   },
+   "scene": "seed684358.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "没有存在理由",
+    "位置不合理"
+   ],
+   "text": "楼后被挡住的地面不应该重新生成，这样就打断了这里原有的花园小路。",
+   "target": {
+    "kind": "object",
+    "rect": {
+     "x0": 323,
+     "y0": 258,
+     "x1": 371,
+     "y1": 278
+    },
+    "objects": [
+     {
+      "id": "o70",
+      "key": "9_Shopping_Center_and_Markets/Air_Conditioner_Unit_4",
+      "cls": "utility",
+      "gid": "backyard#1",
+      "x": 323,
+      "y": 246
+     }
+    ],
+    "gids": [
+     "backyard#1"
+    ],
+    "zones": [
+     "z9"
+    ]
+   }
+  },
+  {
+   "id": "L2",
+   "created": "2026-11-03T01:36:20.621Z",
+   "version": "0.4.0",
+   "seed": "684358",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {}
+   },
+   "scene": "seed684358.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "位置不合理"
+   ],
+   "text": "门的位置错误",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 336,
+     "y0": 496,
+     "x1": 352,
+     "y1": 512
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "k0",
+     "k23",
+     "z20"
+    ]
+   }
+  },
+  {
+   "id": "L3",
+   "created": "2026-11-03T01:37:20.197Z",
+   "version": "0.4.0",
+   "seed": "684358",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {}
+   },
+   "scene": "seed684358.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "没有存在理由"
+   ],
+   "text": "空调外机不应该随机的出现在地面上，它可以在平房顶上，而不是楼后",
+   "target": {
+    "kind": "object",
+    "rect": {
+     "x0": 323,
+     "y0": 258,
+     "x1": 371,
+     "y1": 278
+    },
+    "objects": [
+     {
+      "id": "o70",
+      "key": "9_Shopping_Center_and_Markets/Air_Conditioner_Unit_4",
+      "cls": "utility",
+      "gid": "backyard#1",
+      "x": 323,
+      "y": 246
+     }
+    ],
+    "gids": [
+     "backyard#1"
+    ],
+    "zones": [
+     "z9"
+    ]
+   }
+  },
+  {
+   "id": "L4",
+   "created": "2026-11-03T01:38:39.591Z",
+   "version": "0.4.0",
+   "seed": "684358",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {}
+   },
+   "scene": "seed684358.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "没有存在理由"
+   ],
+   "text": "距离人行道很近，也不属于更大内院的一部分，所以不应该通路（右侧大院子的路合适）",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 256,
+     "y0": 256,
+     "x1": 272,
+     "y1": 272
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "k15",
+     "z1"
+    ]
+   }
+  }
+ ]
+}

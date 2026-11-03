@@ -1,0 +1,37 @@
+{
+ "version": "0.4.0",
+ "seed": "838592",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-03T01:39:23.086Z",
+   "version": "0.4.0",
+   "seed": "838592",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {}
+   },
+   "scene": "seed838592.scene.json",
+   "verdict": "bad",
+   "tags": [],
+   "text": "小路被高楼的生成打断了，应该继续生成的",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 288,
+     "y0": 304,
+     "x1": 304,
+     "y1": 320
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "k17",
+     "z1"
+    ]
+   }
+  }
+ ]
+}

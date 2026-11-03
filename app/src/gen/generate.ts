@@ -10,8 +10,9 @@ import { curbRuns, reserveWalkways, crossingVignettes, curbStrips, frontVignette
 import { yardSpaces } from './yard';
 import { SHEETS, TILE, type Scene, type GenOptions } from './types';
 import { withDefaults } from './exp';
+import { rationalize } from './rational/rationalize';
 
-export const VERSION = '0.4.0';
+export const VERSION = '0.5.0';
 
 export function generate(seed: string, options: Partial<GenOptions> = {}): Scene {
   const opts = withDefaults(options);
@@ -41,7 +42,7 @@ export function generate(seed: string, options: Partial<GenOptions> = {}): Scene
   walkers(L, sb, rng.fork('walk'), runs);
   explainGround(L, sb, runs);
   sb.finish();
-  return {
+  const scene: Scene = {
     version: VERSION, seed,
     params: { shape: L.shape, interior: [L.bx1 - L.bx0, L.by1 - L.by0], roads: { h: L.rH, v: L.rV }, sidewalk: L.sw,
       buildings: main.buildings.map(b => b.plan.label) },
@@ -49,4 +50,7 @@ export function generate(seed: string, options: Partial<GenOptions> = {}): Scene
     ground: [L.base, L.over], objects: sb.objects, cells: L.cls, notes: [],
     options: opts, groups: [...sb.groups.values()], buildings: sb.buildings, zones: sb.zones, trace: trace.toJSON(),
   };
+  // stage 5: constraint audit; repairs by deletion with the confirmed constraints (no random numbers used)
+  scene.audit = rationalize(scene, opts);
+  return scene;
 }

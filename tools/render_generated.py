@@ -55,7 +55,7 @@ if __name__ == '__main__':
     S = int(sys.argv[sys.argv.index('--scale') + 1]) if '--scale' in sys.argv else 2
     args = [a for a in args if not (a.isdigit() and '--scale' in sys.argv)]
     for p in args:
-        sc = json.load(open(p))
+        sc = json.load(open(p, encoding='utf-8'))
         im = render(sc, '--grid' in sys.argv, '--ghost' in sys.argv)
         if S != 1: im = im.resize((im.width * S, im.height * S), Image.NEAREST)
         out = Path(p).with_suffix('.png') if '--ghost' not in sys.argv else Path(p).with_name(Path(p).stem + '_ghost.png')

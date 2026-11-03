@@ -42,6 +42,8 @@ export function sceneStem(sc: Scene): string {
   if (o) {
     if (o.novelty !== DEFAULT_OPTIONS.novelty) s += `_n${o.novelty.toFixed(2)}`;
     if (!o.experiments) s += '_x0';
+    if (o.prune === false) s += '_p0';
+    if (o.pruneDraft) s += '_pd1';
     for (const [k, v] of Object.entries(o.exp).sort()) s += `_${k}${v ? 1 : 0}`;
   }
   return s.replace(/[^\w.-]/g, '_');

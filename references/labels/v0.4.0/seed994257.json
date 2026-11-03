@@ -1,0 +1,207 @@
+{
+ "version": "0.4.0",
+ "seed": "994257",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-03T01:49:12.981Z",
+   "version": "0.4.0",
+   "seed": "994257",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {}
+   },
+   "scene": "seed994257.scene.json",
+   "verdict": "good",
+   "tags": [
+    "关系合理 / 有叙事"
+   ],
+   "text": "",
+   "target": {
+    "kind": "object",
+    "rect": {
+     "x0": 315,
+     "y0": 501,
+     "x1": 357,
+     "y1": 555
+    },
+    "objects": [
+     {
+      "id": "o70",
+      "key": "3_City_Props/Tree_11",
+      "cls": "tree",
+      "gid": "plaza#0",
+      "x": 312,
+      "y": 492
+     }
+    ],
+    "gids": [
+     "plaza#0"
+    ],
+    "zones": [
+     "k2",
+     "z14"
+    ]
+   }
+  },
+  {
+   "id": "L2",
+   "created": "2026-11-03T01:49:38.795Z",
+   "version": "0.4.0",
+   "seed": "994257",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {}
+   },
+   "scene": "seed994257.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "位置不合理",
+    "太挤",
+    "重复 / 复制感"
+   ],
+   "text": "旁边就是小广场，不应该再多一些树了",
+   "target": {
+    "kind": "object",
+    "rect": {
+     "x0": 305,
+     "y0": 540,
+     "x1": 347,
+     "y1": 604
+    },
+    "objects": [
+     {
+      "id": "o90",
+      "key": "3_City_Props/Tree_13",
+      "cls": "tree",
+      "gid": "curb-trees:run4",
+      "x": 302,
+      "y": 540
+     }
+    ],
+    "gids": [
+     "curb-trees:run4"
+    ],
+    "zones": [
+     "k2",
+     "k21",
+     "z14",
+     "z19"
+    ]
+   }
+  },
+  {
+   "id": "L3",
+   "created": "2026-11-03T01:50:09.665Z",
+   "version": "0.4.0",
+   "seed": "994257",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {}
+   },
+   "scene": "seed994257.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "挡路"
+   ],
+   "text": "应该是一条路到门口",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 432,
+     "y0": 400,
+     "x1": 448,
+     "y1": 416
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "k4",
+     "z4"
+    ]
+   }
+  },
+  {
+   "id": "L4",
+   "created": "2026-11-03T01:50:16.332Z",
+   "version": "0.4.0",
+   "seed": "994257",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {}
+   },
+   "scene": "seed994257.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "挡路"
+   ],
+   "text": "",
+   "target": {
+    "kind": "object",
+    "rect": {
+     "x0": 432,
+     "y0": 435,
+     "x1": 448,
+     "y1": 457
+    },
+    "objects": [
+     {
+      "id": "o50",
+      "key": "17_Garden/Bush_Potted_2",
+      "cls": "plant",
+      "gid": "strip#4",
+      "x": 432,
+      "y": 425
+     }
+    ],
+    "gids": [
+     "strip#4"
+    ],
+    "zones": [
+     "z7"
+    ]
+   }
+  },
+  {
+   "id": "L5",
+   "created": "2026-11-03T01:50:34.694Z",
+   "version": "0.4.0",
+   "seed": "994257",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {}
+   },
+   "scene": "seed994257.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "挡路"
+   ],
+   "text": "应该有一条路到门口",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 192,
+     "y0": 400,
+     "x1": 208,
+     "y1": 416
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "k3",
+     "z3"
+    ]
+   }
+  }
+ ]
+}

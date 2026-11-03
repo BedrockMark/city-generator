@@ -1,0 +1,292 @@
+{
+ "version": "0.4.0",
+ "seed": "941983",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-03T01:46:37.551Z",
+   "version": "0.4.0",
+   "seed": "941983",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {}
+   },
+   "scene": "seed941983.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "没有存在理由"
+   ],
+   "text": "",
+   "target": {
+    "kind": "object",
+    "rect": {
+     "x0": 56,
+     "y0": 408,
+     "x1": 88,
+     "y1": 432
+    },
+    "objects": [
+     {
+      "id": "o102",
+      "key": "3_City_Props/Holes_11",
+      "cls": "roadworks",
+      "gid": "works#0",
+      "x": 56,
+      "y": 403
+     }
+    ],
+    "gids": [
+     "works#0"
+    ],
+    "zones": [
+     "z50",
+     "z62"
+    ]
+   }
+  },
+  {
+   "id": "L2",
+   "created": "2026-11-03T01:47:36.096Z",
+   "version": "0.4.0",
+   "seed": "941983",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {}
+   },
+   "scene": "seed941983.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "位置不合理"
+   ],
+   "text": "停车场入口可以在停车场居中，但不应该距离人行道过近",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 176,
+     "y0": 560,
+     "x1": 192,
+     "y1": 576
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "k8",
+     "z1"
+    ]
+   }
+  },
+  {
+   "id": "L3",
+   "created": "2026-11-03T01:48:04.101Z",
+   "version": "0.4.0",
+   "seed": "941983",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {}
+   },
+   "scene": "seed941983.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "位置不合理"
+   ],
+   "text": "还要再上去一点，居中更好",
+   "target": {
+    "kind": "object",
+    "rect": {
+     "x0": 163,
+     "y0": 195,
+     "x1": 237,
+     "y1": 286
+    },
+    "objects": [
+     {
+      "id": "o69",
+      "key": "3_City_Props/Billboard_2",
+      "cls": "info_sign",
+      "gid": "island#0",
+      "x": 160,
+      "y": 191
+     }
+    ],
+    "gids": [
+     "island#0"
+    ],
+    "zones": [
+     "k21",
+     "k46",
+     "z6",
+     "z16"
+    ]
+   }
+  },
+  {
+   "id": "L4",
+   "created": "2026-11-03T01:48:17.608Z",
+   "version": "0.4.0",
+   "seed": "941983",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {}
+   },
+   "scene": "seed941983.scene.json",
+   "verdict": "good",
+   "tags": [
+    "自然有机"
+   ],
+   "text": "很好的小公园",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 480,
+     "y0": 288,
+     "x1": 496,
+     "y1": 304
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "z2"
+    ]
+   }
+  },
+  {
+   "id": "L5",
+   "created": "2026-11-03T01:48:34.624Z",
+   "version": "0.4.0",
+   "seed": "941983",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {}
+   },
+   "scene": "seed941983.scene.json",
+   "verdict": "good",
+   "tags": [
+    "关系合理 / 有叙事"
+   ],
+   "text": "",
+   "target": {
+    "kind": "object",
+    "rect": {
+     "x0": 432,
+     "y0": 557,
+     "x1": 448,
+     "y1": 589
+    },
+    "objects": [
+     {
+      "id": "o96",
+      "key": "3_City_Props/Parking_Meter_1",
+      "cls": "utility",
+      "gid": "parked:run6",
+      "x": 432,
+      "y": 557
+     }
+    ],
+    "gids": [
+     "parked:run6"
+    ],
+    "zones": [
+     "k18",
+     "z13"
+    ]
+   }
+  },
+  {
+   "id": "L6",
+   "created": "2026-11-03T01:48:48.069Z",
+   "version": "0.4.0",
+   "seed": "941983",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {}
+   },
+   "scene": "seed941983.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "位置不合理"
+   ],
+   "text": "",
+   "target": {
+    "kind": "object",
+    "rect": {
+     "x0": 352,
+     "y0": 315,
+     "x1": 367,
+     "y1": 341
+    },
+    "objects": [
+     {
+      "id": "o93",
+      "key": "3_City_Props/Hydrant_2",
+      "cls": "hydrant",
+      "gid": "curb-hydrant:run29",
+      "x": 352,
+      "y": 311
+     }
+    ],
+    "gids": [
+     "curb-hydrant:run29"
+    ],
+    "zones": [
+     "z36"
+    ]
+   }
+  },
+  {
+   "id": "L7",
+   "created": "2026-11-03T01:48:58.562Z",
+   "version": "0.4.0",
+   "seed": "941983",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {}
+   },
+   "scene": "seed941983.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "位置不合理"
+   ],
+   "text": "",
+   "target": {
+    "kind": "object",
+    "rect": {
+     "x0": 546,
+     "y0": 91,
+     "x1": 560,
+     "y1": 108
+    },
+    "objects": [
+     {
+      "id": "o74",
+      "key": "3_City_Props/Trashbin_13",
+      "cls": "trash",
+      "gid": "curb-bin:run1",
+      "x": 545,
+      "y": 77
+     }
+    ],
+    "gids": [
+     "curb-bin:run1"
+    ],
+    "zones": [
+     "k13",
+     "z8"
+    ]
+   }
+  }
+ ]
+}

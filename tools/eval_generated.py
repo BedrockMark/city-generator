@@ -105,7 +105,7 @@ def ref_emptiness():
     for n in ref_names(('street',)) + ['ANTI_site_overview']:
         p = WORK/'scenes'/f'{n}.json'
         if not p.exists(): continue
-        sc = json.load(open(p))
+        sc = json.load(open(p, encoding='utf-8'))
         G = np.array(sc['ground'], dtype=object)
         R, C = G.shape
         ox, oy = sc['phase']; cx0, cy0 = sc['origin']
@@ -123,7 +123,7 @@ def main():
     out = sys.argv[sys.argv.index('--out') + 1] if '--out' in sys.argv else None
     if out in args: args.remove(out)
     refs = [novelty.load(n) for n in ref_names() if (WORK/'scenes'/f'{n}.json').exists()]
-    gens = [(p, json.load(open(p))) for p in args]
+    gens = [(p, json.load(open(p, encoding='utf-8'))) for p in args]
     conv = [(p, to_ref_format(sc)) for p, sc in gens]
     L = ['| scene | copied windows | largest copied | copied objects | self-repeat (constellations) | obj/100 | people/100 | largest empty patch | open frac | furniture on road | sidewalk centre pinched % |',
          '|---|---|---|---|---|---|---|---|---|---|---|']
