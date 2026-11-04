@@ -70,7 +70,7 @@
 - `main.ts`：Phaser 查看器；`src/viewer/overlay.ts`（标注层绘制，屏幕和 _annotated.png 共用），`src/viewer/labels.ts`（标注格式和存储）。`vite.config.ts` 里有 `/api/labels`。
 
 ## 下一步
-- 阶段 7（从选择中学习 + 创新度）设计中：用户已确认用方案 A（逐决策点的偏好模型，Bradley–Terry），局部 A/B 一次看多处单一改动、逐个评价，出题方式“系统自动 + 用户点选”两种都要。详细设计（7 节：强制决策、局部 A/B、学习与应用、创新度、实验转正 / 废弃、“选择解决不了的问题”报告、验证）已在对话里给出，**等用户确认**后写 spec（`docs/superpowers/specs/`），再写实施计划。
+- 阶段 7（从选择中学习 + 创新度）设计中：用户已确认用方案 A（逐决策点的偏好模型，Bradley–Terry），局部 A/B 一次看多处单一改动、逐个评价，出题方式“系统自动 + 用户点选”两种都要。详细设计（7 节：强制决策、局部 A/B、学习与应用、创新度、实验转正 / 废弃、“选择解决不了的问题”报告、验证）用户已整体确认，spec 已写好：`docs/superpowers/specs/2026-11-04-stage7-learning-design.md`（commit bd92060）。**等用户审阅 spec**，通过后写实施计划（`docs/superpowers/plans/`）。目标版本 v0.7.0。
 - `stage6` 分支还没合并到 main（v0.6.0、v0.6.1 都在这个分支上）。
 - 阶段 6 的计划和执行记录：`docs/superpowers/plans/2026-11-03-stage6-judge.md`；`.superpowers/sdd/2026-11-03-stage6-judge/progress.md`（git 忽略，含所有 Ruling）。
 
