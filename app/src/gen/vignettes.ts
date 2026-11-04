@@ -152,8 +152,9 @@ export function curbStrips(L: Layout, sb: SceneBuilder, r: Rng, runs: CurbRun[])
   void L;
   for (const run of runs) {
     const len = run.b - run.a;
+    sb.enter(r);
     if (len < 4 * T) { sb.zone('curb', 'curb:short', runRect(run), `路缘段 ${runName(run)}：太短（<4 格），不放路缘设施`); continue; }
-    const rr = r.fork(`curb${run.side}${run.fixed}${run.a}`, { run: run.id, side: run.side, main: run.main, sw: run.sw, len: Math.round(len / T) });
+    const rr = sb.enter(r.fork(`curb${run.side}${run.fixed}${run.a}`, { run: run.id, side: run.side, main: run.main, sw: run.sw, len: Math.round(len / T) }));
     const horiz = run.side === 'S' || run.side === 'N';
     const put = (key: string, along: number, cls: string, gid: string, why: string, inset = 0) => {
       const [fx, fy] = footAt(run, along, inset);
@@ -223,7 +224,7 @@ const FRONT_REASONS: Record<string, string> = {
 
 export function frontVignettes(L: Layout, plan: BlockPlan, sb: SceneBuilder, r: Rng) {
   for (const pb of plan.buildings) {
-    const rr = r.fork(pb.plan.id, { building: pb.plan.id, front: pb.plan.front, side: pb.side });
+    const rr = sb.enter(r.fork(pb.plan.id, { building: pb.plan.id, front: pb.plan.front, side: pb.side }));
     const { plan: b, cx, cy } = pb;
     const x0 = cx * T, bottom = (cy + b.h) * T;
     // how deep is the free strip in front of the facade (cells, until road / building)
@@ -299,7 +300,7 @@ function seated(r: Rng, fx: number, fy: number, dir: Dir): [string[], [number, n
 
 export function zoneVignettes(L: Layout, plan: BlockPlan, sb: SceneBuilder, r: Rng) {
   for (const z of plan.zones) {
-    const rr = r.fork(`zone${z.x0},${z.y0}`, { zone: z.kind, w: z.x1 - z.x0, h: z.y1 - z.y0 });
+    const rr = sb.enter(r.fork(`zone${z.x0},${z.y0}`, { zone: z.kind, w: z.x1 - z.x0, h: z.y1 - z.y0 }));
     const w = (z.x1 - z.x0) * T, x0 = z.x0 * T, y0 = z.y0 * T, y1 = z.y1 * T;
     const gid = sb.group(z.kind, z.why, { anchor: { kind: 'zone', ref: `${z.kind}@${z.x0},${z.y0}`, x: x0 + w / 2, y: y1 } });
     sb.zone('block', z.kind, rect(x0, y0, x0 + w, y1), z.why, gid);
@@ -366,7 +367,7 @@ export function islandSquares(L: Layout, neigh: BlockPlan, sb: SceneBuilder, r: 
     const xs = cs.map(c => c[0]), ys = cs.map(c => c[1]);
     const x0 = Math.min(...xs), x1 = Math.max(...xs) + 1, y0 = Math.min(...ys), y1 = Math.max(...ys) + 1;
     if (x0 === 0 || y0 === 0 || x1 === L.cols || y1 === L.rows) continue;   // only fully visible islands
-    const rr = r.fork(`island${g}`, { region: g, cells: cs.length });
+    const rr = sb.enter(r.fork(`island${g}`, { region: g, cells: cs.length }));
     const cx = (x0 + x1) / 2 * T, cy = (y0 + y1) / 2 * T;
     const why = `小岛街区（缺角处被环路围出的小地块，${cs.length} 格，放不下楼）：做成小广场`;
     const gid = sb.group('island', why, { anchor: { kind: 'block', ref: `region${g}`, x: cx, y: cy } });
@@ -422,7 +423,7 @@ const segAnchor = (sg: Seg, i: number, p: number): Anchor => sg.axis === 'h'
 export function cars(L: Layout, sb: SceneBuilder, r: Rng, runs: CurbRun[]) {
   // parked: in the lane next to the curb, facing the lane's traffic direction (right-hand traffic)
   for (const run of runs) {
-    const rr = r.fork(`cars${run.side}${run.fixed}${run.a}`, { run: run.id, side: run.side, main: run.main, len: Math.round((run.b - run.a) / T) });
+    const rr = sb.enter(r.fork(`cars${run.side}${run.fixed}${run.a}`, { run: run.id, side: run.side, main: run.main, len: Math.round((run.b - run.a) / T) }));
     if (!rr.choose('cars.parked', { main: run.main }, { p: run.main ? 0.55 : 0.35 }) || run.b - run.a < 8 * T) continue;
     const horiz = run.side === 'S' || run.side === 'N';
     const n = rr.count('cars.parkedCount', {}, 1, 3);
@@ -446,6 +447,7 @@ export function cars(L: Layout, sb: SceneBuilder, r: Rng, runs: CurbRun[]) {
     }
   }
   // a couple of driving cars in random corridor lanes
+  sb.enter(r);
   for (let i = 0; i < r.count('cars.driving', {}, 0, 2); i++) {
     const sg = r.choose('cars.drivingSeg', {}, L.segs);
     if (!sg || sg.b - sg.a < 8) continue;

@@ -3,6 +3,7 @@
 // and optionally its own anchor; keep-clear zones and other purposeful areas carry a reason too. None of this
 // is read back by the generator, so it cannot change the picture.
 import { spr } from './assets';
+import type { Rng } from './rng';
 import { TILE, type Placed, type CellClass, type Anchor, type GroupRec, type ZoneRec, type BuildingRec, type PxRect } from './types';
 
 export interface Rect { x0: number; y0: number; x1: number; y1: number }   // px, half-open
@@ -14,7 +15,7 @@ export class SceneBuilder {
   /** footprints of placed things (what stands on the ground) */
   feet: { r: Rect; cls: string }[] = [];
   /** areas that must stay walkable / visible (door fronts, crossing mouths, alley mouths, bus bay ...) */
-  keepClear: { r: Rect; why: string; reason?: string; gid?: string; exp?: string }[] = [];
+  keepClear: { r: Rect; why: string; reason?: string; gid?: string; exp?: string; stream?: string }[] = [];
   private seq = 0;
   groups = new Map<string, GroupRec>();
   private groupN = new Map<string, number>();
@@ -22,6 +23,8 @@ export class SceneBuilder {
   buildings: BuildingRec[] = [];
   /** experimental feature currently emitting (see withExp) */
   exp?: string;
+  /** random stream currently placing (stage 6: the judge repair re-seeds streams under a bad window); write-only */
+  stream?: string;
   constructor(readonly cols: number, readonly rows: number, readonly cls: CellClass[][]) {}
 
   /** register a group instance; id given -> "type:id", else "type#n". Returns the gid. */
@@ -29,17 +32,24 @@ export class SceneBuilder {
     let gid: string;
     if (o.id !== undefined) gid = `${type}:${o.id}`;
     else { const n = this.groupN.get(type) ?? 0; this.groupN.set(type, n + 1); gid = `${type}#${n}`; }
-    if (!this.groups.has(gid)) this.groups.set(gid, { gid, type, reason, anchor: o.anchor, exp: this.exp, members: [] });
+    if (!this.groups.has(gid)) this.groups.set(gid, { gid, type, reason, anchor: o.anchor, exp: this.exp, stream: this.stream, members: [] });
     return gid;
   }
   /** an area with a purpose (yard use, curb run, carriageway ...) */
   zone(layer: ZoneRec['layer'], kind: string, r: PxRect, reason: string, gid?: string) {
-    this.zones.push({ id: `z${this.zones.length}`, layer, kind, rect: { ...r }, reason, gid, exp: this.exp });
+    this.zones.push({ id: `z${this.zones.length}`, layer, kind, rect: { ...r }, reason, gid, exp: this.exp, stream: this.stream });
   }
   /** run fn with everything it emits tagged as produced by experimental feature `id` */
   withExp<T>(id: string, fn: () => T): T {
     const prev = this.exp; this.exp = id;
     try { return fn(); } finally { this.exp = prev; }
+  }
+  /** what follows is drawn from stream `rng` (until the next enter / the end of the enclosing inStream) */
+  enter(rng: Rng): Rng { this.stream = rng.stream; return rng; }
+  /** run fn with its placements recorded as drawn from stream `path` */
+  inStream<T>(path: string, fn: () => T): T {
+    const prev = this.stream; this.stream = path;
+    try { return fn(); } finally { this.stream = prev; }
   }
 
   cellAt(px: number, py: number): CellClass | undefined { return this.cls[Math.floor(py / TILE)]?.[Math.floor(px / TILE)]; }
@@ -86,12 +96,12 @@ export class SceneBuilder {
 
   occupy(r: Rect, cls: string) { this.feet.push({ r, cls }); }
   /** keep-clear zone of kind `why` (what ignoreClear refers to); reason / gid explain it */
-  clear(r: Rect, why: string, reason?: string, gid?: string) { this.keepClear.push({ r, why, reason, gid, exp: this.exp }); }
+  clear(r: Rect, why: string, reason?: string, gid?: string) { this.keepClear.push({ r, why, reason, gid, exp: this.exp, stream: this.stream }); }
 
   private explain(o: PutOpts) {
     const g = o.gid ? this.groups.get(o.gid) : undefined;
     if (o.gid && !g) throw new Error(`unregistered group ${o.gid}`);
-    return { group: g?.type, gid: o.gid, reason: o.why ?? g?.reason, anchor: o.anchor ?? g?.anchor, ...(this.exp ? { exp: this.exp } : {}) };
+    return { group: g?.type, gid: o.gid, reason: o.why ?? g?.reason, anchor: o.anchor ?? g?.anchor, ...(this.exp ? { exp: this.exp } : {}), ...(this.stream !== undefined ? { stream: this.stream } : {}) };
   }
 
   /** character: layers in draw order, frame (col,row) in the 16x32 grid; foot at (fx, fy) */
@@ -118,7 +128,7 @@ export class SceneBuilder {
       else b = { x0: o.x + 3, y0: o.y + 8, x1: o.x + 13, y1: o.y + 32 };
       g.bbox = g.bbox ? { x0: Math.min(g.bbox.x0, b.x0), y0: Math.min(g.bbox.y0, b.y0), x1: Math.max(g.bbox.x1, b.x1), y1: Math.max(g.bbox.y1, b.y1) } : b;
     }
-    const kc: ZoneRec[] = this.keepClear.map((k, i) => ({ id: `k${i}`, layer: 'keepclear', kind: k.why, rect: { ...k.r }, reason: k.reason ?? k.why, gid: k.gid, exp: k.exp }));
+    const kc: ZoneRec[] = this.keepClear.map((k, i) => ({ id: `k${i}`, layer: 'keepclear', kind: k.why, rect: { ...k.r }, reason: k.reason ?? k.why, gid: k.gid, exp: k.exp, stream: k.stream }));
     this.zones = [...kc, ...this.zones];
   }
 }

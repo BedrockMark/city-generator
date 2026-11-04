@@ -61,7 +61,9 @@ export class Trace {
   rejected: Record<string, number> = {};
   /** discrete draws that did not go through choose() */
   unlabelled = 0;
-  constructor(readonly root: string) {}
+  /** stage 6 judge repair: logical stream path -> salt. A salted stream (and everything forked from it) draws from
+   *  `<seed>/.../<label>#<salt>`; every other stream is untouched */
+  constructor(readonly root: string, readonly reseed: Record<string, number> = {}) {}
   toJSON() { return { decisions: this.decisions, streams: this.streams, textures: this.textures, rejected: this.rejected, unlabelled: this.unlabelled }; }
 }
 
@@ -69,7 +71,9 @@ export type Choice<T> = readonly T[] | { weights: readonly (readonly [T, number]
 
 export class Rng {
   private a: number; private b: number; private c: number; private d: number;
-  constructor(readonly seed: string, readonly trace?: Trace) {
+  /** seed: the string the generator is seeded with (carries salts); path: logical stream path below the root
+   *  ('' for the root), what the trace, the placements and `reseed` refer to */
+  constructor(readonly seed: string, readonly trace?: Trace, readonly path?: string) {
     [this.a, this.b, this.c, this.d] = cyrb128(seed);
     for (let i = 0; i < 12; i++) this.next();
   }
@@ -86,11 +90,13 @@ export class Rng {
   }
   /** independent stream; ctx describes what the stream decides about (recorded once in the trace) */
   fork(label: string, ctx?: Ctx): Rng {
-    const r = new Rng(`${this.seed}/${label}`, this.trace);
+    const path = this.stream ? `${this.stream}/${label}` : label;
+    const salt = this.trace?.reseed[path];
+    const r = new Rng(`${this.seed}/${label}${salt !== undefined ? `#${salt}` : ''}`, this.trace, path);
     if (ctx && this.trace) this.trace.streams[r.stream] = ctx;
     return r;
   }
-  get stream(): string { return this.trace ? this.seed.slice(this.trace.root.length + 1) : this.seed; }
+  get stream(): string { return this.path ?? (this.trace ? this.seed.slice(this.trace.root.length + 1) : this.seed); }
   private rec(d: Omit<Decision, 's'>) { this.trace?.decisions.push({ s: this.stream, ...d, ...(d.ctx && !Object.keys(d.ctx).length ? { ctx: undefined } : {}) }); }
 
   /** a labelled random decision. options: an array (uniform), { weights } (weighted) or { p } (yes / no).

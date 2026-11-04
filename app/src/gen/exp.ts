@@ -20,6 +20,8 @@ export interface Experiment {
 export const EXPERIMENTS: Experiment[] = [
   // 2026-11-03, user label 684358 L3 + v0.5.0 question 2: AC units belong on flat roofs, not on the ground
   { id: 'exp-01', title: '平顶屋顶上的空调外机', status: 'experimental', default: true },
+  // 2026-11-03, stage 6: re-seed the oddest windows (judge), downgrade when that fails (docs/superpowers/specs/2026-11-03-stage6-judge-design.md)
+  { id: 'exp-02', title: '评判修复：换子种子重生成最怪的窗口，修不好就降级', status: 'experimental', default: true },
 ];
 
 export const DEFAULT_OPTIONS: GenOptions = { novelty: 0.1, experiments: true, exp: {}, prune: true, pruneDraft: false };

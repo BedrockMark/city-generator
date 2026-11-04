@@ -1,0 +1,228 @@
+{
+ "version": "0.5.1",
+ "seed": "791885",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-04T03:41:50.926Z",
+   "version": "0.5.1",
+   "seed": "791885",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {},
+    "prune": true,
+    "pruneDraft": false
+   },
+   "scene": "seed791885.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "位置不合理"
+   ],
+   "text": "往上去一点更好",
+   "target": {
+    "kind": "object",
+    "rect": {
+     "x0": 179,
+     "y0": 275,
+     "x1": 253,
+     "y1": 366
+    },
+    "objects": [
+     {
+      "id": "o109",
+      "key": "3_City_Props/Billboard_7",
+      "cls": "info_sign",
+      "gid": "island#0",
+      "x": 176,
+      "y": 271
+     }
+    ],
+    "gids": [
+     "island#0"
+    ],
+    "zones": [
+     "k23",
+     "k28",
+     "k53",
+     "z9",
+     "z14",
+     "z19"
+    ]
+   }
+  },
+  {
+   "id": "L2",
+   "created": "2026-11-04T03:42:19.340Z",
+   "version": "0.5.1",
+   "seed": "791885",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {},
+    "prune": true,
+    "pruneDraft": false
+   },
+   "scene": "seed791885.scene.json",
+   "verdict": "good",
+   "tags": [
+    "热闹不空"
+   ],
+   "text": "",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 320,
+     "y0": 576,
+     "x1": 336,
+     "y1": 592
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "k17",
+     "z2"
+    ]
+   }
+  },
+  {
+   "id": "L3",
+   "created": "2026-11-04T03:42:28.913Z",
+   "version": "0.5.1",
+   "seed": "791885",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {},
+    "prune": true,
+    "pruneDraft": false
+   },
+   "scene": "seed791885.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "挡路"
+   ],
+   "text": "",
+   "target": {
+    "kind": "object",
+    "rect": {
+     "x0": 336,
+     "y0": 514,
+     "x1": 352,
+     "y1": 542
+    },
+    "objects": [
+     {
+      "id": "o64",
+      "key": "17_Garden/Bush_Potted_3",
+      "cls": "plant",
+      "gid": "strip#3",
+      "x": 336,
+      "y": 510
+     }
+    ],
+    "gids": [
+     "strip#3"
+    ],
+    "zones": [
+     "k32",
+     "z7",
+     "z23"
+    ]
+   }
+  },
+  {
+   "id": "L4",
+   "created": "2026-11-04T03:42:31.584Z",
+   "version": "0.5.1",
+   "seed": "791885",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {},
+    "prune": true,
+    "pruneDraft": false
+   },
+   "scene": "seed791885.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "挡路"
+   ],
+   "text": "",
+   "target": {
+    "kind": "object",
+    "rect": {
+     "x0": 338,
+     "y0": 544,
+     "x1": 350,
+     "y1": 570
+    },
+    "objects": [
+     {
+      "id": "o94",
+      "key": "3_City_Props/Trashbin_3",
+      "cls": "trash",
+      "gid": "alley#0",
+      "x": 336,
+      "y": 538
+     }
+    ],
+    "gids": [
+     "alley#0"
+    ],
+    "zones": [
+     "z8"
+    ]
+   }
+  },
+  {
+   "id": "L5",
+   "created": "2026-11-04T03:42:55.647Z",
+   "version": "0.5.1",
+   "seed": "791885",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {},
+    "prune": true,
+    "pruneDraft": false
+   },
+   "scene": "seed791885.scene.json",
+   "verdict": "good",
+   "tags": [],
+   "text": "",
+   "target": {
+    "kind": "building",
+    "rect": {
+     "x0": 400,
+     "y0": 304,
+     "x1": 592,
+     "y1": 544
+    },
+    "objects": [
+     {
+      "id": "o8",
+      "key": "24_Additional_Houses/24_Terraced_House_6",
+      "cls": "building",
+      "gid": "bld:b829",
+      "x": 400,
+      "y": 304
+     }
+    ],
+    "gids": [
+     "bld:b829"
+    ],
+    "zones": [
+     "k15",
+     "k16",
+     "z0"
+    ]
+   }
+  }
+ ]
+}

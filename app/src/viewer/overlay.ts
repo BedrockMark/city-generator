@@ -3,6 +3,8 @@
 import { spr, hasSprite } from '../gen/assets';
 import type { Scene, Placed, PxRect, ZoneRec, GroupRec, BuildingRec } from '../gen/types';
 import type { Label } from './labels';
+import { objBox, hiddenObjects } from '../gen/judge/align';
+export { objBox, hiddenObjects };
 
 export interface View { s: number; ox: number; oy: number }
 
@@ -50,25 +52,10 @@ export const zoneKey = (z: ZoneRec) => `${z.layer}/${z.kind}`;
 export const ZONE_LAYER_NAMES: Record<ZoneRec['layer'], string> = { keepclear: '禁放 / 保持畅通', yard: '内院分配', curb: '路缘段', road: '马路', block: '街区开口' };
 
 /** opaque box of an object (px) */
-export function objBox(o: Placed): PxRect {
-  if (o.kind === 'sprite' && hasSprite(o.key)) { const b = spr(o.key).bb; return { x0: o.x + b[0], y0: o.y + b[1], x1: o.x + b[2], y1: o.y + b[3] }; }
-  if (o.kind === 'char') return { x0: o.x + 3, y0: o.y + 8, x1: o.x + 13, y1: o.y + 32 };
-  return { x0: o.x, y0: o.y, x1: o.x + o.w, y1: o.y + o.h };
-}
 const inR = (r: PxRect, x: number, y: number) => x >= r.x0 && x < r.x1 && y >= r.y0 && y < r.y1;
 export const intersects = (a: PxRect, b: PxRect) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
 
 /** objects completely hidden behind a building's upper part (backyard life): only pickable in ghost view */
-export function hiddenObjects(sc: Scene): Set<string> {
-  const out = new Set<string>();
-  for (const o of sc.objects) {
-    if (o.cls === 'building') continue;
-    const b = objBox(o);
-    if ((sc.buildings ?? []).some(bd => o.foot < bd.solid.y0 && b.x0 >= bd.rect.x0 && b.x1 <= bd.rect.x1 && b.y0 >= bd.rect.y0)) out.add(o.id!);
-  }
-  return out;
-}
-
 /** front-most non-building object under the point, else the building, else null */
 export function pick(sc: Scene, x: number, y: number, ghost: boolean, hidden: Set<string>): Placed | null {
   let best: Placed | null = null;

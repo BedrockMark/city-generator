@@ -48,6 +48,7 @@
     #lblList div:hover { background: #2c2c36; }
     #lblList .g { color: #36d36b; } #lblList .b { color: #ff4040; }
     #lblList button { float: right; padding: 0 6px; font-size: 11px; }
+    #heatTip { position: fixed; display: none; z-index: 25; background: #000d; color: #eee; padding: 6px 9px; border-radius: 4px; font-size: 12px; line-height: 1.5; pointer-events: none; max-width: 320px; }
     #toast { position: fixed; bottom: 16px; left: 16px; background: #000c; padding: 6px 12px; border-radius: 4px; display: none; z-index: 30; }
   </style>
 </head>
@@ -65,6 +66,7 @@
     <button id="expbtn" title="实验功能开关">实验 ▾</button>
     <label title="阶段 5：把草案约束也当作生效，预览剪枝 / 降级的效果（URL pd=1）"><input type="checkbox" id="pruneDraft" /> 修复预览</label>
     <button id="anno" title="标注层：小组、区域、原因、好 / 坏标注 (A)">标注 (A)</button>
+    <button id="heat" title="评判器热力图：每个窗口的怪异分，红色越深越怪，黄框 = 超过阈值，青色虚线框 = 评判修复处理过的窗口（前 → 后）(H)">热力图 (H)</button>
     <span class="sep"></span>
     <button id="export" title="下载 PNG(2x) + 虚化版 + 标注版 PNG + scene JSON (+ 标注 JSON) (E)">导出截图</button>
     <span id="info"></span>
@@ -96,6 +98,7 @@
     </section>
     <section><h3>本图标注 <span id="lblCount" class="mini"></span></h3><div id="lblList"></div></section>
   </div>
+  <div id="heatTip"></div>
   <div id="toast"></div>
   <script type="module" src="/src/main.ts"></script>
 </body>

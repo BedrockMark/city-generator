@@ -1,0 +1,42 @@
+{
+ "version": "0.5.1",
+ "seed": "864319",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-04T03:46:55.309Z",
+   "version": "0.5.1",
+   "seed": "864319",
+   "novelty": 0.6,
+   "options": {
+    "novelty": 0.6,
+    "experiments": true,
+    "exp": {},
+    "prune": true,
+    "pruneDraft": false
+   },
+   "scene": "seed864319_n0.60.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "不通向任何地方",
+    "没有存在理由"
+   ],
+   "text": "",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 576,
+     "y0": 352,
+     "x1": 592,
+     "y1": 368
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "k16",
+     "z1"
+    ]
+   }
+  }
+ ]
+}

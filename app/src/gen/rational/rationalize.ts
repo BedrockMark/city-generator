@@ -118,7 +118,7 @@ function slice(sc: Scene, mask: boolean[][]) {
 
 // lawn on the cells of a rect, merged with the lawns already there (same 9-slice as yard.ts paintGrass)
 const isGrass = isGrassTile;
-function lawn(sc: Scene, r: PxRect) {
+export function lawn(sc: Scene, r: PxRect) {
   const over = sc.ground[1];
   const mask = over.map(row => row.map(isGrass));
   for (let y = Math.floor(r.y0 / T); y < Math.ceil(r.y1 / T); y++) for (let x = Math.floor(r.x0 / T); x < Math.ceil(r.x1 / T); x++) {

@@ -1,0 +1,86 @@
+{
+ "version": "0.5.1",
+ "seed": "445498",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-04T03:40:05.026Z",
+   "version": "0.5.1",
+   "seed": "445498",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {},
+    "prune": true,
+    "pruneDraft": false
+   },
+   "scene": "seed445498.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "太挤"
+   ],
+   "text": "太挤了，两排房子中间应该隔着一个院子，而不是院子前有两排房子",
+   "target": {
+    "kind": "building",
+    "rect": {
+     "x0": 352,
+     "y0": 384,
+     "x1": 448,
+     "y1": 560
+    },
+    "objects": [
+     {
+      "id": "o9",
+      "key": "4_Generic_Building/Condo_5_1",
+      "cls": "building",
+      "gid": "bld:b4347",
+      "x": 352,
+      "y": 384
+     }
+    ],
+    "gids": [
+     "bld:b4347"
+    ],
+    "zones": [
+     "k17",
+     "z0"
+    ]
+   }
+  },
+  {
+   "id": "L2",
+   "created": "2026-11-04T03:40:34.867Z",
+   "version": "0.5.1",
+   "seed": "445498",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {},
+    "prune": true,
+    "pruneDraft": false
+   },
+   "scene": "seed445498.scene.json",
+   "verdict": "good",
+   "tags": [
+    "有特色"
+   ],
+   "text": "",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 448,
+     "y0": 352,
+     "x1": 464,
+     "y1": 368
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "z0"
+    ]
+   }
+  }
+ ]
+}

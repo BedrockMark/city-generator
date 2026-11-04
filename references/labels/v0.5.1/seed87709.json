@@ -1,0 +1,76 @@
+{
+ "version": "0.5.1",
+ "seed": "87709",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-04T03:43:28.899Z",
+   "version": "0.5.1",
+   "seed": "87709",
+   "novelty": 0.6,
+   "options": {
+    "novelty": 0.6,
+    "experiments": true,
+    "exp": {},
+    "prune": true,
+    "pruneDraft": false
+   },
+   "scene": "seed87709_n0.60.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "太空",
+    "方正呆板"
+   ],
+   "text": "",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 720,
+     "y0": 256,
+     "x1": 736,
+     "y1": 272
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "z0"
+    ]
+   }
+  },
+  {
+   "id": "L2",
+   "created": "2026-11-04T03:43:32.409Z",
+   "version": "0.5.1",
+   "seed": "87709",
+   "novelty": 0.6,
+   "options": {
+    "novelty": 0.6,
+    "experiments": true,
+    "exp": {},
+    "prune": true,
+    "pruneDraft": false
+   },
+   "scene": "seed87709_n0.60.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "太空",
+    "方正呆板"
+   ],
+   "text": "",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 704,
+     "y0": 320,
+     "x1": 720,
+     "y1": 336
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "z1"
+    ]
+   }
+  }
+ ]
+}

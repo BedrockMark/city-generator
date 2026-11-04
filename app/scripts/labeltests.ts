@@ -14,7 +14,7 @@ import type { Placed, PxRect, Scene, GenOptions } from '../src/gen/types';
 const here = dirname(fileURLToPath(import.meta.url));
 export const LABEL_DIR = join(here, '..', '..', 'references', 'labels');
 
-export interface LabelResult { label: Label; file: string; status: 'pass' | 'fail' | 'warn'; detail: string; constraints: string[] }
+export interface LabelResult { label: Label; file: string; status: 'pass' | 'fail' | 'warn'; detail: string; constraints: string[]; exp02?: boolean }
 
 export function loadLabels(): { file: string; label: Label }[] {
   if (!existsSync(LABEL_DIR)) return [];
@@ -68,7 +68,10 @@ export function runLabelTests(opts: Partial<GenOptions> = {}): LabelResult[] {
     const ov = (r: PxRect) => r.x0 < t.rect.x1 && t.rect.x0 < r.x1 && r.y0 < t.rect.y1 && t.rect.y0 < r.y1;
     const constraints = [...new Set((sc.audit?.violations ?? []).filter(v => ov(v.rect)).map(v => v.c))];
     const status = l.verdict === 'bad' ? (present ? 'fail' : 'pass') : (present ? 'pass' : 'warn');
-    out.push({ label: l, file, status, detail, constraints });
+    // stage 6: did the judge repair (exp-02) touch the labelled thing?
+    const exp02 = sc.objects.some(p => p.exp === 'exp-02' && ov({ x0: p.x, y0: p.y, x1: p.x + p.w, y1: p.y + p.h }))
+      || (sc.judgeRepair?.windows ?? []).some(w => (w.adopted !== undefined || (w.degraded && w.degraded !== 'rejected')) && ov(w.rect));
+    out.push({ label: l, file, status, detail, constraints, exp02 });
   }
   return out;
 }
@@ -77,9 +80,14 @@ export function formatLabelTests(rs: LabelResult[]): string[] {
   if (!rs.length) return ['标注测试：还没有标注（references/labels/ 为空）'];
   const n = (s: string, v: string) => rs.filter(r => r.status === s && r.label.verdict === v).length;
   const lines = [`标注测试：坏标注 ${n('pass', 'bad')} 已解决 / ${n('fail', 'bad')} 仍存在；好标注 ${n('pass', 'good')} 保持 / ${n('warn', 'good')} 被改动`];
-  for (const r of rs) if (r.status !== 'pass') {
+  const line = (r: LabelResult, what: string) => {
     const l = r.label;
-    lines.push(`  ${r.status === 'fail' ? '✗ 坏标注仍存在' : '! 好标注被改动'} ${r.file} ${l.id}（${l.tags.join('、') || '无标签'}${l.text ? `：${l.text}` : ''}）— ${r.detail}${r.constraints.length ? `；覆盖它的约束：${r.constraints.join(', ')}` : '；没有约束看到它'}`);
-  }
+    return `  ${what} ${r.file} ${l.id}（${l.tags.join('、') || '无标签'}${l.text ? `：${l.text}` : ''}）— ${r.detail}${r.constraints.length ? `；覆盖它的约束：${r.constraints.join(', ')}` : '；没有约束看到它'}`;
+  };
+  for (const r of rs) if (r.status === 'fail') lines.push(line(r, '✗ 坏标注仍存在'));
+  for (const r of rs) if (r.status === 'warn' && !r.exp02) lines.push(line(r, '! 好标注被改动'));
+  const byExp = rs.filter(r => r.status === 'warn' && r.exp02);
+  lines.push(`被 exp-02（评判修复）改动的好标注：${byExp.length} 条`);
+  for (const r of byExp) lines.push(line(r, '! exp-02 改动了好标注'));
   return lines;
 }

@@ -1,0 +1,87 @@
+{
+ "version": "0.5.1",
+ "seed": "664616",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-04T03:41:06.725Z",
+   "version": "0.5.1",
+   "seed": "664616",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {},
+    "prune": true,
+    "pruneDraft": false
+   },
+   "scene": "seed664616.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "不通向任何地方"
+   ],
+   "text": "",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 400,
+     "y0": 400,
+     "x1": 416,
+     "y1": 416
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "k19",
+     "z3"
+    ]
+   }
+  },
+  {
+   "id": "L2",
+   "created": "2026-11-04T03:41:16.257Z",
+   "version": "0.5.1",
+   "seed": "664616",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {},
+    "prune": true,
+    "pruneDraft": false
+   },
+   "scene": "seed664616.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "太挤"
+   ],
+   "text": "",
+   "target": {
+    "kind": "building",
+    "rect": {
+     "x0": 176,
+     "y0": 256,
+     "x1": 272,
+     "y1": 416
+    },
+    "objects": [
+     {
+      "id": "o10",
+      "key": "4_Generic_Building/Condo_3_45",
+      "cls": "building",
+      "gid": "bld:b2373",
+      "x": 176,
+      "y": 256
+     }
+    ],
+    "gids": [
+     "bld:b2373"
+    ],
+    "zones": [
+     "k18",
+     "z2"
+    ]
+   }
+  }
+ ]
+}

@@ -1,0 +1,121 @@
+{
+ "version": "0.5.1",
+ "seed": "311958",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-04T03:44:10.939Z",
+   "version": "0.5.1",
+   "seed": "311958",
+   "novelty": 0.6,
+   "options": {
+    "novelty": 0.6,
+    "experiments": true,
+    "exp": {},
+    "prune": true,
+    "pruneDraft": false
+   },
+   "scene": "seed311958_n0.60.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "太挤"
+   ],
+   "text": "",
+   "target": {
+    "kind": "building",
+    "rect": {
+     "x0": 336,
+     "y0": 208,
+     "x1": 432,
+     "y1": 384
+    },
+    "objects": [
+     {
+      "id": "o9",
+      "key": "4_Generic_Building/Condo_5_1",
+      "cls": "building",
+      "gid": "bld:b3629",
+      "x": 336,
+      "y": 208
+     }
+    ],
+    "gids": [
+     "bld:b3629"
+    ],
+    "zones": [
+     "k16",
+     "z0"
+    ]
+   }
+  },
+  {
+   "id": "L2",
+   "created": "2026-11-04T03:44:43.993Z",
+   "version": "0.5.1",
+   "seed": "311958",
+   "novelty": 0.6,
+   "options": {
+    "novelty": 0.6,
+    "experiments": true,
+    "exp": {},
+    "prune": true,
+    "pruneDraft": false
+   },
+   "scene": "seed311958_n0.60.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "太空",
+    "方正呆板"
+   ],
+   "text": "",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 672,
+     "y0": 368,
+     "x1": 688,
+     "y1": 384
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "z2"
+    ]
+   }
+  },
+  {
+   "id": "L3",
+   "created": "2026-11-04T03:45:36.183Z",
+   "version": "0.5.1",
+   "seed": "311958",
+   "novelty": 0.6,
+   "options": {
+    "novelty": 0.6,
+    "experiments": true,
+    "exp": {},
+    "prune": true,
+    "pruneDraft": false
+   },
+   "scene": "seed311958_n0.60.scene.json",
+   "verdict": "good",
+   "tags": [
+    "关系合理 / 有叙事"
+   ],
+   "text": "建筑更多的地方生成更多的停车位是有道理的，虽然不总是必须，但这次很合适",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 448,
+     "y0": 240,
+     "x1": 464,
+     "y1": 256
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "z0"
+    ]
+   }
+  }
+ ]
+}

@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
-    "batch": "tsx scripts/batch.ts"
+    "batch": "tsx scripts/batch.ts",
+    "test": "tsx --test src/gen/judge/*.test.ts src/gen/*.test.ts"
   },
   "dependencies": {
     "phaser": "^3.90.0"

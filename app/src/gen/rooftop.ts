@@ -16,7 +16,7 @@ export function rooftopAC(plans: BlockPlan[], sb: SceneBuilder, r: Rng) {
   for (const plan of plans) for (const { plan: b, cx, cy } of plan.buildings) {
     const roof = b.parts.find(p => p.role === 'roof');
     if (!roof || !FLAT_ROOFS.has(roof.key)) continue;
-    const rr = r.fork(`roof:${b.id}`, { roof: roof.key });
+    const rr = sb.enter(r.fork(`roof:${b.id}`, { roof: roof.key }));
     if (!rr.choose('roof.ac', {}, { p: 0.6 })) continue;
     const x0 = cx * T + roof.dx, y0 = cy * T + roof.dy, rh = spr(roof.key).h;
     // the flat deck inside the parapet

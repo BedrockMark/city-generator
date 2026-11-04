@@ -1,0 +1,41 @@
+{
+ "version": "0.5.1",
+ "seed": "225713",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-04T03:46:19.541Z",
+   "version": "0.5.1",
+   "seed": "225713",
+   "novelty": 0.6,
+   "options": {
+    "novelty": 0.6,
+    "experiments": true,
+    "exp": {},
+    "prune": true,
+    "pruneDraft": false
+   },
+   "scene": "seed225713_n0.60.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "位置不合理"
+   ],
+   "text": "已经有楼间道了，不需要再有小巷子了，应该二选一",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 432,
+     "y0": 496,
+     "x1": 448,
+     "y1": 512
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "k82",
+     "z10"
+    ]
+   }
+  }
+ ]
+}

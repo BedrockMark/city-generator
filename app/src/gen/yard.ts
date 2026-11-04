@@ -71,7 +71,7 @@ export function yardSpaces(L: Layout, plan: BlockPlan, sb: SceneBuilder, r: Rng)
     const size = `${rc.w}×${rc.h} 格`;
     let parkTried = false;
     if (fronted && rc.h <= 3 && street.includes('S')) { kind = 'forecourt'; why = `楼前空地（${size}）：${fronted.plan.id} 立面前退出 ≤3 行、南侧临街，按楼的类型布置`; }
-    else if (!used.parking && rc.w >= 9 && rc.h >= 7 && (parkTried = true) && r.choose('yard.parking', { w: rc.w, h: rc.h }, { p: 0.75 }) && parking(L, sb, r.fork(`park${rc.x},${rc.y}`, { w: rc.w, h: rc.h }), rc, plan, free)) { used.parking++; continue; }
+    else if (!used.parking && rc.w >= 9 && rc.h >= 7 && (parkTried = true) && r.choose('yard.parking', { w: rc.w, h: rc.h }, { p: 0.75 }) && parking(L, sb, sb.enter(r.fork(`park${rc.x},${rc.y}`, { w: rc.w, h: rc.h })), rc, plan, free)) { sb.enter(r); used.parking++; continue; }
     else if (Math.min(rc.w, rc.h) >= 3 && rc.w * rc.h >= 15 && used.garden < 2) { kind = 'garden'; used.garden++; why = `花园（${size}）：内院中最短边 ≥3、面积 ≥15 的空地（每街区至多 2 个）${parkTried ? '；没有做成停车场（未抽中或找不到车道）' : ''}`; }
     else if (Math.min(rc.w, rc.h) <= 2 && street.length > 0) {
       kind = rc.w <= 2 && rc.h >= 3 && street.includes('S') && !street.includes('E') && !street.includes('W') ? 'passage' : 'strip';
@@ -83,7 +83,7 @@ export function yardSpaces(L: Layout, plan: BlockPlan, sb: SceneBuilder, r: Rng)
     rects.push({ rc, kind, b: fronted, side: street[0], why });
   }
   for (const { rc, kind, b, side, why } of rects) {
-    const rr = r.fork(`${kind}${rc.x},${rc.y}`, { kind, w: rc.w, h: rc.h, street: side ?? '' });
+    const rr = sb.enter(r.fork(`${kind}${rc.x},${rc.y}`, { kind, w: rc.w, h: rc.h, street: side ?? '' }));
     const px = rect(rc.x * T, rc.y * T, (rc.x + rc.w) * T, (rc.y + rc.h) * T);
     const gid = sb.group(kind, why, kind === 'forecourt' ? { id: b!.plan.id, anchor: { kind: 'door', ref: `${b!.plan.id}.door`, x: b!.cx * T + (b!.plan.doors[0] ?? b!.plan.w * T / 2), y: (b!.cy + b!.plan.h) * T } }
       : { anchor: { kind: 'yard', ref: `${kind}@${rc.x},${rc.y}`, x: px.x0 + (px.x1 - px.x0) / 2, y: px.y0 + (px.y1 - px.y0) / 2 } });

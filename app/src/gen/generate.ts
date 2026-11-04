@@ -9,40 +9,61 @@ import { explainGround } from './explain';
 import { curbRuns, reserveWalkways, crossingVignettes, curbStrips, frontVignettes, zoneVignettes, islandSquares, busStop, cars, roadDetails, walkers } from './vignettes';
 import { yardSpaces } from './yard';
 import { SHEETS, TILE, type Scene, type GenOptions } from './types';
-import { withDefaults, expFires } from './exp';
+import { withDefaults, expFires, expEnabled } from './exp';
 import { rooftopAC } from './rooftop';
 import { rationalize } from './rational/rationalize';
+import { alignScene } from './judge/align';
+import { scoreWorld } from './judge/model';
+import { judgeRepair, build, tagGlobal, EXP_ID } from './judge/repair';
 
-export const VERSION = '0.5.1';
+export const VERSION = '0.6.0';
 
-export function generate(seed: string, options: Partial<GenOptions> = {}): Scene {
+export function generate(seed: string, options: Partial<GenOptions> = {}, onProgress?: (n: number, N: number) => void): Scene {
   const opts = withDefaults(options);
+  // stage 6: a recorded judge repair (exported scene) is rebuilt as is
+  if (opts.judgeFixed) {
+    const sc = build(seed, opts, opts.reseed ?? {}, opts.judgeFixed.degrade);
+    if (opts.judgeFixed.global) tagGlobal(sc);
+    return sc;
+  }
+  const scene = generateBase(seed, opts);
+  // oddness of every window (read-only: the picture does not change)
+  scene.judge = scoreWorld(alignScene(scene));
+  // exp-02: repair the oddest windows
+  if (opts.judgeRepair !== false && expEnabled(opts, EXP_ID)) return judgeRepair(seed, opts, scene, onProgress);
+  return scene;
+}
+
+/** the generator proper, constraint repairs included (stage 5); the judge and its repair come on top (stage 6) */
+export function generateBase(seed: string, opts: GenOptions): Scene {
   resetIds();
-  const trace = new Trace(seed);
+  const trace = new Trace(seed, opts.reseed ?? {});
   const rng = new Rng(seed, trace);
   const L = makeLayout(rng);
   const sb = new SceneBuilder(L.cols, L.rows, L.cls);
   const main = planMainBlock(L, rng);
   const neigh = planNeighbours(L, rng);
-  emitBuildings(L, main, sb, 'main');
-  emitBuildings(L, neigh, sb, 'neigh');
+  sb.inStream('block', () => emitBuildings(L, main, sb, 'main'));
+  sb.inStream('neigh', () => emitBuildings(L, neigh, sb, 'neigh'));
   const e01 = expFires(opts, 'exp-01', rng);
-  if (e01) rooftopAC([main, neigh], sb, e01);
+  if (e01) sb.inStream(e01.stream, () => rooftopAC([main, neigh], sb, e01));
   // yard spaces first: parking driveways cut the curb, which changes the curb runs
-  yardSpaces(L, main, sb, rng.fork('yard'));
+  // each subsystem runs on its own stream; sb records which stream placed what (stage 6 judge repair)
+  const on = (label: string, fn: (r: Rng) => void) => { const r = rng.fork(label); sb.inStream(r.stream, () => fn(r)); };
+  on('yard', r => yardSpaces(L, main, sb, r));
   const runs = curbRuns(L);
   reserveWalkways(sb, runs);
   // order = priority: things with a strong reason claim their space first
-  crossingVignettes(L, sb, rng.fork('cross'));
-  zoneVignettes(L, main, sb, rng.fork('zones'));
-  busStop(L, sb, rng.fork('bus'), runs);
-  frontVignettes(L, main, sb, rng.fork('fronts'));
-  frontVignettes(L, { ...neigh, buildings: neigh.buildings.filter(b => b.side === 'S') }, sb, rng.fork('nfronts'));
-  islandSquares(L, neigh, sb, rng.fork('island'));
-  curbStrips(L, sb, rng.fork('curb'), runs);
-  cars(L, sb, rng.fork('cars'), runs);
-  roadDetails(L, sb, rng.fork('road'));
-  walkers(L, sb, rng.fork('walk'), runs);
+  on('cross', r => crossingVignettes(L, sb, r));
+  on('zones', r => zoneVignettes(L, main, sb, r));
+  on('bus', r => busStop(L, sb, r, runs));
+  on('fronts', r => frontVignettes(L, main, sb, r));
+  on('nfronts', r => frontVignettes(L, { ...neigh, buildings: neigh.buildings.filter(b => b.side === 'S') }, sb, r));
+  on('island', r => islandSquares(L, neigh, sb, r));
+  on('curb', r => curbStrips(L, sb, r, runs));
+  on('cars', r => cars(L, sb, r, runs));
+  on('road', r => roadDetails(L, sb, r));
+  on('walk', r => walkers(L, sb, r, runs));
   explainGround(L, sb, runs);
   sb.finish();
   const scene: Scene = {

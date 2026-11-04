@@ -50,6 +50,8 @@ export interface Placed {
   novel?: boolean;
   /** ground footprint (px) the placement occupied; absent for things that do not stand on the ground */
   fp?: PxRect;
+  /** random stream (logical fork path) it was drawn from; write-only (stage 6 judge repair) */
+  stream?: string;
 }
 
 /** the thing a placement or group hangs off; (x, y) is the point the viewer draws the link line to */
@@ -64,6 +66,7 @@ export interface GroupRec {
   reason: string;
   anchor?: Anchor;
   exp?: string;
+  stream?: string;
   /** object ids, and the union of their opaque boxes (px) */
   members: string[];
   bbox?: PxRect;
@@ -94,6 +97,7 @@ export interface ZoneRec {
   reason: string;
   gid?: string;
   exp?: string;
+  stream?: string;
 }
 
 export interface Scene {
@@ -114,6 +118,10 @@ export interface Scene {
   zones?: ZoneRec[];
   /** stage 5: constraint audit and rationalising repairs (rational/rationalize.ts Audit) */
   audit?: import('./rational/rationalize').Audit;
+  /** stage 6: oddness score of every window (judge/model.ts) */
+  judge?: import('./judge/model').JudgeResult;
+  /** stage 6 judge repair record (exp-02, judge/repair.ts) */
+  judgeRepair?: import('./judge/repair').JudgeRepair;
   /** random decision trace (rng.ts Trace) */
   trace?: { decisions: unknown[]; streams: Record<string, unknown>; textures: Record<string, Record<string, number>>; unlabelled: number };
 }
@@ -129,4 +137,13 @@ export interface GenOptions {
   prune: boolean;
   /** stage 5 preview: also repair with the draft constraints */
   pruneDraft: boolean;
+  /** stage 6: logical stream path -> salt (rng.ts); the judge repair writes the salts it adopted here */
+  reseed?: Record<string, number>;
+  /** stage 6: the judge repair's result (salts in `reseed`, plus these downgraded windows): regenerate it as is,
+   *  without searching (an exported scene reproduces) */
+  judgeFixed?: { degrade: PxRect[]; global?: boolean };
+  /** stage 6: global tier of the judge repair (re-pack the main block); off by default */
+  judgeGlobal?: boolean;
+  /** internal: false = no judge repair (its own candidates) */
+  judgeRepair?: boolean;
 }

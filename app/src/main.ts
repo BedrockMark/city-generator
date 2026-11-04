@@ -1,11 +1,14 @@
 // Phaser viewer: generate a block from a seed, render it, pan/zoom, regenerate, export PNG + scene JSON.
 // Annotation mode (A): group / zone / building layers, hover + click details, good / bad labels (src/viewer).
+// Heat map (H): the judge's oddness per window (stage 6). Generation runs in a worker (src/viewer/gen.worker.ts):
+// the judge repair (exp-02) regenerates the map many times and shows its progress.
 import Phaser from 'phaser';
-import { generate, VERSION } from './gen/generate';
+import { VERSION } from './gen/generate';
 import { EXPERIMENTS, DEFAULT_OPTIONS, withDefaults } from './gen/exp';
 import type { Scene as GenScene, GenOptions, Placed, PxRect } from './gen/types';
 import { drawOverlay, pick, zonesAt, objBox, hiddenObjects, buildingOf, typeColor, zoneColor, zoneKey, intersects, ZONE_LAYER_NAMES, type OverlayState, type Sel } from './viewer/overlay';
 import { LabelStore, GOOD_TAGS, BAD_TAGS, sceneStem, type Label, type LabelTarget } from './viewer/labels';
+import { drawHeat, heatAt, reasons } from './viewer/heat';
 
 const ASSET_ROOT = 'assets/';
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -33,6 +36,13 @@ class CityView extends Phaser.Scene {
   private tags = new Set<string>();
   private lastView = '';
   private dirty = true;
+  /** heat map layer (H) and the world point under the mouse */
+  private heat = false;
+  private heatHover?: { x: number; y: number; sx: number; sy: number };
+  private worker?: Worker;
+  private busy = false;
+  private reqId = 0;
+  private reqT0 = 0;
 
   constructor() { super('city'); }
 
@@ -64,6 +74,7 @@ class CityView extends Phaser.Scene {
         return;
       }
       if (this.anno && this.current) { this.ov.hover = this.selAt(p.worldX, p.worldY); if (!this.ov.pinned) this.showDetail(this.ov.hover); this.dirty = true; }
+      if (this.heat && this.current) { this.heatHover = { x: p.worldX, y: p.worldY, sx: p.x, sy: p.y }; this.showHeatTip(); }
     });
     this.input.on('wheel', (_p: unknown, _o: unknown, _dx: number, dy: number) => this.zoomBy(dy > 0 ? 1 / 1.25 : 1.25));
     const url = new URL(location.href);
@@ -73,6 +84,7 @@ class CityView extends Phaser.Scene {
     if (ex) for (const kv of ex.split(',')) { const [k, v] = kv.split(':'); if (k) this.opts.exp[k] = v !== '0'; }
     if (url.searchParams.get('pd') !== null) this.opts.pruneDraft = url.searchParams.get('pd') !== '0';
     if (url.searchParams.get('p') !== null) this.opts.prune = url.searchParams.get('p') !== '0';
+    if (url.searchParams.get('jg') !== null) this.opts.judgeGlobal = url.searchParams.get('jg') !== '0';
     $<HTMLInputElement>('pruneDraft').checked = this.opts.pruneDraft;
     $<HTMLInputElement>('pruneDraft').onchange = () => { this.opts.pruneDraft = $<HTMLInputElement>('pruneDraft').checked; this.reload(); };
     $<HTMLInputElement>('novelty').value = String(this.opts.novelty);
@@ -89,6 +101,7 @@ class CityView extends Phaser.Scene {
     $('ghost').onchange = () => { if (this.current) this.draw(this.current, false); };
     $('export').onclick = () => this.exportShot();
     $('anno').onclick = () => this.toggleAnno();
+    $('heat').onclick = () => this.toggleHeat();
     $<HTMLInputElement>('novelty').oninput = () => { $('noveltyVal').textContent = (+$<HTMLInputElement>('novelty').value).toFixed(2); };
     $<HTMLInputElement>('novelty').onchange = () => { this.opts.novelty = +$<HTMLInputElement>('novelty').value; this.reload(); };
     $('expbtn').onclick = () => { const m = $('expmenu'); m.style.left = `${$('expbtn').getBoundingClientRect().left}px`; m.classList.toggle('open'); };
@@ -108,6 +121,7 @@ class CityView extends Phaser.Scene {
       if (k === 'f') this.fit();
       if (k === 'e') this.exportShot();
       if (k === 'a') this.toggleAnno();
+      if (k === 'h') this.toggleHeat();
       if (k === 'g') { const g = $<HTMLInputElement>('ghost'); g.checked = !g.checked; g.onchange?.(new Event('change')); }
       if (this.anno && k === '1') this.setVerdict('good');
       if (this.anno && k === '2') this.setVerdict('bad');
@@ -131,12 +145,31 @@ class CityView extends Phaser.Scene {
     if (c.width !== game.clientWidth || c.height !== game.clientHeight) { c.width = game.clientWidth; c.height = game.clientHeight; this.dirty = true; }
     const cam = this.cameras.main;
     const v = this.view();
-    const key = `${v.s}|${v.ox}|${v.oy}|${this.anno}|${cam.width}`;
+    const key = `${v.s}|${v.ox}|${v.oy}|${this.anno}|${this.heat}|${cam.width}`;
     if (key === this.lastView && !this.dirty) return;
     this.lastView = key; this.dirty = false;
     const ctx = c.getContext('2d')!;
     ctx.clearRect(0, 0, c.width, c.height);
+    if (this.heat && this.current) drawHeat(ctx, this.current, v);
     if (this.anno && this.current) { this.ov.ghost = $<HTMLInputElement>('ghost').checked; drawOverlay(ctx, this.current, v, this.ov); }
+  }
+
+  private toggleHeat() {
+    this.heat = !this.heat;
+    $('heat').classList.toggle('on', this.heat);
+    if (!this.heat) { this.heatHover = undefined; $('heatTip').style.display = 'none'; }
+    this.dirty = true;
+  }
+
+  /** hover tooltip of the heat map: the score of the oddest window under the mouse and its 3 main reasons */
+  private showHeatTip() {
+    const tip = $('heatTip'), h = this.heatHover, sc = this.current;
+    const w = h && sc ? heatAt(sc, h.x, h.y) : undefined;
+    if (!w || !h || !sc) { tip.style.display = 'none'; return; }
+    const rep = sc.judgeRepair?.windows.find(r => r.rect.x0 === w.rect.x0 && r.rect.y0 === w.rect.y0);
+    tip.innerHTML = `<b>怪异分 ${w.score.toFixed(2)}</b>${w.score > (sc.judge?.threshold ?? 1) ? '（超过阈值）' : ''}${rep ? `<br/>修复：${rep.before.toFixed(2)} → ${rep.after.toFixed(2)}` : ''}<br/>${reasons(w).map(esc).join('<br/>')}`;
+    const g = $('game').getBoundingClientRect();
+    tip.style.left = `${g.left + h.sx + 14}px`; tip.style.top = `${g.top + h.sy + 14}px`; tip.style.display = 'block';
   }
 
   /** world px -> overlay px, matching the main camera (zoom about the viewport centre) */
@@ -171,10 +204,28 @@ class CityView extends Phaser.Scene {
     if (e) q.set('e', e);
     if (this.opts.pruneDraft) q.set('pd', '1');
     if (!this.opts.prune) q.set('p', '0');
+    if (this.opts.judgeGlobal) q.set('jg', '1');
     history.replaceState(null, '', `?${q}`);
-    const t0 = performance.now();
-    const sc = generate(seed, this.opts);
-    this.show(sc, performance.now() - t0, '');
+    // a request while the worker is busy replaces it (the old result is no longer wanted)
+    if (this.busy) { this.worker?.terminate(); this.worker = undefined; }
+    const id = ++this.reqId;
+    this.reqT0 = performance.now(); this.busy = true;
+    $('info').textContent = `生成中… seed ${seed}`;
+    this.genWorker().postMessage({ id, seed, opts: this.opts });
+  }
+
+  private genWorker(): Worker {
+    if (this.worker) return this.worker;
+    const w = new Worker(new URL('./viewer/gen.worker.ts', import.meta.url), { type: 'module' });
+    w.onmessage = (e: MessageEvent<{ id: number; progress?: [number, number]; scene?: GenScene; error?: string }>) => {
+      const d = e.data;
+      if (d.id !== this.reqId) return;
+      if (d.progress) { $('info').textContent = `评判修复中…（${d.progress[0]} / ${d.progress[1]}）`; return; }
+      this.busy = false;
+      if (d.error) { toast(`生成失败：${d.error}`); return; }
+      this.show(d.scene!, performance.now() - this.reqT0, '');
+    };
+    return (this.worker = w);
   }
 
   private show(sc: GenScene, ms: number, source: string) {
@@ -200,6 +251,8 @@ class CityView extends Phaser.Scene {
     const o = sc.options;
     const au = sc.audit;
     const optInfo = (o ? ` · 创新度 ${o.novelty.toFixed(2)} · 实验${o.experiments ? '开' : '关'}` : '')
+      + (sc.judge ? ` · 怪异分 均 ${sc.judge.mean.toFixed(2)} / 最高 ${sc.judge.max.toFixed(2)}` : '')
+      + (sc.judgeRepair ? ` · 评判修复 ${sc.judgeRepair.windows.filter(w => w.adopted !== undefined).length} 换盐 / ${sc.judgeRepair.windows.filter(w => w.degraded && w.degraded !== 'rejected').length} 降级${sc.judgeRepair.globalAdopted !== undefined ? ' / 整体档' : ''}（${sc.judgeRepair.meanBefore.toFixed(2)} → ${sc.judgeRepair.meanAfter.toFixed(2)}）` : sc.options?.judgeFixed ? ' · 评判修复（按记录重建）' : '')
       + (au ? ` · 约束违规 ${au.violations.length}${au.pruned.length || au.downgraded.length || au.regrounded?.length ? ` · 剪掉 ${au.pruned.length} 个物件、降级 ${au.downgraded.length} 块、改地面 ${au.regrounded?.length ?? 0} 处` : ''}${o?.pruneDraft ? '（修复预览）' : ''}` : '');
     const done = () => {
       this.draw(sc, refit);
@@ -473,6 +526,11 @@ class CityView extends Phaser.Scene {
       drawOverlay(c.getContext('2d')!, sc, { s: 3, ox: 0, oy: 0 }, st);
       return png(c);
     }, `${base}_annotated.png`]);
+    if (this.heat) files.push([async () => {
+      const c = scaled(await normal, 2);
+      drawHeat(c.getContext('2d')!, sc, { s: 2, ox: 0, oy: 0 });
+      return png(c);
+    }, `${base}_heat.png`]);
     files.push([new Blob([JSON.stringify(sc)], { type: 'application/json' }), `${base}.json`]);
     const labels = this.store?.labels ?? [];
     if (labels.length) files.push([new Blob([JSON.stringify({ version: sc.version, seed: sc.seed, labels }, null, 1)], { type: 'application/json' }), `${base}_labels.json`]);
