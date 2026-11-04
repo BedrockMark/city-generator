@@ -12,29 +12,32 @@
   - 用户在 2026-11-02 做了 26 条标注（`references/labels/v0.4.0/`），C17–C24 由这些标注而来；2026-11-03 在 v0.5.0 上又标了 4 条（`references/labels/v0.5.0/`）。
 - v0.5.1 已提交（2026-11-03，报告 `docs/v0.5.1.md`）：约束生效、C02 优先删树、exp-01 平顶空调外机、楼只有底层占地（D38）。用户确认保留“前排楼高层盖住后排楼 / 停车场”的效果。
   - 打包改动让 200 个种子全部变化；旧标注大多指向旧布局里的物件，标注测试对这一版参考意义有限。
-- v0.6.0 已提交（2026-11-04，报告 `docs/v0.6.0.md`，评判器报告 `docs/JUDGE.md`）：阶段 6 局部评判器、热力图、exp-02 评判修复。**等用户确认**，报告第 5 节有 5 个待决定的问题（权重表核对、评判器与口味相反时 exp-02 是否默认关、最小降幅、整体档、被挡物件）。
+- v0.6.0 已提交（2026-11-04，报告 `docs/v0.6.0.md`，评判器报告 `docs/JUDGE.md`）：阶段 6 局部评判器、热力图、exp-02 评判修复。
+- 用户对 v0.6.0 的答复（2026-11-04）：局部修复改的东西意义不大，整体优化有用；权重表、被挡物件照算等其余都不变。阶段 6 视为完成，可以进入阶段 7。
+- v0.6.1 已提交（2026-11-04，报告 `docs/v0.6.1.md`，D45）：exp-02 = “整体修图”（只重新打包主街区，默认关，顶栏复选框），局部档删除，修了代码审查的问题。
 - git：每个版本 commit 一次，并打 tag `v<版本>`。阶段 6 在分支 `stage6` 上做，确认后合并到 main。
-- 决策记录：`docs/NOTE.md`（D1–D44，D22 已删除）。实验功能登记：`docs/EXPERIMENTS.md`（exp-01、exp-02）。
+- 决策记录：`docs/NOTE.md`（D1–D45，D22 已删除）。实验功能登记：`docs/EXPERIMENTS.md`（exp-01、exp-02）。
 
 ## 怎么运行
 - 查看器：`cd app && npx vite`，然后打开 http://localhost:5173/?seed=7
   - 快捷键：R 重新生成，F 适应窗口，G 虚化楼上层，A 标注层，E 导出（PNG、_ghost.png、_annotated.png、JSON，有标注时加 _labels.json）。
   - 标注模式：单击选中，Shift+拖动框选，1 / 2 标好 / 坏，Ctrl+Enter 保存，Esc 取消。标注由开发服务器写到 `references/labels/v<版本>/`。
-  - H：评判器热力图（红 = 怪，黄框 = 超阈值，青色虚线框 = exp-02 修复过的窗口；悬停看分数和前 3 个原因）。生成在 Web Worker 里跑，exp-02 修复时顶栏显示进度。
-  - URL 参数：`nov=0.3`（创新度），`x=0`（关闭全部实验），`e=exp-01:0,exp-02:0`（逐个开关），`jg=1`（exp-02 整体档，约 40 秒一张），`pd=1`（修复预览：草案约束也修复），`p=0`（完全不剪枝）。可以把 scene JSON 拖进页面查看。
+  - H：评判器热力图（红 = 怪，黄框 = 超阈值；悬停看分数和前 3 个原因）。
+  - 顶栏“整体修图”= exp-02（默认关，每张 2–5 秒，生成在 Web Worker 里跑，顶栏显示进度）。
+  - URL 参数：`nov=0.3`（创新度），`x=0`（关闭全部实验），`e=exp-01:0,exp-02:1`（逐个开关；exp-02:1 = 整体修图），`p=0`（完全不剪枝）。可以把 scene JSON 拖进页面查看。v0.6.1 起查看器没有 `pd`（修复预览）了，脚本里的 `--pd` 还在。
   - 标注层的“约束”图层：红框 = 违规，灰色叉框 = 已删除的物件，紫框 = 降级的区域，青框 = 改过的地面。
 - 测试：`cd app && npm test`（约 1 分钟）、`npx tsc --noEmit`。
-- 回归：`cd app && npx tsx scripts/regress.ts snapshot ../work/regress/<名> [--pd] [--off exp-02] [--global]`；exp-02 开着时很慢，用 `snapshot-par <目录> [同样的参数] [--jobs 8]` 多进程跑（默认档约 3 分钟，整体档约 17 分钟）。然后：
+- 回归：`cd app && npx tsx scripts/regress.ts snapshot ../work/regress/<名> [--pd] [--on <实验>] [--off <实验>]`（整体修图 = `--on exp-02`）；用 `snapshot-par <目录> [同样的参数] [--jobs 8]` 多进程跑（关约 16 秒，整体修图约 1 分钟；14 个进程并不更快）。然后：
   - `compare <旧> <新>`：画面签名逐项对比；
   - `report <A> <B>`：画面变化、各约束违规与修复、标注测试；
   - `labels [--pd]`：只跑标注测试；
   - `explain`：检查解释覆盖率。
-  - 种子集在 `scripts/regression_seeds.json`（200 个，只增不改）。基线在 `work/regress/v0.3.0`、`v0.4.0`、`v0.5.0`、`v0.5.0-pd`、`v0.5.1`、`v0.6.0-off`（exp-02 关）、`v0.6.0`、`v0.6.0-global`（work/ 不进 git，丢了就从对应 tag 重建）。
+  - 种子集在 `scripts/regression_seeds.json`（200 个，只增不改）。基线在 `work/regress/v0.3.0`、`v0.4.0`、`v0.5.0`、`v0.5.0-pd`、`v0.5.1`、`v0.6.0-off`（exp-02 关）、`v0.6.0`、`v0.6.0-global`、`v0.6.1b-off`、`v0.6.1b-on`（整体修图）（work/ 不进 git，丢了就从对应 tag 重建）。
   - `report` 的标注测试只跑 B 的模式。
 - 评判器：`cd app && npx tsx scripts/judge.ts train`（重训，写 `src/gen/data/judge.json`），`judge.ts eval`（写 `docs/JUDGE.md` 和热力图，要 `work/refworld`）。不同意的特征写进 `src/gen/judge/blacklist.json` 再重训。
-- 修复前后对比图：`cd tools && uv run python compare_repair.py <out.png> <exp-02 关的完整场景.json> <默认的完整场景.json>`（回归快照是精简过的，不能用；完整场景用 `generate(seed, { exp: { 'exp-02': false } })` 导出）。
+- 整体修图前后对比图：`cd tools && uv run python compare_repair.py <out.png> <关的完整场景.json> <开的完整场景.json>`（整图并排；回归快照是精简过的，不能用；完整场景用 `generate(seed)` 和 `generate(seed, { exp: { 'exp-02': true } })` 导出）。
 - 约束：`npx tsx scripts/constraints.ts gen [n] | refs | doc`。参考图世界先要导出：`cd tools && uv run python export_refworld.py`。
-- 修复前后对比图：`cd work/<截图目录> && uv run python ../../tools/compare_crops.py <版本> <输出目录>`。截图要有 `off/`（`--q=p=0`）和 `pd/`（`--q=pd=1`）两组。
+- 阶段 5 修复前后对比图：`cd work/<截图目录> && uv run python ../../tools/compare_crops.py <版本> <输出目录>`。截图要有 `off/`（`--q=p=0`）和 `pd/` 两组（`pd` 已不在查看器里，v0.6.1 起只能用 v0.5.x 的 tag 出图）。
 - 批量生成：`cd app && npx tsx scripts/batch.ts ../work/gen 1..12`
 - Python 渲染：`cd tools && uv run python render_generated.py ../work/gen/scene_1.json --scale 1 [--ghost]`。注意：它会把 PNG 写在 json 旁边，可能覆盖同名文件。
 - 评估：`cd tools && uv run python eval_generated.py <scene.json ...> --out report.md`
@@ -54,7 +57,7 @@
 - `yard.ts`：内院逐块分配，包括停车场和车道、花园、楼前空地、过道、绿化带、杂物角。楼后的地面和别处一样（D38）。
 - `rooftop.ts`：exp-01，平顶屋顶上的空调外机。
 - `signature.ts`：画面签名（回归对比和修复共用）。
-- `judge/`：阶段 6。`align.ts`（降到参考图的视力）、`features.ts`（窗口和特征）、`model.ts`（逻辑回归、打分）、`labelset.ts`（标注 → 窗口）、`repair.ts`（exp-02 局部档 / 降级 / 整体档）、`blacklist.json`。`generate()` = `generateBase()` + `judgeRepair()`。
+- `judge/`：阶段 6。`align.ts`（降到参考图的视力）、`features.ts`（窗口和特征）、`model.ts`（逻辑回归、打分）、`labelset.ts`（标注 → 窗口）、`repair.ts`（exp-02 整体修图：重新打包主街区）、`blacklist.json`。`generate()` = `generateBase()` + `judgeRepair()`。
 - `people.ts`：人物合成。
 - `place.ts`：放置、占地和禁放区；小组（`group`）、区域（`zone`）、实验标记（`withExp`）、`finish()`。
 - `generate.ts`：总调度。
@@ -67,12 +70,13 @@
 - `main.ts`：Phaser 查看器；`src/viewer/overlay.ts`（标注层绘制，屏幕和 _annotated.png 共用），`src/viewer/labels.ts`（标注格式和存储）。`vite.config.ts` 里有 `/api/labels`。
 
 ## 下一步
-- 等用户确认 v0.6.0，回答 `docs/v0.6.0.md` 第 5 节的问题；确认后把 `stage6` 合并到 main，再进入阶段 7。
+- 阶段 7（从选择中学习 + 创新度）设计中：用户已确认用方案 A（逐决策点的偏好模型，Bradley–Terry），局部 A/B 一次看多处单一改动、逐个评价，出题方式“系统自动 + 用户点选”两种都要。详细设计（7 节：强制决策、局部 A/B、学习与应用、创新度、实验转正 / 废弃、“选择解决不了的问题”报告、验证）已在对话里给出，**等用户确认**后写 spec（`docs/superpowers/specs/`），再写实施计划。
+- `stage6` 分支还没合并到 main（v0.6.0、v0.6.1 都在这个分支上）。
 - 阶段 6 的计划和执行记录：`docs/superpowers/plans/2026-11-03-stage6-judge.md`；`.superpowers/sdd/2026-11-03-stage6-judge/progress.md`（git 忽略，含所有 Ruling）。
 
 ## 已知问题
 - 空椅子从来没放成过：椅子的占地和桌子重叠（v0.5.0 报告 5.1）。用户决定不修（D39）。
-- 每张图约 260ms（exp-02 关），原来约 80ms，多出来的是连通图和约束判定。exp-02 开时平均 7.7 秒、最长 20 秒；整体档约 40 秒。
+- 每张图约 260ms（exp-02 关），原来约 80ms，多出来的是连通图和约束判定。整体修图开时平均 2.3 秒、最长 4.9 秒。
 - 建筑 id 很大（b13144）：被拒绝的候选建筑也占编号。id 是随机流标签，改编号会改变画面（D23）。
 - 每张图约 27 个空小组（决定放但全被约束拒绝），见 `docs/_prev/v0.4.0.md` 第 3 节。
 - `semantics.py` 的类别规则基于名字关键词；参考图统计只用 conf=high 的物件。

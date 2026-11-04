@@ -141,9 +141,7 @@ export interface GenOptions {
   reseed?: Record<string, number>;
   /** stage 6: the judge repair's result (salts in `reseed`, plus these downgraded windows): regenerate it as is,
    *  without searching (an exported scene reproduces) */
-  judgeFixed?: { degrade: PxRect[]; global?: boolean };
-  /** stage 6: global tier of the judge repair (re-pack the main block); off by default */
-  judgeGlobal?: boolean;
+  judgeFixed?: { global?: boolean };
   /** internal: false = no judge repair (its own candidates) */
   judgeRepair?: boolean;
 }

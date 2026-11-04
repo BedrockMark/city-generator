@@ -42,7 +42,7 @@ export function runLabelTests(opts: Partial<GenOptions> = {}): LabelResult[] {
   const cache = new Map<string, Scene>();
   const out: LabelResult[] = [];
   for (const { file, label: l } of loadLabels()) {
-    const o = { ...l.options, prune: true, pruneDraft: false, ...opts };
+    const o = { ...l.options, prune: true, pruneDraft: false, ...opts, exp: { ...(l.options?.exp ?? {}), ...(opts.exp ?? {}) } };
     const k = JSON.stringify([l.seed, o]);
     if (!cache.has(k)) cache.set(k, generate(l.seed, o));
     const sc = cache.get(k)!;
@@ -69,8 +69,7 @@ export function runLabelTests(opts: Partial<GenOptions> = {}): LabelResult[] {
     const constraints = [...new Set((sc.audit?.violations ?? []).filter(v => ov(v.rect)).map(v => v.c))];
     const status = l.verdict === 'bad' ? (present ? 'fail' : 'pass') : (present ? 'pass' : 'warn');
     // stage 6: did the judge repair (exp-02) touch the labelled thing?
-    const exp02 = sc.objects.some(p => p.exp === 'exp-02' && ov({ x0: p.x, y0: p.y, x1: p.x + p.w, y1: p.y + p.h }))
-      || (sc.judgeRepair?.windows ?? []).some(w => (w.adopted !== undefined || (w.degraded && w.degraded !== 'rejected')) && ov(w.rect));
+    const exp02 = sc.objects.some(p => p.exp === 'exp-02' && ov({ x0: p.x, y0: p.y, x1: p.x + p.w, y1: p.y + p.h }));
     out.push({ label: l, file, status, detail, constraints, exp02 });
   }
   return out;
@@ -87,7 +86,7 @@ export function formatLabelTests(rs: LabelResult[]): string[] {
   for (const r of rs) if (r.status === 'fail') lines.push(line(r, '✗ 坏标注仍存在'));
   for (const r of rs) if (r.status === 'warn' && !r.exp02) lines.push(line(r, '! 好标注被改动'));
   const byExp = rs.filter(r => r.status === 'warn' && r.exp02);
-  lines.push(`被 exp-02（评判修复）改动的好标注：${byExp.length} 条`);
+  lines.push(`被 exp-02（整体修图）改动的好标注：${byExp.length} 条`);
   for (const r of byExp) lines.push(line(r, '! exp-02 改动了好标注'));
   return lines;
 }

@@ -1,7 +1,6 @@
 // Stage 6 heat map (key H): the judge's oddness score per window, drawn with Canvas 2D so the same code paints the
 // screen and the exported _heat.png. Each pixel takes the highest score of the windows covering it, from transparent
-// to red; windows above the threshold get an outline; windows the judge repair (exp-02) worked on get a dashed box
-// with their score before -> after.
+// to red; windows above the threshold get an outline.
 import type { Scene, PxRect } from '../gen/types';
 import type { JudgeWin } from '../gen/judge/model';
 import { MODEL } from '../gen/judge/model';
@@ -42,17 +41,5 @@ export function drawHeat(ctx: CanvasRenderingContext2D, sc: Scene, v: View) {
   }
   ctx.lineWidth = 2; ctx.strokeStyle = '#ffeb3b';
   for (const w of j.windows) if (w.score > j.threshold) ctx.strokeRect(X(w.rect.x0) + 1, Y(w.rect.y0) + 1, (w.rect.x1 - w.rect.x0) * v.s - 2, (w.rect.y1 - w.rect.y0) * v.s - 2);
-  const font = Math.max(10, Math.min(14, 4 * v.s + 4));
-  for (const w of sc.judgeRepair?.windows ?? []) {
-    const did = w.adopted !== undefined ? `换盐 ${w.adopted}` : w.degraded && w.degraded !== 'rejected' ? '降级' : w.skipped ? '已不需要修' : '未修好';
-    ctx.setLineDash([6, 4]); ctx.lineWidth = 2.5; ctx.strokeStyle = '#00e5ff';
-    ctx.strokeRect(X(w.rect.x0), Y(w.rect.y0), (w.rect.x1 - w.rect.x0) * v.s, (w.rect.y1 - w.rect.y0) * v.s);
-    ctx.setLineDash([]);
-    const text = `${w.why === 'score' ? '' : w.why + ' '}${w.before.toFixed(2)} → ${w.after.toFixed(2)}（${did}）`;
-    ctx.font = `${font}px system-ui, sans-serif`;
-    const tw = ctx.measureText(text).width + 6;
-    ctx.fillStyle = '#00e5ff'; ctx.fillRect(X(w.rect.x0), Y(w.rect.y0), tw, font + 4);
-    ctx.fillStyle = '#000'; ctx.fillText(text, X(w.rect.x0) + 3, Y(w.rect.y0) + font);
-  }
   ctx.restore();
 }

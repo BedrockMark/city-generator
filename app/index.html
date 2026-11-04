@@ -64,7 +64,7 @@
     <span class="sep"></span>
     <label title="创新度 0–1（0 = 完全保守）。随导出和标注记录；阶段 7 才影响生成">创新度 <input type="range" id="novelty" min="0" max="1" step="0.05" /> <span id="noveltyVal"></span></label>
     <button id="expbtn" title="实验功能开关">实验 ▾</button>
-    <label title="阶段 5：把草案约束也当作生效，预览剪枝 / 降级的效果（URL pd=1）"><input type="checkbox" id="pruneDraft" /> 修复预览</label>
+    <label title="exp-02：评判器在几种主街区打包里挑最像参考图、约束不变差的一种（每张图要多等几秒到几十秒；URL e=exp-02:1）"><input type="checkbox" id="judgeFix" /> 整体修图</label>
     <button id="anno" title="标注层：小组、区域、原因、好 / 坏标注 (A)">标注 (A)</button>
     <button id="heat" title="评判器热力图：每个窗口的怪异分，红色越深越怪，黄框 = 超过阈值，青色虚线框 = 评判修复处理过的窗口（前 → 后）(H)">热力图 (H)</button>
     <span class="sep"></span>

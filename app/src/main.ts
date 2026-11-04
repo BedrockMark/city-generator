@@ -1,14 +1,17 @@
 // Phaser viewer: generate a block from a seed, render it, pan/zoom, regenerate, export PNG + scene JSON.
 // Annotation mode (A): group / zone / building layers, hover + click details, good / bad labels (src/viewer).
 // Heat map (H): the judge's oddness per window (stage 6). Generation runs in a worker (src/viewer/gen.worker.ts):
-// the judge repair (exp-02) regenerates the map many times and shows its progress.
+// 整体修图 (exp-02, the judge repair) regenerates the map many times and shows its progress.
 import Phaser from 'phaser';
 import { VERSION } from './gen/generate';
-import { EXPERIMENTS, DEFAULT_OPTIONS, withDefaults } from './gen/exp';
+import { EXPERIMENTS, DEFAULT_OPTIONS, withDefaults, expEnabled } from './gen/exp';
 import type { Scene as GenScene, GenOptions, Placed, PxRect } from './gen/types';
 import { drawOverlay, pick, zonesAt, objBox, hiddenObjects, buildingOf, typeColor, zoneColor, zoneKey, intersects, ZONE_LAYER_NAMES, type OverlayState, type Sel } from './viewer/overlay';
 import { LabelStore, GOOD_TAGS, BAD_TAGS, sceneStem, type Label, type LabelTarget } from './viewer/labels';
 import { drawHeat, heatAt, reasons } from './viewer/heat';
+
+/** the judge repair (stage 6) is the toolbar's 整体修图 switch */
+const JUDGE_EXP = 'exp-02';
 
 const ASSET_ROOT = 'assets/';
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -82,11 +85,9 @@ class CityView extends Phaser.Scene {
     if (nov !== null) this.opts.novelty = Math.max(0, Math.min(1, +nov || 0));
     if (xm !== null) this.opts.experiments = xm !== '0';
     if (ex) for (const kv of ex.split(',')) { const [k, v] = kv.split(':'); if (k) this.opts.exp[k] = v !== '0'; }
-    if (url.searchParams.get('pd') !== null) this.opts.pruneDraft = url.searchParams.get('pd') !== '0';
     if (url.searchParams.get('p') !== null) this.opts.prune = url.searchParams.get('p') !== '0';
-    if (url.searchParams.get('jg') !== null) this.opts.judgeGlobal = url.searchParams.get('jg') !== '0';
-    $<HTMLInputElement>('pruneDraft').checked = this.opts.pruneDraft;
-    $<HTMLInputElement>('pruneDraft').onchange = () => { this.opts.pruneDraft = $<HTMLInputElement>('pruneDraft').checked; this.reload(); };
+    // 整体修图 = experiment exp-02 (its switch lives here, not in the 实验 menu)
+    $<HTMLInputElement>('judgeFix').onchange = () => { this.opts.exp[JUDGE_EXP] = $<HTMLInputElement>('judgeFix').checked; this.reload(); };
     $<HTMLInputElement>('novelty').value = String(this.opts.novelty);
     $('noveltyVal').textContent = this.opts.novelty.toFixed(2);
     this.buildExpMenu();
@@ -133,7 +134,11 @@ class CityView extends Phaser.Scene {
       e.preventDefault();
       const f = e.dataTransfer?.files[0];
       if (!f) return;
-      try { const sc = JSON.parse(await f.text()) as GenScene; if (!sc.objects || !sc.ground) throw new Error('不是 scene JSON'); this.show(sc, 0, f.name); }
+      try {
+        const sc = JSON.parse(await f.text()) as GenScene; if (!sc.objects || !sc.ground) throw new Error('不是 scene JSON');
+        this.cancelGen();   // a generation still running must not replace the dropped file when it finishes
+        this.show(sc, 0, f.name);
+      }
       catch (err) { toast(`无法读取 ${f.name}: ${err}`); }
     });
     this.scale.on('resize', () => this.fit());
@@ -166,8 +171,7 @@ class CityView extends Phaser.Scene {
     const tip = $('heatTip'), h = this.heatHover, sc = this.current;
     const w = h && sc ? heatAt(sc, h.x, h.y) : undefined;
     if (!w || !h || !sc) { tip.style.display = 'none'; return; }
-    const rep = sc.judgeRepair?.windows.find(r => r.rect.x0 === w.rect.x0 && r.rect.y0 === w.rect.y0);
-    tip.innerHTML = `<b>怪异分 ${w.score.toFixed(2)}</b>${w.score > (sc.judge?.threshold ?? 1) ? '（超过阈值）' : ''}${rep ? `<br/>修复：${rep.before.toFixed(2)} → ${rep.after.toFixed(2)}` : ''}<br/>${reasons(w).map(esc).join('<br/>')}`;
+    tip.innerHTML = `<b>怪异分 ${w.score.toFixed(2)}</b>${w.score > (sc.judge?.threshold ?? 1) ? '（超过阈值）' : ''}<br/>${reasons(w).map(esc).join('<br/>')}`;
     const g = $('game').getBoundingClientRect();
     tip.style.left = `${g.left + h.sx + 14}px`; tip.style.top = `${g.top + h.sy + 14}px`; tip.style.display = 'block';
   }
@@ -202,16 +206,19 @@ class CityView extends Phaser.Scene {
     if (!this.opts.experiments) q.set('x', '0');
     const e = Object.entries(this.opts.exp).map(([k, v]) => `${k}:${v ? 1 : 0}`).join(',');
     if (e) q.set('e', e);
-    if (this.opts.pruneDraft) q.set('pd', '1');
     if (!this.opts.prune) q.set('p', '0');
-    if (this.opts.judgeGlobal) q.set('jg', '1');
     history.replaceState(null, '', `?${q}`);
-    // a request while the worker is busy replaces it (the old result is no longer wanted)
-    if (this.busy) { this.worker?.terminate(); this.worker = undefined; }
-    const id = ++this.reqId;
+    this.cancelGen();
+    const id = this.reqId;
     this.reqT0 = performance.now(); this.busy = true;
     $('info').textContent = `生成中… seed ${seed}`;
     this.genWorker().postMessage({ id, seed, opts: this.opts });
+  }
+
+  /** a newer request (or a dropped file) replaces the running one: its result is no longer wanted */
+  private cancelGen() {
+    if (this.busy) { this.worker?.terminate(); this.worker = undefined; this.busy = false; }
+    ++this.reqId;
   }
 
   private genWorker(): Worker {
@@ -220,11 +227,14 @@ class CityView extends Phaser.Scene {
     w.onmessage = (e: MessageEvent<{ id: number; progress?: [number, number]; scene?: GenScene; error?: string }>) => {
       const d = e.data;
       if (d.id !== this.reqId) return;
-      if (d.progress) { $('info').textContent = `评判修复中…（${d.progress[0]} / ${d.progress[1]}）`; return; }
+      if (d.progress) { $('info').textContent = `整体修图中…（${d.progress[0]} / ${d.progress[1]}）`; return; }
       this.busy = false;
       if (d.error) { toast(`生成失败：${d.error}`); return; }
       this.show(d.scene!, performance.now() - this.reqT0, '');
     };
+    const fail = (msg: string) => { this.busy = false; this.worker?.terminate(); this.worker = undefined; toast(`生成失败（Worker）：${msg}`); };
+    w.onerror = (e) => fail(e.message);
+    w.onmessageerror = () => fail('结果无法传回');
     return (this.worker = w);
   }
 
@@ -252,8 +262,8 @@ class CityView extends Phaser.Scene {
     const au = sc.audit;
     const optInfo = (o ? ` · 创新度 ${o.novelty.toFixed(2)} · 实验${o.experiments ? '开' : '关'}` : '')
       + (sc.judge ? ` · 怪异分 均 ${sc.judge.mean.toFixed(2)} / 最高 ${sc.judge.max.toFixed(2)}` : '')
-      + (sc.judgeRepair ? ` · 评判修复 ${sc.judgeRepair.windows.filter(w => w.adopted !== undefined).length} 换盐 / ${sc.judgeRepair.windows.filter(w => w.degraded && w.degraded !== 'rejected').length} 降级${sc.judgeRepair.globalAdopted !== undefined ? ' / 整体档' : ''}（${sc.judgeRepair.meanBefore.toFixed(2)} → ${sc.judgeRepair.meanAfter.toFixed(2)}）` : sc.options?.judgeFixed ? ' · 评判修复（按记录重建）' : '')
-      + (au ? ` · 约束违规 ${au.violations.length}${au.pruned.length || au.downgraded.length || au.regrounded?.length ? ` · 剪掉 ${au.pruned.length} 个物件、降级 ${au.downgraded.length} 块、改地面 ${au.regrounded?.length ?? 0} 处` : ''}${o?.pruneDraft ? '（修复预览）' : ''}` : '');
+      + (sc.judgeRepair ? ` · 整体修图 ${sc.judgeRepair.globalAdopted !== undefined ? `采用打包 ${sc.judgeRepair.globalAdopted}（${sc.judgeRepair.meanBefore.toFixed(2)} → ${sc.judgeRepair.meanAfter.toFixed(2)}）` : sc.judgeRepair.global ? '保留原打包（没有更好的）' : '不需要（已经像参考图）'}` : sc.options?.judgeFixed ? ' · 整体修图（按记录重建）' : '')
+      + (au ? ` · 约束违规 ${au.violations.length}${au.pruned.length || au.downgraded.length || au.regrounded?.length ? ` · 剪掉 ${au.pruned.length} 个物件、降级 ${au.downgraded.length} 块、改地面 ${au.regrounded?.length ?? 0} 处` : ''}` : '');
     const done = () => {
       this.draw(sc, refit);
       $('info').textContent = `${source ? `文件 ${source} · ` : ''}v${sc.version} · seed ${sc.seed} · ${sc.cols}×${sc.rows} 格 · 内部 ${(sc.params.interior as number[]).join('×')} · ${sc.params.shape} · ${sc.objects.length} 物件${optInfo}${ms ? ` · 生成 ${ms.toFixed(0)} ms` : ''}`;
@@ -347,11 +357,14 @@ class CityView extends Phaser.Scene {
 
   private buildExpMenu() {
     const m = $('expmenu');
-    const rows = EXPERIMENTS.filter(e => e.status !== 'adopted').map(e =>
+    const fix = $<HTMLInputElement>('judgeFix');
+    fix.checked = expEnabled(this.opts, JUDGE_EXP); fix.disabled = !this.opts.experiments;
+    fix.parentElement!.style.opacity = this.opts.experiments ? '' : '0.5';
+    const rows = EXPERIMENTS.filter(e => e.status !== 'adopted' && e.id !== JUDGE_EXP).map(e =>
       `<label><input type="checkbox" data-exp="${e.id}" ${(this.opts.exp[e.id] ?? e.default) ? 'checked' : ''} ${e.status === 'retired' ? 'disabled' : ''}/> <b>${e.id}</b> ${esc(e.title)} <span class="mini">(${e.status === 'retired' ? '已废弃' : '实验'})</span></label>`).join('');
     m.innerHTML = `<label><input type="checkbox" id="expAll" ${this.opts.experiments ? 'checked' : ''}/> <b>启用实验功能（总开关）</b></label><hr style="border-color:#444"/>`
       + (rows || '<div class="mini">暂无实验功能。第一个实验功能将登记为 exp-01（见 docs/EXPERIMENTS.md）。</div>');
-    $<HTMLInputElement>('expAll').onchange = () => { this.opts.experiments = $<HTMLInputElement>('expAll').checked; this.reload(); };
+    $<HTMLInputElement>('expAll').onchange = () => { this.opts.experiments = $<HTMLInputElement>('expAll').checked; this.buildExpMenu(); this.reload(); };
     m.querySelectorAll<HTMLInputElement>('input[data-exp]').forEach(i => { i.onchange = () => { this.opts.exp[i.dataset.exp!] = i.checked; this.reload(); }; });
   }
 

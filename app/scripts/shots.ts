@@ -1,5 +1,5 @@
 // Capture Phaser renders through the real export button, using the installed Microsoft Edge (headless).
-//   npx tsx scripts/shots.ts <outDir> [--anno] [--heat] [--q=pd=1&nov=0.3] <seed|a..b> ...      (needs `npx vite` running on :5173)
+//   npx tsx scripts/shots.ts <outDir> [--anno] [--heat] [--q=e=exp-02:1&nov=0.3] <seed|a..b> ...      (needs `npx vite` running on :5173)
 import { chromium } from 'playwright-core';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -9,7 +9,7 @@ const argv = process.argv.slice(2);
 const anno = argv.includes('--anno');
 //   --heat: turn the judge heat map on (H): screenshot it and export _heat.png too
 const heat = argv.includes('--heat');
-//   --q=...: extra URL parameters for every seed (pd=1 = repair preview, p=0 = no pruning ...)
+//   --q=...: extra URL parameters for every seed (e=exp-02:1 = 整体修图, p=0 = no pruning ...)
 const extra = argv.find(a => a.startsWith('--q='))?.slice(4) ?? '';
 const [outDir, ...args] = argv.filter(a => a !== '--anno' && a !== '--heat' && !a.startsWith('--q='));
 const seeds: string[] = [];

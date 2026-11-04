@@ -16,13 +16,13 @@ import { alignScene } from './judge/align';
 import { scoreWorld } from './judge/model';
 import { judgeRepair, build, tagGlobal, EXP_ID } from './judge/repair';
 
-export const VERSION = '0.6.0';
+export const VERSION = '0.6.1';
 
 export function generate(seed: string, options: Partial<GenOptions> = {}, onProgress?: (n: number, N: number) => void): Scene {
   const opts = withDefaults(options);
   // stage 6: a recorded judge repair (exported scene) is rebuilt as is
   if (opts.judgeFixed) {
-    const sc = build(seed, opts, opts.reseed ?? {}, opts.judgeFixed.degrade);
+    const sc = build(seed, opts, opts.reseed ?? {});
     if (opts.judgeFixed.global) tagGlobal(sc);
     return sc;
   }
