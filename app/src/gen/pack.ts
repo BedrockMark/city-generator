@@ -1,5 +1,7 @@
 // Generic building packer for a region of cells.
 // Repeatedly takes the lowest row that still has free cells and places a building bottom-aligned there.
+// Only the footprint (bottom `foot` rows) takes space; the upper floors take none (D38): the ground they cover
+// stays free for yard or other footprints, they only have to stay over the block's own lot (`canopy`).
 // A building whose front would face the back of another building keeps a 2-row clearance (front yard).
 // Cells that cannot take a building become 'yard'.
 import { Rng } from './rng';
@@ -11,6 +13,8 @@ export interface PackOpts {
   buildable: (x: number, y: number) => boolean;
   /** cell outside the picture that counts as buildable (buildings may run off the picture edge) */
   overflow?: (x: number, y: number) => boolean;
+  /** cell the upper floors may hang over (in the picture this hides it): the block's own lot, never a street */
+  canopy: (x: number, y: number) => boolean;
   /** cell is a building already (for front clearance) */
   mix: { modular: number; single: number };
   minH?: number;
@@ -29,15 +33,17 @@ export function pack(o: PackOpts, r: Rng): { placed: Packed[]; yard: boolean[][]
   const bld = Array.from({ length: rows }, () => Array<boolean>(cols).fill(false));
   const yard = Array.from({ length: rows }, () => Array<boolean>(cols).fill(false));
   const ok = (x: number, y: number) => inside(x, y) ? free[y][x] : !!o.overflow?.(x, y);
+  const over = (x: number, y: number) => inside(x, y) ? o.canopy(x, y) : !!o.overflow?.(x, y);
   const placed: Packed[] = [];
   const fits = (b: BuildingPlan, x0: number, bottom: number) => {
-    for (let y = bottom - b.h + 1; y <= bottom; y++) for (let x = x0; x < x0 + b.w; x++) if (!ok(x, y)) return false;
+    for (let y = bottom - b.foot + 1; y <= bottom; y++) for (let x = x0; x < x0 + b.w; x++) if (!ok(x, y)) return false;
+    for (let y = bottom - b.h + 1; y <= bottom - b.foot; y++) for (let x = x0; x < x0 + b.w; x++) if (!over(x, y)) return false;
     // front clearance: the 2 rows below must not be building
     for (let y = bottom + 1; y <= bottom + 2; y++) for (let x = x0; x < x0 + b.w; x++) if (inside(x, y) && bld[y][x]) return false;
     return true;
   };
   const mark = (b: BuildingPlan, x0: number, bottom: number) => {
-    for (let y = bottom - b.h + 1; y <= bottom; y++) for (let x = x0; x < x0 + b.w; x++) if (inside(x, y)) { free[y][x] = false; bld[y][x] = true; }
+    for (let y = bottom - b.foot + 1; y <= bottom; y++) for (let x = x0; x < x0 + b.w; x++) if (inside(x, y)) { free[y][x] = false; bld[y][x] = true; }
   };
   for (let iter = 0; iter < 2000; iter++) {
     // lowest row with a free cell
@@ -52,9 +58,10 @@ export function pack(o: PackOpts, r: Rng): { placed: Packed[]; yard: boolean[][]
     while (x < b) {
       // extend the run through overflow on the right edge
       const rem = b - x + (b === cols && o.overflow ? 12 : 0);
-      // height available above (min over a 6-wide window), overflow above the picture counts as unlimited
+      // sprite height available above (the upper floors may hang over the lot), overflow above the picture counts
+      // as unlimited; whether the footprint itself is free is checked by fits()
       let avail = 0;
-      for (let y = yS; ok(x, y) && avail < 40; y--) avail++;
+      for (let y = yS; (y === yS || over(x, y)) && avail < 40; y--) avail++;
       let bp: BuildingPlan | null = null;
       if (rem >= 5 && avail >= (o.minH ?? 8)) {
         for (let t = 0; t < 8 && !bp; t++) {

@@ -358,7 +358,7 @@ export function islandSquares(L: Layout, neigh: BlockPlan, sb: SceneBuilder, r: 
     if (g >= 0) cells.set(g, [...(cells.get(g) ?? []), [x, y]]);
   }
   const hasBuilding = new Set<number>();
-  for (const b of neigh.buildings) for (let y = b.cy; y < b.cy + b.plan.h; y++) for (let x = b.cx; x < b.cx + b.plan.w; x++) {
+  for (const b of neigh.buildings) for (let y = b.cy + b.plan.h - b.plan.foot; y < b.cy + b.plan.h; y++) for (let x = b.cx; x < b.cx + b.plan.w; x++) {
     const g = L.region[y]?.[x]; if (g !== undefined && g >= 0) hasBuilding.add(g);
   }
   for (const [g, cs] of cells) {

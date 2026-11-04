@@ -16,10 +16,9 @@ export interface Zone { kind: 'alley' | 'plaza' | 'pocket'; x0: number; y0: numb
 export interface BlockPlan {
   buildings: PlacedBuilding[];
   zones: Zone[];
-  /** free interior cells after buildings / zones (the courtyard); includes ground hidden behind buildings */
+  /** free interior cells after building footprints / zones (the courtyard). Only the footprint is solid: the ground
+   *  north of it is ordinary yard; what the upper floors cover is a rendering matter (D38) */
   yard: boolean[][];
-  /** yard cells covered by the upper part of a building sprite (behind the building, seen only in ghost view) */
-  hidden: boolean[][];
   /** per column of the main interior: bottom/top interior rows */
   yb: Map<number, number>; yt: Map<number, number>;
 }
@@ -54,7 +53,7 @@ export function planMainBlock(L: Layout, r0: Rng): BlockPlan {
   // ---- pack buildings: south frontage first, then rows behind, side streets, north edge ----
   const mix = r.choose('block.mix', {}, { weights: [[{ modular: 3, single: 2 }, 2], [{ modular: 1, single: 2 }, 1], [{ modular: 3, single: 1 }, 1]] as const });
   const { placed, yard } = pack({
-    cols: L.cols, rows: L.rows, buildable: (x, y) => L.inP[y][x] && !carved[y][x], mix, minH: 8,
+    cols: L.cols, rows: L.rows, buildable: (x, y) => L.inP[y][x] && !carved[y][x], canopy: (x, y) => L.inP[y][x], mix, minH: 8,
     gapAfter: [[0, 6], [1, 2], [2, 1]], pairChance: 0.4,
     // only buildings that face the street (sidewalk right below the facade) may be shops
     frontFilter: (x0, w, bottom) => {
@@ -64,11 +63,7 @@ export function planMainBlock(L: Layout, r0: Rng): BlockPlan {
     },
   }, r);
   const buildings: PlacedBuilding[] = placed.map(p => ({ plan: p.plan, cx: p.cx, cy: p.cy, side: (p.cy + p.plan.h - 1 === yb.get(p.cx) ? 'S' : 'N') as 'S' | 'N', why: p.why }));
-  // the ground behind a building (sprite rows above its roof-sized footprint) is yard too, just hidden
-  const hidden = yard.map(row => row.map(() => false));
-  for (const { plan: b, cx, cy } of placed) for (let y = cy; y < cy + b.h - b.foot; y++) for (let x = cx; x < cx + b.w; x++)
-    if (L.inP[y]?.[x]) { yard[y][x] = true; hidden[y][x] = true; }
-  return { buildings, zones, yard, hidden, yb, yt };
+  return { buildings, zones, yard, yb, yt };
 }
 
 /** emit building sprites; the solid footprint is the bottom `foot` rows; doors keep a clear path to the street */

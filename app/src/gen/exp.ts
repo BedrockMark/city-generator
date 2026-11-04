@@ -18,7 +18,8 @@ export interface Experiment {
 }
 
 export const EXPERIMENTS: Experiment[] = [
-  // none yet: the first requested experimental feature becomes exp-01
+  // 2026-11-03, user label 684358 L3 + v0.5.0 question 2: AC units belong on flat roofs, not on the ground
+  { id: 'exp-01', title: '平顶屋顶上的空调外机', status: 'experimental', default: true },
 ];
 
 export const DEFAULT_OPTIONS: GenOptions = { novelty: 0.1, experiments: true, exp: {}, prune: true, pruneDraft: false };

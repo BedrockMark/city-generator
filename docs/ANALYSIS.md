@@ -134,7 +134,9 @@
 
 ### 3.4 反面案例 `site_overview.png` 的问题（对照上面的规律）
 
-![anti](fig/anti_crop.png)
+> 反面案例已归档（2026-11-03，D37），本节只作历史记录。原图在 `docs/_prev/anti_references/`。
+
+![anti](_prev/fig/anti_crop.png)
 
 - 建筑悬浮在地块中央的灰色垫子上，和道路没有关系；建筑与路缘之间是大片空白的米色人行道。违反了 3.2-5。
 - 路缘没有任何设施带：没有路灯、信号灯、垃圾桶、车。违反 3.2-1、3.2-2。
@@ -223,7 +225,7 @@
 4. **生成器语言：** 用 TypeScript 写在浏览器里（重新生成即时，Phaser 原生），分析和评估工具继续用 Python。可以吗？
 5. **存档格式建议：**
    - `references/holdout/`：放 **PNG 截图 + 同名 `.json`**（viewer 导出的 scene JSON，含种子和生成器版本）。只有 PNG 也行，我会用分析管线重新识别。
-   - `anti_references/`：PNG 即可；如能附上 scene JSON 和一句文字说明“哪里不好”，最有用。
+   - `anti_references/`（已归档，D37）：PNG 即可；如能附上 scene JSON 和一句文字说明“哪里不好”，最有用。
 6. **4 张 200×112 的缩略图：** 有原尺寸版本吗？没有也不影响。
 
 ---

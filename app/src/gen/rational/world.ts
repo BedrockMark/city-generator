@@ -22,8 +22,6 @@ export interface WObj {
   gid?: string; group?: string; anchor?: Anchor;
   /** the placement's reason (generated scenes) */
   reason?: string;
-  /** lies on ground hidden behind a building (only visible in ghost view) */
-  hidden: boolean;
   /** reference objects: detection confidence */
   conf?: string;
 }
@@ -38,10 +36,8 @@ export interface World {
   lawn(px: number, py: number): boolean;
   /** base ground tile (generated scenes), for continuing a path in the same paving */
   baseTile?(cx: number, cy: number): TileRef | null;
-  /** building footprints (solid) */
+  /** building footprints (solid); the upper floors take no ground (D38) */
   walls: PxRect[];
-  /** building sprites above their footprint: ground hidden behind the building */
-  behind: PxRect[];
   objs: WObj[];
   doors: WDoor[];
   zones: ZoneRec[];
@@ -62,7 +58,6 @@ const isSit = (frame?: [number, number]) => frame?.[1] === 4;
 export function worldFromScene(sc: Scene): World {
   const W = sc.cols * T, H = sc.rows * T;
   const walls = (sc.buildings ?? []).map(b => b.solid);
-  const behind = (sc.buildings ?? []).map(b => ({ ...b.rect, y1: b.solid.y0 }));
   // the carriageway is not for pedestrians, but driveways and zebras are
   const crossable = (sc.zones ?? []).filter(z => z.kind === 'driveway' || z.kind === 'zebra').map(z => z.rect);
   const ground = (px: number, py: number): Ground => {
@@ -79,13 +74,13 @@ export function worldFromScene(sc: Scene): World {
     else bb = { x0: o.x + 3, y0: o.y + 8, x1: o.x + 13, y1: o.y + 32 };
     const fx = (bb.x0 + bb.x1) / 2, fy = o.kind === 'char' ? o.foot : bb.y1;
     objs.push({ i, id: o.id ?? `o${i}`, key: o.key, cls: o.kind === 'char' ? 'person' : o.cls, person: o.kind === 'char', sit: o.kind === 'char' && isSit(o.frame),
-      fx, fy, fp: o.fp ?? null, bb, gid: o.gid, group: o.group, anchor: o.anchor, reason: o.reason, hidden: behind.some(r => inRect(r, fx, fy - 1)) });
+      fx, fy, fp: o.fp ?? null, bb, gid: o.gid, group: o.group, anchor: o.anchor, reason: o.reason });
   });
   const doors: WDoor[] = [];
   for (const b of sc.buildings ?? []) for (const d of b.doors) doors.push({ bid: b.id, x: d.x, y: d.y, block: b.block });
   const lawn = (px: number, py: number) => isGrassTile(sc.ground[1]?.[Math.floor(py / T)]?.[Math.floor(px / T)]);
   const baseTile = (cx: number, cy: number) => sc.ground[0]?.[cy]?.[cx] ?? null;
-  return { src: 'gen', name: `seed${sc.seed}`, W, H, ground, lawn, baseTile, walls, behind, objs, doors, zones: sc.zones ?? [] };
+  return { src: 'gen', name: `seed${sc.seed}`, W, H, ground, lawn, baseTile, walls, objs, doors, zones: sc.zones ?? [] };
 }
 
 /** analysed reference (work/refworld/<name>.json) */
@@ -122,8 +117,8 @@ export function worldFromRef(j: RefWorldJSON): World {
     const d = Math.min(FOOT_DEPTH[o.cls] ?? 10, bb.y1 - bb.y0);
     const flat = o.cls === 'manhole' || /Ground_Tile|Crack|Brake_Marks|Puddle|Stain/.test(o.key);
     objs.push({ i, id: `r${i}`, key: o.key, cls: o.cls, person: false, sit: false, fx: (bb.x0 + bb.x1) / 2, fy: bb.y1,
-      fp: flat ? null : { x0: bb.x0, y0: bb.y1 - d, x1: bb.x1, y1: bb.y1 }, bb, hidden: false, conf: o.conf });
+      fp: flat ? null : { x0: bb.x0, y0: bb.y1 - d, x1: bb.x1, y1: bb.y1 }, bb, conf: o.conf });
   });
   const lawn = (px: number, py: number) => g(px, py) === 'grass';
-  return { src: 'ref', name: j.name, W, H, ground, lawn, walls, behind: [], objs, doors: [], zones: [] };
+  return { src: 'ref', name: j.name, W, H, ground, lawn, walls, objs, doors: [], zones: [] };
 }

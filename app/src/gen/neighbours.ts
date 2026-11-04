@@ -19,7 +19,7 @@ export function planNeighbours(L: Layout, r0: Rng): BlockPlan {
     return L.roadDist[cy][cx] + Math.max(Math.abs(x - cx), Math.abs(y - cy)) > L.sw2;
   };
   const { placed: pe } = pack({
-    cols: L.cols + 2 * E, rows: L.rows + E + EB, buildable: (x, y) => virt(x - E, y - E),
+    cols: L.cols + 2 * E, rows: L.rows + E + EB, buildable: (x, y) => virt(x - E, y - E), canopy: (x, y) => virt(x - E, y - E),
     mix: { modular: 2, single: 2 }, minH: 7, gapAfter: [[0, 4], [1, 3], [2, 2]], pairChance: 0.3,
   }, r);
   const placed = pe.map(p => ({ ...p, cx: p.cx - E, cy: p.cy - E, why: `邻近街区（同一打包器；画面外按到路的距离延续地块）。${p.why}` }))
@@ -27,7 +27,7 @@ export function planNeighbours(L: Layout, r0: Rng): BlockPlan {
   // regions cut by the picture bottom with a street above: buildings top-aligned to their street, running
   // off the bottom edge (we see roofs and upper floors)
   const covered = L.cls.map(row => row.map(() => false));
-  for (const p of placed) for (let y = Math.max(0, p.cy); y < Math.min(L.rows, p.cy + p.plan.h); y++) for (let x = Math.max(0, p.cx); x < Math.min(L.cols, p.cx + p.plan.w); x++) covered[y][x] = true;
+  for (const p of placed) for (let y = Math.max(0, p.cy + p.plan.h - p.plan.foot); y < Math.min(L.rows, p.cy + p.plan.h); y++) for (let x = Math.max(0, p.cx); x < Math.min(L.cols, p.cx + p.plan.w); x++) covered[y][x] = true;
   const topRow = new Map<number, number>();
   for (let x = 0; x < L.cols; x++) {
     if (L.cls[L.rows - 1][x] !== 'nlot' && L.cls[L.rows - 1][x] !== 'nwalk') continue;
@@ -48,5 +48,5 @@ export function planNeighbours(L: Layout, r0: Rng): BlockPlan {
     const below = L.cls[p.cy + p.plan.h]?.[p.cx];
     return { plan: p.plan, cx: p.cx, cy: p.cy, side: (below === 'nwalk' ? 'S' : 'N') as 'S' | 'N', why: p.why };
   });
-  return { buildings, zones: [], yard, hidden: yard, yb: new Map(), yt: new Map() };
+  return { buildings, zones: [], yard, yb: new Map(), yt: new Map() };
 }

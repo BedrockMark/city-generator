@@ -1,0 +1,181 @@
+{
+ "version": "0.5.0",
+ "seed": "641266",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-03T03:24:44.161Z",
+   "version": "0.5.0",
+   "seed": "641266",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {},
+    "prune": true,
+    "pruneDraft": false
+   },
+   "scene": "seed641266.scene.json",
+   "verdict": "good",
+   "tags": [
+    "关系合理 / 有叙事"
+   ],
+   "text": "长椅配合小路很好",
+   "target": {
+    "kind": "object",
+    "rect": {
+     "x0": 656,
+     "y0": 396,
+     "x1": 672,
+     "y1": 444
+    },
+    "objects": [
+     {
+      "id": "o25",
+      "key": "3_City_Props/Bench_5",
+      "cls": "bench",
+      "gid": "garden#0",
+      "x": 656,
+      "y": 396
+     }
+    ],
+    "gids": [
+     "garden#0"
+    ],
+    "zones": [
+     "z2"
+    ]
+   }
+  },
+  {
+   "id": "L2",
+   "created": "2026-11-03T03:25:22.420Z",
+   "version": "0.5.0",
+   "seed": "641266",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {},
+    "prune": true,
+    "pruneDraft": false
+   },
+   "scene": "seed641266.scene.json",
+   "verdict": "good",
+   "tags": [
+    "布局合理",
+    "关系合理 / 有叙事"
+   ],
+   "text": "因为小路旁有合理的配合装饰，所以不突兀，可以保留。",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 640,
+     "y0": 448,
+     "x1": 656,
+     "y1": 464
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "k13",
+     "z2"
+    ]
+   }
+  },
+  {
+   "id": "L3",
+   "created": "2026-11-03T03:25:59.663Z",
+   "version": "0.5.0",
+   "seed": "641266",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {},
+    "prune": true,
+    "pruneDraft": false
+   },
+   "scene": "seed641266.scene.json",
+   "verdict": "good",
+   "tags": [
+    "关系合理 / 有叙事"
+   ],
+   "text": "垃圾站的设置正确合理，可以放在楼后就更好了",
+   "target": {
+    "kind": "object",
+    "rect": {
+     "x0": 402,
+     "y0": 198,
+     "x1": 431,
+     "y1": 238
+    },
+    "objects": [
+     {
+      "id": "o48",
+      "key": "3_City_Props/Dumpster_4",
+      "cls": "trash",
+      "gid": "service#0",
+      "x": 401,
+      "y": 190
+     }
+    ],
+    "gids": [
+     "service#0"
+    ],
+    "zones": [
+     "z4",
+     "z20"
+    ]
+   }
+  },
+  {
+   "id": "L4",
+   "created": "2026-11-03T03:40:04.030Z",
+   "version": "0.5.0",
+   "seed": "641266",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {},
+    "prune": true,
+    "pruneDraft": false
+   },
+   "scene": "seed641266.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "挡路"
+   ],
+   "text": "",
+   "target": {
+    "kind": "object",
+    "rect": {
+     "x0": 399,
+     "y0": 451,
+     "x1": 418,
+     "y1": 474
+    },
+    "objects": [
+     {
+      "id": "o82",
+      "key": "3_City_Props/Trashbin_14",
+      "cls": "trash",
+      "gid": "alley#0",
+      "x": 390,
+      "y": 448
+     }
+    ],
+    "gids": [
+     "alley#0"
+    ],
+    "zones": [
+     "k2",
+     "z5",
+     "z6",
+     "z10"
+    ]
+   }
+  }
+ ]
+}

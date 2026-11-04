@@ -116,16 +116,13 @@ function slice(sc: Scene, mask: boolean[][]) {
   }
 }
 
-// lawn on the visible cells of a rect, merged with the lawns already there (same 9-slice as yard.ts paintGrass)
+// lawn on the cells of a rect, merged with the lawns already there (same 9-slice as yard.ts paintGrass)
 const isGrass = isGrassTile;
 function lawn(sc: Scene, r: PxRect) {
   const over = sc.ground[1];
-  const behind = (sc.buildings ?? []).map(b => ({ ...b.rect, y1: b.solid.y0 }));
   const mask = over.map(row => row.map(isGrass));
   for (let y = Math.floor(r.y0 / T); y < Math.ceil(r.y1 / T); y++) for (let x = Math.floor(r.x0 / T); x < Math.ceil(r.x1 / T); x++) {
     if (!over[y] || x < 0 || x >= sc.cols) continue;
-    const cx = x * T + 8, cy = y * T + 8;
-    if (behind.some(b => cx >= b.x0 && cx < b.x1 && cy >= b.y0 && cy < b.y1)) continue;
     if (over[y][x] && !isGrass(over[y][x])) continue;   // keep other overlay pieces
     mask[y][x] = true;
   }

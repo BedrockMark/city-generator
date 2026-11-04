@@ -45,6 +45,5 @@
  "suburb":                           {"kind": "site",     "roi": null},
  "suburb_neighborhood_1":            {"kind": "street",   "roi": null},
  "suburb_neighborhood_2":            {"kind": "street",   "roi": null},
- "ANTI_site_overview":               {"kind": "anti",     "roi": [0, 0, 2048, 1536]},
  "town_near_river":                  {"kind": "street",   "roi": [3, 3, 755, 675]}
 }

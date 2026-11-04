@@ -4,10 +4,10 @@
 
 Per scene:
   * copy check vs all references (tile 4x4 windows, object constellations)  -> novelty.py logic
-  * self repetition: object constellations repeated inside the scene (refs 0-0.087, anti-reference 0.64)
+  * self repetition: object constellations repeated inside the scene (refs 0-0.087)
   * main-block density: placed things per 100 cells of main block (walk + lot), people per 100 cells
   * emptiness: largest connected patch of open ground cells (sidewalk / yard / plaza) with nothing within
-    1 cell (no object footprint, no building) - the anti-reference's failure mode
+    1 cell (no object footprint, no building) (the "big blank sidewalk" failure mode)
 Across scenes: pairwise shared object constellations between seeds (diversity).
 Reference calibration of emptiness is computed on ref scenes ('paved' cells) with the same rule.
 """
@@ -102,7 +102,7 @@ def gen_metrics(sc):
 def ref_emptiness():
     """same emptiness rule on reference scenes: open = paved/sand/grass ground, occupied = any object cell"""
     out = {}
-    for n in ref_names(('street',)) + ['ANTI_site_overview']:
+    for n in ref_names(('street',)):
         p = WORK/'scenes'/f'{n}.json'
         if not p.exists(): continue
         sc = json.load(open(p, encoding='utf-8'))
@@ -137,7 +137,7 @@ def main():
         for i in range(len(conv)):
             for j in range(len(conv)):
                 if i != j: fr.append(novelty.constellation_overlap(conv[i][1], conv[j][1]))
-        L += ['', f'seed-vs-seed shared object constellations: mean {np.mean(fr):.3f}, max {np.max(fr):.3f}  (references: 0 between unrelated refs; anti self-repeat 0.64)']
+        L += ['', f'seed-vs-seed shared object constellations: mean {np.mean(fr):.3f}, max {np.max(fr):.3f}  (references: 0 between unrelated refs)']
     re = ref_emptiness()
     L += ['', 'reference calibration (street refs, same emptiness rule): largest empty patch / open frac',
           ', '.join(f'{k}:{v[0]}/{v[1]}' for k, v in sorted(re.items(), key=lambda kv: kv[1][0]))]

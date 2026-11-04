@@ -8,7 +8,7 @@ Two independent signals, both computed against a set of reference scenes:
      2px quantisation. If >= MIN_SHARED neighbours coincide exactly with some reference object of the
      same sprite id, the object is part of a copied constellation.
 Also 'self' mode: the same measures of a scene against ITSELF at other positions -> detects the
-internal copy-paste look of the anti-reference (same block stamped repeatedly).
+internal copy-paste look (same block stamped repeatedly).
 
 Usage:
   uv run python novelty.py baseline                 # each reference vs. all OTHER references (calibration)

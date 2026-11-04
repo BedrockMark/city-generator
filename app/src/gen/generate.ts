@@ -9,10 +9,11 @@ import { explainGround } from './explain';
 import { curbRuns, reserveWalkways, crossingVignettes, curbStrips, frontVignettes, zoneVignettes, islandSquares, busStop, cars, roadDetails, walkers } from './vignettes';
 import { yardSpaces } from './yard';
 import { SHEETS, TILE, type Scene, type GenOptions } from './types';
-import { withDefaults } from './exp';
+import { withDefaults, expFires } from './exp';
+import { rooftopAC } from './rooftop';
 import { rationalize } from './rational/rationalize';
 
-export const VERSION = '0.5.0';
+export const VERSION = '0.5.1';
 
 export function generate(seed: string, options: Partial<GenOptions> = {}): Scene {
   const opts = withDefaults(options);
@@ -25,6 +26,8 @@ export function generate(seed: string, options: Partial<GenOptions> = {}): Scene
   const neigh = planNeighbours(L, rng);
   emitBuildings(L, main, sb, 'main');
   emitBuildings(L, neigh, sb, 'neigh');
+  const e01 = expFires(opts, 'exp-01', rng);
+  if (e01) rooftopAC([main, neigh], sb, e01);
   // yard spaces first: parking driveways cut the curb, which changes the curb runs
   yardSpaces(L, main, sb, rng.fork('yard'));
   const runs = curbRuns(L);

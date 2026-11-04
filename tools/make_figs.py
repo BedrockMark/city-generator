@@ -14,6 +14,4 @@ out = ROOT/'docs'/'fig'
 for k, (n, box) in FIGS.items():
     im = Image.open(REFS/f'{n}.png').crop(box)
     im.resize((im.width * 2, im.height * 2), Image.NEAREST).save(out/f'{k}.png')
-anti = Image.open(ROOT/'anti_references'/'site_overview.png').crop((560, 180, 1300, 760))
-anti.save(out/'anti_crop.png')
 print('ok')

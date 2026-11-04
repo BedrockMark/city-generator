@@ -5,7 +5,7 @@ horizontal roads (only counted where the road continues horizontally >= MIN_LEN 
 Sidewalk depth: run of 'paved' cells perpendicular to a road edge until building/structure/grass/other.
 Block extent: connected components of non-road known cells (border-touching components are reported as
 'cut by frame' lower bounds).
-Usage: uv run python measure_blocks.py [names...]   (default: street refs + anti)
+Usage: uv run python measure_blocks.py [names...]   (default: street refs)
 """
 import sys, json
 import numpy as np
@@ -63,14 +63,14 @@ def blocks(G):
     return res
 
 if __name__ == '__main__':
-    names = sys.argv[1:] or ref_names(('street', 'anti'))
+    names = sys.argv[1:] or ref_names(('street',))
     tw, ts = Counter(), Counter()
     for n in names:
         p = WORK/'scenes'/f'{n}.json'
         if not p.exists(): continue
         G = np.array(json.load(open(p))['ground'], dtype=object)
         w, s, b = road_widths(G), sidewalk_depths(G), blocks(G)
-        if not n.startswith('ANTI'): tw += w; ts += s
+        tw += w; ts += s
         cls = Counter(G.ravel())
         print(f"{n:34s} grid={G.shape[1]}x{G.shape[0]} road-widths={dict(sorted(w.items()))} sidewalk={dict(sorted(s.items()))}")
         print(f"{'':34s} ground={dict(cls.most_common(6))}")

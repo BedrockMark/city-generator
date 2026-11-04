@@ -16,8 +16,6 @@ export interface Sel {
   person?: boolean; sit?: boolean;
   /** group types to include / exclude */
   group?: string[]; notGroup?: string[];
-  /** hidden objects (behind buildings, ghost view only) are skipped unless set */
-  hidden?: boolean;
 }
 
 /** zone targets can reach `below` px further south (the sidewalk in front of a plaza); 'door-front' = the strip from
@@ -60,58 +58,58 @@ export interface Constraint {
 
 const BINS = 'Trashbin|Dumpster';
 const LITTER = '/Trash_\\d|Cardboard_Trash';
-const USABLE: Sel = { cls: ['bench', 'table', 'kiosk', 'bus_stop', 'info_sign'], hidden: false };
+const USABLE: Sel = { cls: ['bench', 'table', 'kiosk', 'bus_stop', 'info_sign'] };
 
 export const CONSTRAINTS: Constraint[] = [
   { id: 'C01', title: '门前可以站人', why: '门是建筑的“存在理由”之源；门前被物件堵住，门就失去意义。修复：删掉门前 24×14px 内挡路的物件（D17 门前禁放区的事后检查）',
-    severity: 'hard', fix: 'remove', status: 'draft', rule: { kind: 'door-open' } },
-  { id: 'C02', title: '门连到街道', why: '从门出来能走到人行道、地图边缘或别的楼的门（穿楼而过）。例：广场的“长椅–中心树–长椅”一排横在朝内院的楼门前，把门围死（种子 33、50）。修复：删掉能打开通路的最小的一个物件；只被建筑围住时只报告',
-    severity: 'soft', fix: 'remove', status: 'draft', rule: { kind: 'door-street' } },
+    severity: 'hard', fix: 'remove', status: 'active', rule: { kind: 'door-open' } },
+  { id: 'C02', title: '门连到街道', why: '从门出来能走到人行道、地图边缘或别的楼的门（穿楼而过）。例：广场的“长椅–中心树–长椅”一排横在朝内院的楼门前，把门围死（种子 33、50）。修复：删掉一个能打开通路的物件，优先删树（用户 2026-11-03：广场要删就删中心树，不降级），其次删最小的；只被建筑围住时只报告',
+    severity: 'soft', fix: 'remove', status: 'active', rule: { kind: 'door-street' } },
   { id: 'C03', title: '过道 / 巷子通向某处', why: '用户反馈：楼间出现不通向任何地方的通道。过道除了街道之外，至少还要连到一块内院空间或一扇门；死胡同降级为草坪',
-    severity: 'soft', fix: 'downgrade', downgrade: 'lawn', status: 'draft', rule: { kind: 'leads-somewhere', zones: ['passage', 'alley'], to: ['garden', 'parking', 'driveway', 'service', 'backyard', 'forecourt', 'plaza', 'pocket', 'island', 'lot', 'passage', 'alley'] } },
+    severity: 'soft', fix: 'downgrade', downgrade: 'lawn', status: 'active', rule: { kind: 'leads-somewhere', zones: ['passage', 'alley'], to: ['garden', 'parking', 'driveway', 'service', 'forecourt', 'plaza', 'pocket', 'island', 'lot', 'passage', 'alley'] } },
   { id: 'C04', title: '有人用的内院空间可达', why: '花园、杂物角、楼前空地、广场要能从街道或门走进去；走不进去的只保留植物和围栏（宁删勿补）',
-    severity: 'soft', fix: 'downgrade', downgrade: 'clear', status: 'draft', rule: { kind: 'zone-reachable', zones: ['garden', 'service', 'forecourt', 'plaza', 'pocket', 'island', 'parking'], keep: ['tree', 'plant', 'fence'] } },
+    severity: 'soft', fix: 'downgrade', downgrade: 'clear', status: 'active', rule: { kind: 'zone-reachable', zones: ['garden', 'service', 'forecourt', 'plaza', 'pocket', 'island', 'parking'], keep: ['tree', 'plant', 'fence'] } },
   { id: 'C05', title: '可使用的物件够得着', why: '长椅、桌子、售货亭、站亭、立牌旁边要有人能站的地方，并且连到街道 / 门',
-    severity: 'soft', fix: 'remove', status: 'draft', rule: { kind: 'reachable', who: USABLE } },
+    severity: 'soft', fix: 'remove', status: 'active', rule: { kind: 'reachable', who: USABLE } },
   { id: 'C06', title: '长椅前方不是墙', why: '长椅面朝的方向（D21）12px 内不能被墙、围栏或其他物件挡住',
-    severity: 'hard', fix: 'remove', status: 'draft', rule: { kind: 'front-open', who: { key: 'Bench_[1-7]$' }, depth: 12 } },
+    severity: 'hard', fix: 'remove', status: 'active', rule: { kind: 'front-open', who: { key: 'Bench_[1-7]$' }, depth: 12 } },
   { id: 'C07', title: '椅子挨着桌子', why: '参考图：座椅和桌子 lift 3.9，座位总围着桌子或摊位',
-    severity: 'hard', fix: 'remove', status: 'draft', rule: { kind: 'near', who: { key: 'Chair' }, to: [{ cls: ['table', 'kiosk'] }], within: 20 } },
+    severity: 'hard', fix: 'remove', status: 'active', rule: { kind: 'near', who: { key: 'Chair' }, to: [{ cls: ['table', 'kiosk'] }], within: 20 } },
   { id: 'C08', title: '坐着的人有座位', why: '参考图：坐姿的人 28px 内几乎都有桌子 / 长椅',
-    severity: 'hard', fix: 'remove', status: 'draft', rule: { kind: 'near', who: { person: true, sit: true }, to: [{ cls: ['bench', 'table', 'bus_stop'] }, { key: 'Chair' }], within: 14 } },
+    severity: 'hard', fix: 'remove', status: 'active', rule: { kind: 'near', who: { person: true, sit: true }, to: [{ cls: ['bench', 'table', 'bus_stop'] }, { key: 'Chair' }], within: 14 } },
   { id: 'C09', title: '站着的人不在墙里或物件里', why: '人的脚不能踩在建筑碰撞体积或其他物件的占地上',
-    severity: 'hard', fix: 'remove', status: 'draft', rule: { kind: 'not-inside', who: { person: true, sit: false } } },
+    severity: 'hard', fix: 'remove', status: 'active', rule: { kind: 'not-inside', who: { person: true, sit: false } } },
   { id: 'C10', title: '垃圾桶 / 垃圾箱靠边', why: '参考图：垃圾类靠建筑侧面、围栏、路缘或街角，不会孤零零立在空地中间。阈值取参考图的 95 百分位（离墙 / 马路 / 围栏 / 别的垃圾箱 39px）',
-    severity: 'soft', fix: 'remove', status: 'draft', rule: { kind: 'near', who: { key: BINS }, to: ['wall', 'road', 'door', { cls: ['fence', 'bus_stop'] }, { key: BINS }, { zone: ['passage', 'alley', 'service'] }], within: 40 } },
+    severity: 'soft', fix: 'remove', status: 'active', rule: { kind: 'near', who: { key: BINS }, to: ['wall', 'road', 'door', { cls: ['fence', 'bus_stop'] }, { key: BINS }, { zone: ['passage', 'alley', 'service'] }], within: 40 } },
   { id: 'C11', title: '垃圾袋 / 废纸箱挨着垃圾桶或墙', why: '参考图：垃圾 + 垃圾 lift 4.2，垃圾袋散落在垃圾箱旁',
-    severity: 'soft', fix: 'remove', status: 'draft', rule: { kind: 'near', who: { key: LITTER }, to: ['wall', 'door', { key: BINS }, { cls: ['fence'] }], within: 28 } },
+    severity: 'soft', fix: 'remove', status: 'active', rule: { kind: 'near', who: { key: LITTER }, to: ['wall', 'door', { key: BINS }, { cls: ['fence'] }], within: 28 } },
   { id: 'C12', title: '路缘设施贴着马路', why: '路灯、消防栓、咪表、红绿灯为马路服务，离路缘不超过 24px（广场灯除外）',
-    severity: 'hard', fix: 'remove', status: 'draft', rule: { kind: 'near', who: { cls: ['street_lamp', 'hydrant', 'traffic_light'], notGroup: ['plaza'] }, to: ['road'], within: 24 } },
+    severity: 'hard', fix: 'remove', status: 'active', rule: { kind: 'near', who: { cls: ['street_lamp', 'hydrant', 'traffic_light'], notGroup: ['plaza'] }, to: ['road'], within: 24 } },
   { id: 'C13', title: '车在马路或车位上', why: '车的占地至少 80% 在车行道 / 停车场地面上，不上人行道',
-    severity: 'hard', fix: 'remove', status: 'draft', rule: { kind: 'on-ground', who: { cls: ['vehicle'] }, ground: ['road', 'lot'], frac: 0.8 } },
+    severity: 'hard', fix: 'remove', status: 'active', rule: { kind: 'on-ground', who: { cls: ['vehicle'] }, ground: ['road', 'lot'], frac: 0.8 } },
   { id: 'C14', title: '公交站成组', why: '分析 3.2：候车亭、站牌、等车的人成组出现；缺了站亭或站牌的公交站整组删除',
-    severity: 'hard', fix: 'remove', status: 'draft', rule: { kind: 'group-complete', group: 'bus', need: [{ key: 'Bus_Stop_\\d$' }, { key: 'Bus_Stop_Sign' }] } },
+    severity: 'hard', fix: 'remove', status: 'active', rule: { kind: 'group-complete', group: 'bus', need: [{ key: 'Bus_Stop_\\d$' }, { key: 'Bus_Stop_Sign' }] } },
   { id: 'C15', title: '横道口、车道口、停车通道、花园小路、人行道通行带不被占', why: '这些禁放区是通行的理由；同类小组的物件可以进入（街角的一根红绿灯杆同时服务两条横道），横道口和通行带只看人行道 / 马路上的部分；红绿灯、公交站和广场 / 小岛的中心物可以占通行带（小岛很小，中心物按画面居中时脚会落在环形人行道上）。标注 607718 L2：小岛广场两侧的树长在人行道通行带上',
-    severity: 'hard', fix: 'remove', status: 'draft', rule: { kind: 'keep-clear', zones: ['crossing', 'drive', 'aisle', 'path', 'walkway'], who: { person: false }, exempt: ['crossing', 'bus'], exemptReason: '中心物' } },
+    severity: 'hard', fix: 'remove', status: 'active', rule: { kind: 'keep-clear', zones: ['crossing', 'drive', 'aisle', 'path', 'walkway'], who: { person: false }, exempt: ['crossing', 'bus'], exemptReason: '中心物' } },
   { id: 'C16', title: '锚点仍然存在（存在理由可追溯）', why: '物件的锚点是另一个物件（椅子→桌子、坐着的人→长椅）时，锚点被删，它也跟着删',
-    severity: 'hard', fix: 'remove', status: 'draft', rule: { kind: 'anchor' } },
+    severity: 'hard', fix: 'remove', status: 'active', rule: { kind: 'anchor' } },
   // ---- from the user's labels (references/labels/v0.4.0) ----
-  { id: 'C17', title: '禁用贴图', why: '标注 684358 L3：空调外机不应出现在地面上（以后可以放在平房顶上）；406829 L3：Shrub_3 看不清是什么。名单由用户维护',
-    severity: 'hard', fix: 'remove', status: 'draft', rule: { kind: 'banned', who: { key: 'Air_Conditioner|/Shrub_3$', hidden: true } } },
-  { id: 'C18', title: '门前有路通到人行道', why: '标注 994257 L3/L4/L5：“应该有一条路到门口”。从门到最近的人行道、小路或广场要有一条路（优先走铺地、少转弯，不穿楼也不穿楼后的地面），路线上不能是草坪，也不能放盆栽。修复：删掉挡路的物件，揭掉路线上的草坪（下面本来就是铺地）；走不出去时只报告',
-    severity: 'soft', fix: 'remove', status: 'draft', rule: { kind: 'door-path', depth: 12 } },
+  { id: 'C17', title: '禁用贴图', why: '标注 684358 L3：空调外机不应出现在地面上（平房屋顶上的空调外机是实验功能 exp-01，不受此限）；406829 L3：Shrub_3 看不清是什么。名单由用户维护',
+    severity: 'hard', fix: 'remove', status: 'active', rule: { kind: 'banned', who: { key: 'Air_Conditioner|/Shrub_3$', notGroup: ['rooftop'] } } },
+  { id: 'C18', title: '门前有路通到人行道', why: '标注 994257 L3/L4/L5：“应该有一条路到门口”。从门到最近的人行道、小路或广场要有一条路（优先走铺地、少转弯，不穿过楼的底层占地；楼的高层不占地，D38），路线上不能是草坪，也不能放盆栽。修复：删掉挡路的物件，揭掉路线上的草坪（下面本来就是铺地）；走不出去时只报告',
+    severity: 'soft', fix: 'remove', status: 'active', rule: { kind: 'door-path', depth: 12 } },
   { id: 'C20', title: '花园小路不和人行道并行', why: '标注 684358 L4：离人行道很近、又不属于更大的内院，这条路是多余的。修复：小路改成草坪，面朝它的长椅和路上的行人一起删',
-    severity: 'soft', fix: 'remove', status: 'draft', rule: { kind: 'path-redundant', within: 40 } },
-  { id: 'C19', title: '花园小路不断头', why: '标注 838592 L1、607718 L3（坏）、161781 L1（好）：小路一头撞上楼的墙 = 不通向任何地方；从楼后穿过去的小路要在楼后接着铺、不能被后院杂物挡住（684358 L1）。修复：撞墙的只报告（阶段 6 换子种子重生成）；楼后的段补铺小路、删掉挡路的后院物件',
-    severity: 'soft', fix: 'remove', status: 'draft', rule: { kind: 'path-ends' } },
+    severity: 'soft', fix: 'remove', status: 'active', rule: { kind: 'path-redundant', within: 40 } },
+  { id: 'C19', title: '花园小路不断头', why: '标注 838592 L1、607718 L3（坏）、161781 L1（好）：小路一头撞上楼的墙（底层占地）= 不通向任何地方。楼后的地面是普通内院，小路可以照常穿过（D38）。只报告：阶段 6 换子种子重生成',
+    severity: 'soft', fix: 'report', status: 'active', rule: { kind: 'path-ends' } },
   { id: 'C21', title: '行道树不挤在广场前和门前', why: '标注 359866 L2、994257 L2：小广场前面、店门前面再种行道树就太挤（广场本身有中心树）',
-    severity: 'soft', fix: 'remove', status: 'draft', rule: { kind: 'not-near', who: { group: ['curb-trees'] }, to: [{ zone: ['plaza'], below: 64 }, 'door-front'], within: 0 } },
+    severity: 'soft', fix: 'remove', status: 'active', rule: { kind: 'not-near', who: { group: ['curb-trees'] }, to: [{ zone: ['plaza'], below: 64 }, 'door-front'], within: 0 } },
   { id: 'C22', title: '道路施工不占横道', why: '标注 941983 L1：施工的坑挖在人行横道上，没有理由。修复：整组施工删除',
-    severity: 'hard', fix: 'remove', status: 'draft', rule: { kind: 'not-near', who: { group: ['works'] }, to: [{ zone: ['zebra'] }], within: 4, whole: true } },
+    severity: 'hard', fix: 'remove', status: 'active', rule: { kind: 'not-near', who: { group: ['works'] }, to: [{ zone: ['zebra'] }], within: 4, whole: true } },
   { id: 'C23', title: '停车场车道口离横道远一点', why: '标注 941983 L2：车道口紧挨着路口的横道。车道口和横道至少隔 2 格。事后无法挪车道，只报告（建议在生成时让车道候选避开路口、优先居中）',
-    severity: 'soft', fix: 'report', status: 'draft', rule: { kind: 'mouth-gap', zone: 'driveway', from: 'zebra', min: 32 } },
+    severity: 'soft', fix: 'report', status: 'active', rule: { kind: 'mouth-gap', zone: 'driveway', from: 'zebra', min: 32 } },
   { id: 'C24', title: '大物件不挡住门', why: '标注 406829 L2：广场的巨型冰淇淋亭挡住了后面公寓的门（同一个亭子被标为“好”，问题在位置）。只报告：删掉会违背好标注',
-    severity: 'soft', fix: 'report', status: 'draft', rule: { kind: 'occludes-door', who: { notGroup: ['front'] } } },
+    severity: 'soft', fix: 'report', status: 'active', rule: { kind: 'occludes-door', who: { notGroup: ['front'] } } },
 ];
 
 // ------------------------------------------------------------------------------------------------
@@ -145,7 +143,6 @@ export function selects(s: Sel, o: WObj): boolean {
   if (s.key && !new RegExp(s.key).test(o.key)) return false;
   if (s.group && !s.group.includes(o.group ?? '')) return false;
   if (s.notGroup && s.notGroup.includes(o.group ?? '')) return false;
-  if (!s.hidden && o.hidden) return false;
   return true;
 }
 
@@ -166,7 +163,7 @@ export function distTo(cx: Ctx, o: WObj, t: Target, within: number): number {
     return best;
   }
   if ('zone' in t) return Math.min(Infinity, ...cx.w.zones.filter(z => t.zone.includes(z.kind)).map(z => rectGap({ ...z.rect, y1: z.rect.y1 + (t.below ?? 0) }, r)));
-  const sel: Sel = 'cls' in t ? { cls: t.cls, hidden: true } : { key: t.key, hidden: true };
+  const sel: Sel = 'cls' in t ? { cls: t.cls } : { key: t.key };
   return Math.min(Infinity, ...cx.w.objs.filter(p => p !== o && selects(sel, p)).map(p => rectGap(ground(p), r)));
 }
 
@@ -222,12 +219,13 @@ export function evaluate(c: Constraint, cx: Ctx): Violation[] {
       for (const [i, d] of g.doors.entries()) {
         if (d.comp < 0 || outOf(g, d.comp, d.bid)) continue;
         const step = { x0: d.x - 8, y0: d.y, x1: d.x + 8, y1: d.y + 12 };
-        // repair: the smallest single object around the pocket whose removal lets the door out
+        // repair: a single object around the pocket whose removal lets the door out; trees first (the user would rather
+        // lose a plaza's centre tree than one of its benches), then the smallest
         let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
         for (let k = 0; k < g.comp.length; k++) if (g.comp[k] === d.comp) { const x = (k % g.gw) * 4, y = Math.floor(k / g.gw) * 4; x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x + 4); y1 = Math.max(y1, y + 4); }
         const around = grow({ x0, y0, x1, y1 }, 12);
         const cands = w.objs.filter(o => o.fp && !o.person && rectsOverlap(o.fp, around))
-          .sort((a, b) => (a.fp!.x1 - a.fp!.x0) * (a.fp!.y1 - a.fp!.y0) - (b.fp!.x1 - b.fp!.x0) * (b.fp!.y1 - b.fp!.y0));
+          .sort((a, b) => +(a.cls !== 'tree') - +(b.cls !== 'tree') || (a.fp!.x1 - a.fp!.x0) * (a.fp!.y1 - a.fp!.y0) - (b.fp!.x1 - b.fp!.x0) * (b.fp!.y1 - b.fp!.y0));
         const opener = cands.find(o => {
           const g2 = buildGraph(w, { ignore: new Set([o.id]) });
           const d2 = g2.doors[i];
@@ -255,7 +253,6 @@ export function evaluate(c: Constraint, cx: Ctx): Violation[] {
       for (const p of g.places) {
         if (!p.zone || !r.zones.includes(p.kind)) continue;
         if ([...p.comps].some(k => rooted(g, k))) continue;
-        // hidden ground (behind buildings) is reached through the building
         const members = gidMembers(cx, p.zone.gid).filter(o => !r.keep.includes(o.cls));
         if (!members.length && !p.comps.size) continue;
         V(p.zone.id, members.map(o => o.id), p.zone.rect, `${p.kind}（${p.zone.id}）走不进去：没有连到街道、地图边缘或任何门的通路`, p.zone.id);
@@ -301,7 +298,7 @@ export function evaluate(c: Constraint, cx: Ctx): Violation[] {
       const gids = new Set(w.objs.filter(o => o.group === r.group).map(o => o.gid!));
       for (const gid of gids) {
         const mem = gidMembers(cx, gid);
-        const missing = r.need.filter(s => !mem.some(o => selects({ ...s, hidden: true }, o)));
+        const missing = r.need.filter(s => !mem.some(o => selects(s, o)));
         if (missing.length) V(gid, mem.map(o => o.id), union(mem.map(ground)), `${gid} 不完整：缺 ${missing.map(s => s.key ?? s.cls?.join('/')).join('、')}`);
       }
       break;
@@ -323,7 +320,7 @@ export function evaluate(c: Constraint, cx: Ctx): Violation[] {
           if (r.exempt?.includes(o.group ?? '') || (r.exemptReason && new RegExp(r.exemptReason).test(o.reason ?? ''))) continue;
           // the zone's own kind of group may use it (a corner pole serves both crossings); only the pedestrian
           // ground counts (a shrub on the lawn behind the sidewalk end does not block the crossing)
-          if (!selects({ ...r.who, hidden: true }, o) || !o.fp || !rectsOverlap(o.fp, z.rect)) continue;
+          if (!selects(r.who, o) || !o.fp || !rectsOverlap(o.fp, z.rect)) continue;
           if (z.gid && o.group === z.gid.split(/[#:]/)[0]) continue;
           const g = w.ground((o.fp.x0 + o.fp.x1) / 2, (o.fp.y0 + o.fp.y1) / 2);
           if (g !== 'walk' && g !== 'road' && (z.kind === 'crossing' || z.kind === 'walkway')) continue;
@@ -358,7 +355,7 @@ export function evaluate(c: Constraint, cx: Ctx): Violation[] {
     }
     case 'door-path': {
       // a door needs a way to the sidewalk / a path / paved public space: the cheapest route over the cells of the
-      // lot (not through buildings or the ground behind them), preferring paving over lawn, free cells over
+      // lot (not through building footprints), preferring paving over lawn, free cells over
       // occupied ones, and few turns. On that route nothing may stand and no lawn may lie.
       const GW = Math.ceil(w.W / T), GH = Math.ceil(w.H / T);
       const at = (x: number, y: number) => ({ px: x * T + 8, py: y * T + 8 });
@@ -369,7 +366,7 @@ export function evaluate(c: Constraint, cx: Ctx): Violation[] {
       const pass = (x: number, y: number) => {
         if (x < 0 || y < 0 || x >= GW || y >= GH) return false;
         const { px, py } = at(x, y);
-        return w.ground(px, py) === 'lot' && !w.walls.some(q => inRect(q, px, py)) && !w.behind.some(q => inRect(q, px, py));
+        return w.ground(px, py) === 'lot' && !w.walls.some(q => inRect(q, px, py));
       };
       const cellR = (x: number, y: number): PxRect => ({ x0: x * T + 3, y0: y * T + 3, x1: x * T + T - 3, y1: y * T + T - 3 });
       const occupants = (x: number, y: number) => w.objs.filter(o => o.fp && !o.person && rectsOverlap(o.fp, cellR(x, y)));
@@ -409,50 +406,21 @@ export function evaluate(c: Constraint, cx: Ctx): Violation[] {
       break;
     }
     case 'path-ends': {
-      const END_NAMES: Record<string, string> = { street: '人行道', path: '另一条小路', edge: '画面外', door: '门', open: '空地', wall: '墙' };
+      // what lies right past each end of a garden path: a street, another path, a door, the map edge or open yard
+      // are fine; a wall without a door means the path leads nowhere
       for (const z of w.zones) {
         if (z.layer !== 'keepclear' || z.kind !== 'path') continue;
         const horiz = z.rect.x1 - z.rect.x0 > z.rect.y1 - z.rect.y0;
         const line = horiz ? Math.floor((z.rect.y0 + z.rect.y1) / 2 / T) : Math.floor((z.rect.x0 + z.rect.x1) / 2 / T);
         const a0 = horiz ? Math.floor(z.rect.x0 / T) : Math.floor(z.rect.y0 / T), a1 = horiz ? Math.ceil(z.rect.x1 / T) - 1 : Math.ceil(z.rect.y1 / T) - 1;
         for (const dir of [-1, 1]) {
-          const cells: [number, number][] = [];
-          let behind = false, end = 'edge', after = 0;
-          for (let k = dir < 0 ? a0 - 1 : a1 + 1, n = 0; n < 24; n++, k += dir) {
-            const [x, y] = horiz ? [k, line] : [line, k];
-            const px = x * T + 8, py = y * T + 8;
-            const gnd = w.ground(px, py);
-            if (gnd === 'none') { end = 'edge'; break; }
-            if (gnd === 'walk' || gnd === 'road') { end = 'street'; break; }
-            if (w.zones.some(q => q !== z && q.layer === 'keepclear' && q.kind === 'path' && inRect(q.rect, px, py))) { end = 'path'; break; }
-            if (w.walls.some(q => inRect(q, px, py))) {
-              end = w.doors.some(d => Math.abs(d.x - px) <= 16 && Math.abs(d.y - py) <= 24) ? 'door' : 'wall';
-              break;
-            }
-            if (w.behind.some(q => inRect(q, px, py))) { behind = true; cells.push([x, y]); continue; }
-            if (!behind) { end = 'open'; break; }
-            // out from behind a building: the way may go on over open ground for a few cells to meet something
-            if (++after > 3) { end = 'open'; break; }
-            cells.push([x, y]);
-          }
+          const k = dir < 0 ? a0 - 1 : a1 + 1;
+          const [x, y] = horiz ? [k, line] : [line, k];
+          const px = x * T + 8, py = y * T + 8;
+          if (!w.walls.some(q => inRect(q, px, py)) || w.doors.some(d => Math.abs(d.x - px) <= 16 && Math.abs(d.y - py) <= 24)) continue;
           const e = dir < 0 ? a0 : a1;
           const endRect: PxRect = horiz ? { x0: e * T, y0: line * T, x1: e * T + T, y1: line * T + T } : { x0: line * T, y0: e * T, x1: line * T + T, y1: e * T + T };
-          const tgt = `${z.id}/${dir < 0 ? 'start' : 'end'}`;
-          if (end === 'wall' && !behind) { V(tgt, [], endRect, `花园小路（${z.gid}）一头直接撞上楼的墙，不通向任何地方`); continue; }
-          if (!behind) continue;
-          if (end === 'wall' || end === 'open' || end === 'edge') { V(tgt, [], endRect, `花园小路（${z.gid}）穿到楼后就断了：楼后${end === 'wall' ? '是另一栋楼的墙' : '附近没有人行道、小路或门可以接上'}`); continue; }
-          // the way continues behind the building to somewhere: it must be free and paved like the path
-          const band = cells.map(([x, y]) => (horiz ? { x0: x * T, y0: y * T + 3, x1: x * T + T, y1: y * T + T - 3 } : { x0: x * T + 3, y0: y * T, x1: x * T + T - 3, y1: y * T + T }));
-          const blockers = w.objs.filter(o => o.fp && !o.person && band.some(b => rectsOverlap(o.fp!, b)));
-          // paving copied from the path cell with the same parity (slab patterns repeat every 2 cells)
-          const src = (x: number, y: number): [number, number] => horiz ? [a0 + (((x - a0) % 2) + 2) % 2, line] : [line, a0 + (((y - a0) % 2) + 2) % 2];
-          const tile = (x: number, y: number) => JSON.stringify(w.baseTile ? w.baseTile(x, y) : null);
-          const unpaved = cells.map(([x, y]) => ({ cell: [x, y] as [number, number], src: src(x, y) }))
-            .filter(p => tile(p.cell[0], p.cell[1]) !== tile(p.src[0], p.src[1]) || w.lawn(p.cell[0] * T + 8, p.cell[1] * T + 8));
-          if (!blockers.length && !unpaved.length) continue;
-          out.push({ c: c.id, target: tgt, objs: blockers.map(o => o.id), rect: union(band), pave: unpaved,
-            clearLawn: unpaved.map(p => ({ x0: p.cell[0] * T, y0: p.cell[1] * T, x1: p.cell[0] * T + T, y1: p.cell[1] * T + T })),
-            msg: `花园小路（${z.gid}）在楼后断了：应该从楼后穿过去通到${END_NAMES[end]}${blockers.length ? `，路上有 ${blockers.map(o => o.key.split('/').pop()).join('、')}` : ''}` });
+          V(`${z.id}/${dir < 0 ? 'start' : 'end'}`, [], endRect, `花园小路（${z.gid}）一头直接撞上楼的墙，不通向任何地方`);
         }
       }
       break;
