@@ -18,6 +18,8 @@ export interface OverlayState {
   hiddenTypes: Set<string>;
   hiddenZones: Set<string>;
   ghost: boolean;
+  /** the 新贴图 legend row unticked: novel marks hidden */
+  hideNovel?: boolean;
   hover?: Sel;
   pinned?: Sel;
   /** rubber band while shift-dragging */
@@ -26,7 +28,7 @@ export interface OverlayState {
 }
 
 export const EXP_COLOR = '#ff2bd6';
-export const NOVEL_COLOR = '#00e5ff';
+export const NOVEL_COLOR = '#ffc107';
 const GOOD = '#36d36b', BAD = '#ff4040';
 const AUDIT_BAD = '#e53935', AUDIT_DOWN = '#8e24aa';
 const grow = (r: PxRect, d: number): PxRect => ({ x0: r.x0 - d, y0: r.y0 - d, x1: r.x1 + d, y1: r.y1 + d });
@@ -144,7 +146,7 @@ export function drawOverlay(ctx: CanvasRenderingContext2D, sc: Scene, v: View, s
     // experimental / novel objects get their own marks, whatever their group
     for (const o of sc.objects) {
       if (o.exp && !(o.gid && groups.get(o.gid)?.exp)) box(objBox(o), EXP_COLOR, 2.5, [6, 3]);
-      if (o.novel) { const b = objBox(o); box(b, NOVEL_COLOR, 2, [2, 2]); tag('新', X(b.x1) - 4, Y(b.y0), NOVEL_COLOR); }
+      if (o.novel && !st.hideNovel) { const b = objBox(o); box(b, NOVEL_COLOR, 2, [5, 3]); tag('新', X(b.x1) - 4, Y(b.y0), NOVEL_COLOR); }
     }
   }
 

@@ -1,0 +1,1 @@
+写入 docs\PREFS.md

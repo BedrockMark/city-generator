@@ -15,8 +15,11 @@ import { rationalize } from './rational/rationalize';
 import { alignScene } from './judge/align';
 import { scoreWorld } from './judge/model';
 import { judgeRepair, build, tagGlobal, EXP_ID } from './judge/repair';
+import { makeAdjust } from './learn/adjust';
+import { PREFS } from './learn/prefs';
+import { markNovel } from './learn/novelty';
 
-export const VERSION = '0.6.1';
+export const VERSION = '0.7.0';
 
 export function generate(seed: string, options: Partial<GenOptions> = {}, onProgress?: (n: number, N: number) => void): Scene {
   const opts = withDefaults(options);
@@ -28,7 +31,7 @@ export function generate(seed: string, options: Partial<GenOptions> = {}, onProg
   }
   const scene = generateBase(seed, opts);
   // oddness of every window (read-only: the picture does not change)
-  scene.judge = scoreWorld(alignScene(scene));
+  scene.judge = scoreWorld(alignScene(scene), undefined, opts.novelty);
   // exp-02: repair the oddest windows
   if (opts.judgeRepair !== false && expEnabled(opts, EXP_ID)) return judgeRepair(seed, opts, scene, onProgress);
   return scene;
@@ -37,7 +40,8 @@ export function generate(seed: string, options: Partial<GenOptions> = {}, onProg
 /** the generator proper, constraint repairs included (stage 5); the judge and its repair come on top (stage 6) */
 export function generateBase(seed: string, opts: GenOptions): Scene {
   resetIds();
-  const trace = new Trace(seed, opts.reseed ?? {});
+  // stage 7: learned preferences (and novelty) reweight decisions; undefined = every draw is the old one
+  const trace = new Trace(seed, opts.reseed ?? {}, opts.force ?? {}, makeAdjust(opts, PREFS));
   const rng = new Rng(seed, trace);
   const L = makeLayout(rng);
   const sb = new SceneBuilder(L.cols, L.rows, L.cls);
@@ -74,6 +78,8 @@ export function generateBase(seed: string, opts: GenOptions): Scene {
     ground: [L.base, L.over], objects: sb.objects, cells: L.cls, notes: [],
     options: opts, groups: [...sb.groups.values()], buildings: sb.buildings, zones: sb.zones, trace: trace.toJSON(),
   };
+  // stage 7: objects drawn from a never-used sprite (novelty); before the audit, which may delete some of them
+  markNovel(scene, trace.novel);
   // stage 5: constraint audit; repairs by deletion with the confirmed constraints (no random numbers used)
   scene.audit = rationalize(scene, opts);
   return scene;

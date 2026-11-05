@@ -14,9 +14,10 @@ test('整体修图 (exp-02) is off by default and then gives the base picture', 
 });
 
 test('整体修图 keeps the constraints no worse and reproduces from its options', () => {
-  // seed 2: one of its re-packs leaves more violations than the original, another one is adopted
-  const base = generate('2');
-  const sc = generate('2', ON);
+  // seed 2 at novelty 0 (the stage 6 picture): one of its re-packs leaves more violations than the original, another
+  // one is adopted
+  const base = generate('2', { novelty: 0 });
+  const sc = generate('2', { ...ON, novelty: 0 });
   const r = sc.judgeRepair!;
   assert.ok(r.global && r.global.length === GLOBAL_SALTS, `tried ${GLOBAL_SALTS} re-packs`);
   assert.ok(violationCount(sc.audit) <= violationCount(base.audit));

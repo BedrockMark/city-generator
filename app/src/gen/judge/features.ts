@@ -39,6 +39,8 @@ export interface WinData {
   n: Record<JGround, number>;
   valid: number; placeable: number;
   objs: JObj[];
+  /** objs without the novel ones (stage 7): what the d.* and p.* features count */
+  known: JObj[];
 }
 
 export interface Feature { id: string; name: string; high: string; f: (d: WinData) => number }
@@ -63,7 +65,7 @@ const groundAt = (w: JWorld, c: number, r: number): JGround => w.ground[r]?.[c] 
 
 function density(group: string): (d: WinData) => number {
   const cls = new Set(GROUPS[group]);
-  return d => frac(d.objs.filter(o => cls.has(o.cls)).length, d.placeable);
+  return d => frac(d.known.filter(o => cls.has(o.cls)).length, d.placeable);
 }
 
 /** largest all-true rectangle in a row-major WIN x WIN mask (histogram method), in cells */
@@ -161,7 +163,7 @@ export const FEATURES: Feature[] = [
   { id: 'd.vehicle', name: '车密度', high: '车多', f: density('vehicle') },
   { id: 'd.sign', name: '标牌密度', high: '标牌、路牌多', f: density('sign') },
   { id: 'd.other', name: '其他物件密度', high: '设备、围栏、箱子等其他物件多', f: density('other') },
-  { id: 'd.all', name: '物件总密度', high: '物件多', f: d => frac(d.objs.length, d.placeable) },
+  { id: 'd.all', name: '物件总密度', high: '物件多', f: d => frac(d.known.length, d.placeable) },
   { id: 'e.rect', name: '最大空地', high: '有一大块没有物件的空地', f: d => {
     const { w } = d.cx;
     const mask = Array.from({ length: WIN }, (_, i) => Array.from({ length: WIN }, (_, j) => {
@@ -195,11 +197,11 @@ export const FEATURES: Feature[] = [
   { id: 'r.curb', name: '贴路缘', high: '物件立在路缘边（8px 内）', f: d => frac(d.objs.filter(o => curbDist(d.cx.w, o.fx, o.fy - 1) <= 8).length, d.objs.length) },
   { id: 'r.road', name: '站在马路上', high: '车和井盖以外的物件站在马路上', f: d => frac(d.objs.filter(o => o.cls !== 'vehicle' && o.cls !== 'manhole' && groundAt(d.cx.w, ...cellOf(d.cx.w, o.fx, o.fy - 1)) === 'road').length, d.objs.length) },
   { id: 'p.tex', name: '同一贴图重复', high: '同一张贴图在窗口里出现多次', f: d => {
-    const n = new Map<string, number>(); for (const o of d.objs) n.set(o.key, (n.get(o.key) ?? 0) + 1);
-    return frac(d.objs.filter(o => n.get(o.key)! >= 2).length, d.objs.length);
+    const n = new Map<string, number>(); for (const o of d.known) n.set(o.key, (n.get(o.key) ?? 0) + 1);
+    return frac(d.known.filter(o => n.get(o.key)! >= 2).length, d.known.length);
   } },
-  { id: 'p.row', name: '成排等距', high: '物件排成等距的一排（3 个以上）', f: d => frac(rowMembers(d.objs).size, d.objs.length) },
-  { id: 'p.keys', name: '贴图种类', high: '物件的贴图各不相同', f: d => frac(new Set(d.objs.map(o => o.key)).size, d.objs.length) },
+  { id: 'p.row', name: '成排等距', high: '物件排成等距的一排（3 个以上）', f: d => frac(rowMembers(d.known).size, d.known.length) },
+  { id: 'p.keys', name: '贴图种类', high: '物件的贴图各不相同', f: d => frac(new Set(d.known.map(o => o.key)).size, d.known.length) },
   { id: 's.straight', name: '长直边', high: '草地和铺地的边界是长直线（≥4 格）', f: d => { const b = boundary(d); return frac(b.straight, b.edges); } },
   { id: 's.corner', name: '转角数', high: '草地边界转角多（每 100 格）', f: d => frac(boundary(d).corners * 100, d.valid) },
 ];
@@ -233,7 +235,7 @@ export function winData(cx: FeatCtx, win: Win, byCell?: JObj[][][]): WinData {
   let objs: JObj[];
   if (byCell) { objs = []; for (let r = win.r0; r < win.r0 + WIN; r++) for (let c = win.c0; c < win.c0 + WIN; c++) objs.push(...(byCell[r]?.[c] ?? [])); }
   else objs = w.objs.filter(inWin);
-  return { win, cx, cells, n, valid: WIN * WIN - n.none, placeable: n.paved + n.grass + n.other, objs };
+  return { win, cx, cells, n, valid: WIN * WIN - n.none, placeable: n.paved + n.grass + n.other, objs, known: objs.some(o => o.novel) ? objs.filter(o => !o.novel) : objs };
 }
 
 /** rows = windows, columns = activeFeatures() (or the given features) */

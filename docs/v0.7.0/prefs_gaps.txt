@@ -1,0 +1,1 @@
+坏标注 12 条：选择能改善 5，选择解决不了 7；写入 work\gaps/gaps.md、gaps.json

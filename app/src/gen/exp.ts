@@ -25,7 +25,10 @@ export const EXPERIMENTS: Experiment[] = [
   { id: 'exp-02', title: '整体修图：评判器挑出最不像参考图的主街区打包', status: 'experimental', default: false },
 ];
 
-export const DEFAULT_OPTIONS: GenOptions = { novelty: 0.1, experiments: true, exp: {}, prune: true, pruneDraft: false };
+export const DEFAULT_OPTIONS: GenOptions = { novelty: 0.1, experiments: true, exp: {}, prune: true, pruneDraft: false, prefs: true };
+
+/** stage 7: a `fire` for experiments registered later: base chance at novelty 0, always at novelty 1 */
+export const fireByNovelty = (base: number) => (n: number) => base + n * (1 - base);
 
 export function withDefaults(o: Partial<GenOptions> = {}): GenOptions {
   return { ...DEFAULT_OPTIONS, ...o, exp: { ...DEFAULT_OPTIONS.exp, ...(o.exp ?? {}) } };

@@ -18,7 +18,7 @@ export const LABEL_DIR = join(here, '..', '..', '..', '..', 'references', 'label
 export interface LabelRegion { file: string; id: string; seed: string; verdict: 'good' | 'bad'; rect: PxRect; scene: Scene }
 
 const ver = (v: string) => v.replace(/^v/, '').split('.').map(Number);
-const verGE = (a: string, b: string) => { const x = ver(a), y = ver(b); for (let i = 0; i < 3; i++) if ((x[i] ?? 0) !== (y[i] ?? 0)) return (x[i] ?? 0) > (y[i] ?? 0); return true; };
+export const verGE = (a: string, b: string) => { const x = ver(a), y = ver(b); for (let i = 0; i < 3; i++) if ((x[i] ?? 0) !== (y[i] ?? 0)) return (x[i] ?? 0) > (y[i] ?? 0); return true; };
 const area = (r: PxRect) => Math.max(0, r.x1 - r.x0) * Math.max(0, r.y1 - r.y0);
 
 export function labelRegion(l: Label, sc: Scene): PxRect {

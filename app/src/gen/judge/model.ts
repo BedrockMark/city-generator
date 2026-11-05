@@ -74,8 +74,9 @@ export function scoreMatrix(m: JudgeModel, X: number[][]): { p: number[]; contri
   return { p: contrib.map(c => sigmoid(c.reduce((s, v) => s + v, m.b))), contrib };
 }
 
-/** every window of the map scored, with the 3 features pushing it most towards "generated" */
-export function scoreWorld(w: JWorld, m: JudgeModel = MODEL): JudgeResult {
+/** every window of the map scored, with the 3 features pushing it most towards "generated"; novelty relaxes the
+ *  window threshold by 0.2 * novelty (stage 7) */
+export function scoreWorld(w: JWorld, m: JudgeModel = MODEL, novelty = 0): JudgeResult {
   const feats = m.features.map(id => FEATURES.find(f => f.id === id)!);
   const wins = windows(w);
   const { p, contrib } = scoreMatrix(m, featureMatrix(w, wins, feats));
@@ -83,5 +84,5 @@ export function scoreWorld(w: JWorld, m: JudgeModel = MODEL): JudgeResult {
     rect: win.rect, score: p[i],
     top: contrib[i].map((c, j) => ({ f: m.features[j], contrib: c })).sort((a, b) => b.contrib - a.contrib).slice(0, 3),
   }));
-  return { model: m.trained, threshold: m.threshold, windows: out, mean: out.length ? p.reduce((a, b) => a + b, 0) / p.length : 0, max: out.length ? Math.max(...p) : 0 };
+  return { model: m.trained, threshold: m.threshold + 0.2 * novelty, windows: out, mean: out.length ? p.reduce((a, b) => a + b, 0) / p.length : 0, max: out.length ? Math.max(...p) : 0 };
 }

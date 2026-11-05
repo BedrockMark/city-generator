@@ -14,7 +14,8 @@ import tileclassRaw from '../data/tileclass.json';
 import semclassRaw from '../data/semclass.json';
 
 export type JGround = 'road' | 'paved' | 'grass' | 'wall' | 'other' | 'none';
-export interface JObj { key: string; cls: string; bb: PxRect; fx: number; fy: number; stream?: string; id?: string }
+/** novel: drawn from a never-used sprite (stage 7 novelty); left out of the density and repetition features */
+export interface JObj { key: string; cls: string; bb: PxRect; fx: number; fy: number; stream?: string; id?: string; novel?: boolean }
 /** cells (r, c) cover px [ox + c * 16, +16) x [oy + r * 16, +16) */
 export interface JWorld { name: string; src: 'gen' | 'ref'; cols: number; rows: number; ox: number; oy: number; ground: JGround[][]; objs: JObj[] }
 
@@ -62,7 +63,7 @@ export function alignScene(sc: Scene): JWorld {
   sc.objects.forEach((o, i) => {
     if (o.cls === 'building' || o.kind === 'char' || hidden.has(o.id ?? `o${i}`)) return;
     const bb = objBox(o);
-    objs.push({ key: o.key, cls: SEMCLASS[o.key] ?? 'other', bb, fx: (bb.x0 + bb.x1) / 2, fy: bb.y1, stream: o.stream, id: o.id ?? `o${i}` });
+    objs.push({ key: o.key, cls: SEMCLASS[o.key] ?? 'other', bb, fx: (bb.x0 + bb.x1) / 2, fy: bb.y1, stream: o.stream, id: o.id ?? `o${i}`, ...(o.novel ? { novel: true } : {}) });
   });
   return { name: `seed${sc.seed}`, src: 'gen', cols: sc.cols, rows: sc.rows, ox: 0, oy: 0, ground, objs };
 }

@@ -123,7 +123,7 @@ export interface Scene {
   /** stage 6 judge repair record (exp-02, judge/repair.ts) */
   judgeRepair?: import('./judge/repair').JudgeRepair;
   /** random decision trace (rng.ts Trace) */
-  trace?: { decisions: unknown[]; streams: Record<string, unknown>; textures: Record<string, Record<string, number>>; unlabelled: number };
+  trace?: { decisions: unknown[]; streams: Record<string, unknown>; textures: Record<string, Record<string, number>>; unlabelled: number; forceMissed?: string[] };
 }
 
 export interface GenOptions {
@@ -142,6 +142,10 @@ export interface GenOptions {
   /** stage 6: the judge repair's result (salts in `reseed`, plus these downgraded windows): regenerate it as is,
    *  without searching (an exported scene reproduces) */
   judgeFixed?: { global?: boolean };
+  /** stage 7: forced decisions, rng.ts forceKey ("<stream>|<label>|<k>") -> option (string form); kept in the export */
+  force?: Record<string, string>;
+  /** stage 7: apply the learned preferences (default true) */
+  prefs?: boolean;
   /** internal: false = no judge repair (its own candidates) */
   judgeRepair?: boolean;
 }

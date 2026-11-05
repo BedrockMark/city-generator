@@ -1,0 +1,21 @@
+{
+  "version": "0.7.0",
+  "trained": "2026-11-05T01:14:46.644Z",
+  "labels": {
+    "alley.binModel": {
+      "global": {
+        "3_City_Props/Trashbin_6": 0.9296686780748127,
+        "3_City_Props/Trashbin_3": 0.9060904745793522
+      },
+      "ctx": {},
+      "n": 28
+    },
+    "strip.potModel": {
+      "global": {
+        "17_Garden/Bush_Potted_3": 0.8833400674024438
+      },
+      "ctx": {},
+      "n": 8
+    }
+  }
+}

@@ -1,6 +1,6 @@
 // 整体修图 (experiment exp-02, stage 6; v0.6.1 D45): when the map is odder than the references (map mean above the
-// references' 90th percentile), the main block is re-packed GLOBAL_SALTS times (salt on the `block` stream, rng.ts
-// reseed) and the re-pack with the lowest map mean is kept, provided it leaves no more active-constraint violations
+// references' 90th percentile + 0.1 * novelty, stage 7), the main block is re-packed GLOBAL_SALTS times (salt on the
+// `block` stream, rng.ts reseed) and the re-pack with the lowest map mean is kept, provided it leaves no more active-constraint violations
 // than the original. Nothing is edited window by window (the v0.6.0 local tier — re-seeding single windows,
 // downgrades — is gone: the user found its changes meaningless, and the re-packs alone gave the same constraint gains).
 // The adopted salt is written into scene.options (reseed, judgeFixed), so an exported scene JSON regenerates exactly,
@@ -37,16 +37,17 @@ export function tagGlobal(sc: Scene) {
 /** the scene for the given salts, scored */
 export function build(seed: string, opts: GenOptions, reseed: Record<string, number>): Scene {
   const sc = generateBase(seed, { ...opts, reseed });
-  sc.judge = scoreWorld(alignScene(sc));
+  sc.judge = scoreWorld(alignScene(sc), undefined, opts.novelty);
   return sc;
 }
 
 export function judgeRepair(seed: string, opts: GenOptions, base: Scene, onProgress?: (n: number, N: number) => void): Scene {
   const t0 = Date.now();
-  const start = { scene: base, judge: base.judge ?? scoreWorld(alignScene(base)), violations: violationCount(base.audit) };
+  const start = { scene: base, judge: base.judge ?? scoreWorld(alignScene(base), undefined, opts.novelty), violations: violationCount(base.audit) };
   const rec: JudgeRepair = { reseed: { ...(opts.reseed ?? {}) }, meanBefore: start.judge.mean, meanAfter: start.judge.mean, ms: 0, gens: 0 };
   let best = start, bestReseed = rec.reseed;
-  if (start.judge.mean > MODEL.refMeanP90) {
+  // stage 7: novelty relaxes the trigger line
+  if (start.judge.mean > MODEL.refMeanP90 + 0.1 * opts.novelty) {
     rec.global = [];
     for (let g = 1; g <= GLOBAL_SALTS; g++) {
       const reseed = { ...(opts.reseed ?? {}), block: g };

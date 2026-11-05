@@ -1,0 +1,22 @@
+{
+  "exp-01": {
+    "id": "exp-01",
+    "good": 2,
+    "bad": 1,
+    "abWin": 0,
+    "abLose": 0,
+    "total": 3,
+    "goodShare": 0.6666666666666666,
+    "suggestion": "继续观察"
+  },
+  "exp-02": {
+    "id": "exp-02",
+    "good": 0,
+    "bad": 0,
+    "abWin": 0,
+    "abLose": 0,
+    "total": 0,
+    "goodShare": null,
+    "suggestion": "继续观察"
+  }
+}
