@@ -1,0 +1,81 @@
+{
+ "version": "0.7.0",
+ "seed": "226982",
+ "options": {
+  "novelty": 0.1,
+  "experiments": true,
+  "exp": {
+   "exp-02": false
+  },
+  "prune": true,
+  "pruneDraft": false,
+  "prefs": true
+ },
+ "novelty": 0.1,
+ "created": "2026-11-05T01:51:12.717Z",
+ "kind": "auto",
+ "changes": [
+  {
+   "stream": "yard/garden38,28",
+   "label": "garden.treeModel",
+   "k": 9,
+   "a": "3_City_Props/Tree_4",
+   "b": "3_City_Props/Tree_3",
+   "rect": {
+    "x0": 631,
+    "y0": 452,
+    "x1": 679,
+    "y1": 516
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "yard/park19,15",
+   "label": "parking.carModel",
+   "k": 0,
+   "a": "10_Vehicles/Car_Down_3",
+   "b": "10_Vehicles/Car_Down_11",
+   "rect": {
+    "x0": 297,
+    "y0": 232,
+    "x1": 361,
+    "y1": 328
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "walk",
+   "label": "walk.dir",
+   "k": 9,
+   "ctx": {
+    "horiz": false
+   },
+   "a": "down",
+   "b": "up",
+   "rect": {
+    "x0": 45,
+    "y0": 400,
+    "x1": 77,
+    "y1": 448
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "walk",
+   "label": "walk.run",
+   "k": 0,
+   "ctx": {
+    "main": false
+   },
+   "a": "false",
+   "b": "true",
+   "rect": {
+    "x0": 369,
+    "y0": 72,
+    "x1": 401,
+    "y1": 120
+   },
+   "answer": "same"
+  }
+ ]
+}

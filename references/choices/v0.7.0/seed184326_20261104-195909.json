@@ -1,0 +1,92 @@
+{
+ "version": "0.7.0",
+ "seed": "184326",
+ "options": {
+  "novelty": 0.1,
+  "experiments": true,
+  "exp": {
+   "exp-02": false
+  },
+  "prune": true,
+  "pruneDraft": false,
+  "prefs": true
+ },
+ "novelty": 0.1,
+ "created": "2026-11-05T01:59:09.639Z",
+ "kind": "auto",
+ "changes": [
+  {
+   "stream": "fronts/b0",
+   "label": "front.pots",
+   "k": 0,
+   "a": "true",
+   "b": "false",
+   "rect": {
+    "x0": 259,
+    "y0": 482,
+    "x1": 335,
+    "y1": 514
+   },
+   "answer": "a"
+  },
+  {
+   "stream": "curb/curbE713176",
+   "label": "curb.binAtStart",
+   "k": 0,
+   "a": "false",
+   "b": "true",
+   "rect": {
+    "x0": 698,
+    "y0": 451,
+    "x1": 730,
+    "y1": 499
+   },
+   "answer": "b"
+  },
+  {
+   "stream": "cars/carsS524208",
+   "label": "cars.meter",
+   "k": 1,
+   "a": "true",
+   "b": "false",
+   "rect": {
+    "x0": 481,
+    "y0": 485,
+    "x1": 513,
+    "y1": 533
+   },
+   "answer": "a"
+  },
+  {
+   "stream": "nfronts/b38249",
+   "label": "front.potModel",
+   "k": 0,
+   "a": "3_City_Props/Pot_3",
+   "b": "3_City_Props/Pot_2",
+   "rect": {
+    "x0": 931,
+    "y0": 34,
+    "x1": 963,
+    "y1": 68
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "walk",
+   "label": "person.kidOutfit",
+   "k": 0,
+   "ctx": {
+    "role": "citizen"
+   },
+   "a": "charactors/Outfits_kids/Outfit_kid_7_pajama_tiger.png",
+   "b": "charactors/Outfits_kids/Outfit_kid_6_pajama_frog.png",
+   "rect": {
+    "x0": 564,
+    "y0": 598,
+    "x1": 596,
+    "y1": 646
+   },
+   "answer": "same"
+  }
+ ]
+}

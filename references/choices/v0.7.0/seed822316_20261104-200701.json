@@ -1,0 +1,95 @@
+{
+ "version": "0.7.0",
+ "seed": "822316",
+ "options": {
+  "novelty": 0.1,
+  "experiments": true,
+  "exp": {
+   "exp-02": false
+  },
+  "prune": true,
+  "pruneDraft": false,
+  "prefs": true
+ },
+ "novelty": 0.1,
+ "created": "2026-11-05T02:07:01.094Z",
+ "kind": "auto",
+ "changes": [
+  {
+   "stream": "yard/strip10,18",
+   "label": "strip.plantModel",
+   "k": 2,
+   "a": "17_Garden/Bush_22",
+   "b": "17_Garden/Bush_19",
+   "rect": {
+    "x0": 189,
+    "y0": 276,
+    "x1": 253,
+    "y1": 324
+   },
+   "answer": "a"
+  },
+  {
+   "stream": "fronts/b1334",
+   "label": "front.residentDir",
+   "k": 0,
+   "a": "down",
+   "b": "left",
+   "rect": {
+    "x0": 414,
+    "y0": 379,
+    "x1": 446,
+    "y1": 427
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "fronts/b1",
+   "label": "front.customerDir",
+   "k": 0,
+   "a": "up",
+   "b": "right",
+   "rect": {
+    "x0": 362,
+    "y0": 527,
+    "x1": 394,
+    "y1": 575
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "neigh",
+   "label": "bld.groundFloorVariant",
+   "k": 7899,
+   "ctx": {
+    "fam": "Ground_Floor_Shop"
+   },
+   "a": "5_Floor_Modular_Building/Ground_Floor_Shop_32",
+   "b": "5_Floor_Modular_Building/Ground_Floor_Shop_34",
+   "rect": {
+    "x0": 664,
+    "y0": 408,
+    "x1": 792,
+    "y1": 472
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "curb/curbE41208",
+   "label": "curb.bin",
+   "k": 0,
+   "ctx": {
+    "main": false
+   },
+   "a": "false",
+   "b": "true",
+   "rect": {
+    "x0": 25,
+    "y0": 509,
+    "x1": 57,
+    "y1": 557
+   },
+   "answer": "a"
+  }
+ ]
+}

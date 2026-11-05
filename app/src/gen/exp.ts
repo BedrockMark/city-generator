@@ -17,18 +17,20 @@ export interface Experiment {
   fire?: (novelty: number) => number;
 }
 
+/** stage 7: a `fire` for experiments registered later: base chance at novelty 0, always at novelty 1 */
+export const fireByNovelty = (base: number) => (n: number) => base + n * (1 - base);
+
 export const EXPERIMENTS: Experiment[] = [
   // 2026-11-03, user label 684358 L3 + v0.5.0 question 2: AC units belong on flat roofs, not on the ground
   { id: 'exp-01', title: '平顶屋顶上的空调外机', status: 'experimental', default: true },
   // 2026-11-03, stage 6: re-seed the oddest windows (judge), downgrade when that fails (docs/superpowers/specs/2026-11-03-stage6-judge-design.md)
   // 2026-11-04, v0.6.1: becomes the viewer's 整体修图 switch (global re-pack), off by default (NOTE D45)
   { id: 'exp-02', title: '整体修图：评判器挑出最不像参考图的主街区打包', status: 'experimental', default: false },
+  // 2026-11-04: back rows packed tight against the front row hide behind its upper floors; slide them to the north end
+  { id: 'exp-03', title: '前后排拉开：后排的楼推到最北', status: 'experimental', default: false, fire: fireByNovelty(0.5) },
 ];
 
 export const DEFAULT_OPTIONS: GenOptions = { novelty: 0.1, experiments: true, exp: {}, prune: true, pruneDraft: false, prefs: true };
-
-/** stage 7: a `fire` for experiments registered later: base chance at novelty 0, always at novelty 1 */
-export const fireByNovelty = (base: number) => (n: number) => base + n * (1 - base);
 
 export function withDefaults(o: Partial<GenOptions> = {}): GenOptions {
   return { ...DEFAULT_OPTIONS, ...o, exp: { ...DEFAULT_OPTIONS.exp, ...(o.exp ?? {}) } };

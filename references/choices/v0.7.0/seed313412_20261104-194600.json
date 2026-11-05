@@ -1,0 +1,89 @@
+{
+ "version": "0.7.0",
+ "seed": "313412",
+ "options": {
+  "novelty": 0.1,
+  "experiments": true,
+  "exp": {
+   "exp-02": false
+  },
+  "prune": true,
+  "pruneDraft": false,
+  "prefs": true
+ },
+ "novelty": 0.1,
+ "created": "2026-11-05T01:46:00.165Z",
+ "kind": "auto",
+ "changes": [
+  {
+   "stream": "nfronts/b36565",
+   "label": "front.signModel",
+   "k": 0,
+   "a": "3_City_Props/Info_Sign_3",
+   "b": "3_City_Props/Info_Sign_2",
+   "rect": {
+    "x0": 790,
+    "y0": 35,
+    "x1": 822,
+    "y1": 83
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "yard/garden35,16",
+   "label": "garden.sitter",
+   "k": 1,
+   "a": "true",
+   "b": "false",
+   "rect": {
+    "x0": 584,
+    "y0": 392,
+    "x1": 616,
+    "y1": 440
+   },
+   "answer": "a"
+  },
+  {
+   "stream": "fronts/b1565",
+   "label": "front.residentPose",
+   "k": 0,
+   "a": "true",
+   "b": "false",
+   "rect": {
+    "x0": 216,
+    "y0": 335,
+    "x1": 248,
+    "y1": 383
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "neigh",
+   "label": "bld.roof",
+   "k": 20591,
+   "a": "5_Floor_Modular_Building/Roof_7",
+   "b": "5_Floor_Modular_Building/Roof_11",
+   "rect": {
+    "x0": 776,
+    "y0": 632,
+    "x1": 904,
+    "y1": 760
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "neigh",
+   "label": "bld.roof",
+   "k": 12144,
+   "a": "5_Floor_Modular_Building/Roof_4",
+   "b": "5_Floor_Modular_Building/Roof_6",
+   "rect": {
+    "x0": 776,
+    "y0": 216,
+    "x1": 904,
+    "y1": 328
+   },
+   "answer": "same"
+  }
+ ]
+}

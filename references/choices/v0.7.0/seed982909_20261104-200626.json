@@ -1,0 +1,36 @@
+{
+ "version": "0.7.0",
+ "seed": "982909",
+ "options": {
+  "novelty": 0.1,
+  "experiments": true,
+  "exp": {
+   "exp-02": false
+  },
+  "prune": true,
+  "pruneDraft": false,
+  "prefs": true
+ },
+ "novelty": 0.1,
+ "created": "2026-11-05T02:06:26.511Z",
+ "kind": "auto",
+ "changes": [
+  {
+   "stream": "neigh",
+   "label": "bld.floorsFit",
+   "k": 2384,
+   "ctx": {
+    "maxH": 22
+   },
+   "a": "2",
+   "b": "3",
+   "rect": {
+    "x0": 168,
+    "y0": -216,
+    "x1": 856,
+    "y1": 1080
+   },
+   "answer": "same"
+  }
+ ]
+}

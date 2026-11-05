@@ -1,0 +1,78 @@
+{
+ "version": "0.7.0",
+ "seed": "596319",
+ "options": {
+  "novelty": 0.1,
+  "experiments": true,
+  "exp": {
+   "exp-02": false
+  },
+  "prune": true,
+  "pruneDraft": false,
+  "prefs": true
+ },
+ "novelty": 0.1,
+ "created": "2026-11-05T02:05:48.186Z",
+ "kind": "auto",
+ "changes": [
+  {
+   "stream": "nfronts/b20768",
+   "label": "front.flowersBoth",
+   "k": 0,
+   "a": "true",
+   "b": "false",
+   "rect": {
+    "x0": 216,
+    "y0": 67,
+    "x1": 248,
+    "y1": 99
+   },
+   "answer": "b"
+  },
+  {
+   "stream": "cross",
+   "label": "cross.waiting",
+   "k": 17,
+   "a": "false",
+   "b": "true",
+   "rect": {
+    "x0": 645,
+    "y0": 456,
+    "x1": 677,
+    "y1": 504
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "island/island5",
+   "label": "island.personDir",
+   "k": 0,
+   "a": "left",
+   "b": "up",
+   "rect": {
+    "x0": 460,
+    "y0": 483,
+    "x1": 492,
+    "y1": 531
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "road",
+   "label": "road.manhole",
+   "k": 3,
+   "ctx": {
+    "len": 11
+   },
+   "a": "false",
+   "b": "true",
+   "rect": {
+    "x0": 560,
+    "y0": 235,
+    "x1": 626,
+    "y1": 304
+   },
+   "answer": "a"
+  }
+ ]
+}

@@ -1,0 +1,114 @@
+{
+ "version": "0.7.0",
+ "seed": "908539",
+ "options": {
+  "novelty": 0.1,
+  "experiments": true,
+  "exp": {
+   "exp-02": false
+  },
+  "prune": true,
+  "pruneDraft": false,
+  "prefs": true
+ },
+ "novelty": 0.1,
+ "created": "2026-11-05T01:47:20.667Z",
+ "kind": "auto",
+ "changes": [
+  {
+   "stream": "curb/curbS5080",
+   "label": "curb.furniture",
+   "k": 0,
+   "ctx": {
+    "main": false,
+    "treeOk": true,
+    "horiz": true
+   },
+   "a": "none",
+   "b": "planters",
+   "rect": {
+    "x0": -10,
+    "y0": 484,
+    "x1": 22,
+    "y1": 516
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "zones/zone30,24",
+   "label": "plaza.people",
+   "k": 0,
+   "a": "3",
+   "b": "2",
+   "rect": {
+    "x0": 480,
+    "y0": 398,
+    "x1": 512,
+    "y1": 446
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "nfronts/b11531",
+   "label": "front.resident",
+   "k": 0,
+   "a": "false",
+   "b": "true",
+   "rect": {
+    "x0": 436,
+    "y0": 64,
+    "x1": 468,
+    "y1": 112
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "road",
+   "label": "road.manholeLane",
+   "k": 1,
+   "a": "true",
+   "b": "false",
+   "rect": {
+    "x0": 329,
+    "y0": 516,
+    "x1": 361,
+    "y1": 580
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "curb/curbS108736",
+   "label": "curb.lamps",
+   "k": 0,
+   "ctx": {
+    "main": false
+   },
+   "a": "true",
+   "b": "false",
+   "rect": {
+    "x0": 730,
+    "y0": 84,
+    "x1": 822,
+    "y1": 116
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "neigh",
+   "label": "bld.middleFloor",
+   "k": 2048,
+   "ctx": {
+    "colour": "blue"
+   },
+   "a": "5_Floor_Modular_Building/Middle_Floor_7",
+   "b": "5_Floor_Modular_Building/Middle_Floor_10",
+   "rect": {
+    "x0": 168,
+    "y0": 728,
+    "x1": 296,
+    "y1": 808
+   },
+   "answer": "same"
+  }
+ ]
+}

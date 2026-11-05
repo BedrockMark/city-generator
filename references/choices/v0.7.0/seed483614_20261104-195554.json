@@ -1,0 +1,33 @@
+{
+ "version": "0.7.0",
+ "seed": "483614",
+ "options": {
+  "novelty": 0.1,
+  "experiments": true,
+  "exp": {
+   "exp-02": false
+  },
+  "prune": true,
+  "pruneDraft": false,
+  "prefs": true
+ },
+ "novelty": 0.1,
+ "created": "2026-11-05T01:55:54.775Z",
+ "kind": "auto",
+ "changes": [
+  {
+   "stream": "walk",
+   "label": "walk.kid",
+   "k": 1,
+   "a": "false",
+   "b": "true",
+   "rect": {
+    "x0": 61,
+    "y0": 7,
+    "x1": 995,
+    "y1": 552
+   },
+   "answer": "a"
+  }
+ ]
+}

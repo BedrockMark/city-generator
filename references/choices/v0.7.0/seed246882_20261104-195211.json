@@ -1,0 +1,75 @@
+{
+ "version": "0.7.0",
+ "seed": "246882",
+ "options": {
+  "novelty": 0.1,
+  "experiments": true,
+  "exp": {
+   "exp-02": false
+  },
+  "prune": true,
+  "pruneDraft": false,
+  "prefs": true
+ },
+ "novelty": 0.1,
+ "created": "2026-11-05T01:52:11.025Z",
+ "kind": "auto",
+ "changes": [
+  {
+   "stream": "curb/curbN734768",
+   "label": "curb.groupAtStart",
+   "k": 0,
+   "a": "true",
+   "b": "false",
+   "rect": {
+    "x0": 763,
+    "y0": 710,
+    "x1": 867,
+    "y1": 742
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "cross",
+   "label": "cross.waitingSide",
+   "k": 1,
+   "a": "false",
+   "b": "true",
+   "rect": {
+    "x0": 649,
+    "y0": 697,
+    "x1": 709,
+    "y1": 745
+   },
+   "answer": "a"
+  },
+  {
+   "stream": "fronts/b1261",
+   "label": "front.flowers",
+   "k": 0,
+   "a": "false",
+   "b": "true",
+   "rect": {
+    "x0": 248,
+    "y0": 428,
+    "x1": 427,
+    "y1": 476
+   },
+   "answer": "a"
+  },
+  {
+   "stream": "fronts/b344",
+   "label": "front.flowers",
+   "k": 0,
+   "a": "false",
+   "b": "true",
+   "rect": {
+    "x0": 462,
+    "y0": 515,
+    "x1": 516,
+    "y1": 575
+   },
+   "answer": "a"
+  }
+ ]
+}

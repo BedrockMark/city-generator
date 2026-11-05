@@ -1,0 +1,103 @@
+{
+ "version": "0.7.0",
+ "seed": "613385",
+ "options": {
+  "novelty": 0.1,
+  "experiments": true,
+  "exp": {
+   "exp-02": false
+  },
+  "prune": true,
+  "pruneDraft": false,
+  "prefs": true
+ },
+ "novelty": 0.1,
+ "created": "2026-11-05T02:09:30.724Z",
+ "kind": "auto",
+ "changes": [
+  {
+   "stream": "exp/exp-01/roof:b14243",
+   "label": "roof.acModel",
+   "k": 0,
+   "a": "6_Garage_Sales/Air_Conditioner_Unit_1",
+   "b": "6_Garage_Sales/Air_Conditioner_Unit_3",
+   "rect": {
+    "x0": 301,
+    "y0": -142,
+    "x1": 349,
+    "y1": -89
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "nfronts/b14248",
+   "label": "front.litterModel",
+   "k": 0,
+   "a": "3_City_Props/Trash_4",
+   "b": "3_City_Props/Trash_2",
+   "rect": {
+    "x0": 628,
+    "y0": 18,
+    "x1": 660,
+    "y1": 51
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "nfronts/b14246",
+   "label": "front.seatTaken",
+   "k": 1,
+   "a": "true",
+   "b": "false",
+   "rect": {
+    "x0": 492,
+    "y0": 3,
+    "x1": 606,
+    "y1": 61
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "yard/strip43,20",
+   "label": "strip.potModel",
+   "k": 0,
+   "a": "17_Garden/Bush_Potted_8",
+   "b": "17_Garden/Bush_Potted_1",
+   "rect": {
+    "x0": 680,
+    "y0": 278,
+    "x1": 712,
+    "y1": 413
+   },
+   "answer": "b"
+  },
+  {
+   "stream": "zones/zone36,29",
+   "label": "alley.person",
+   "k": 0,
+   "a": "true",
+   "b": "false",
+   "rect": {
+    "x0": 576,
+    "y0": 428,
+    "x1": 608,
+    "y1": 476
+   },
+   "answer": "b"
+  },
+  {
+   "stream": "neigh",
+   "label": "bld.single",
+   "k": 5553,
+   "a": "4_Generic_Building/Condo_5_3",
+   "b": "4_Generic_Building/Condo_4_38",
+   "rect": {
+    "x0": -24,
+    "y0": -152,
+    "x1": 88,
+    "y1": 40
+   },
+   "answer": "same"
+  }
+ ]
+}

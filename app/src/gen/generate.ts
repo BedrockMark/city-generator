@@ -45,7 +45,8 @@ export function generateBase(seed: string, opts: GenOptions): Scene {
   const rng = new Rng(seed, trace);
   const L = makeLayout(rng);
   const sb = new SceneBuilder(L.cols, L.rows, L.cls);
-  const main = planMainBlock(L, rng);
+  // exp-03: the rows behind the street front slide north (its own stream decides whether it fires)
+  const main = planMainBlock(L, rng, !!expFires(opts, 'exp-03', rng));
   const neigh = planNeighbours(L, rng);
   sb.inStream('block', () => emitBuildings(L, main, sb, 'main'));
   sb.inStream('neigh', () => emitBuildings(L, neigh, sb, 'neigh'));

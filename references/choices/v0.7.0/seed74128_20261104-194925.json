@@ -1,0 +1,81 @@
+{
+ "version": "0.7.0",
+ "seed": "74128",
+ "options": {
+  "novelty": 0.1,
+  "experiments": true,
+  "exp": {
+   "exp-02": false
+  },
+  "prune": true,
+  "pruneDraft": false,
+  "prefs": true
+ },
+ "novelty": 0.1,
+ "created": "2026-11-05T01:49:25.694Z",
+ "kind": "auto",
+ "changes": [
+  {
+   "stream": "fronts/b3",
+   "label": "person.hasAccessory",
+   "k": 0,
+   "ctx": {
+    "role": "resident"
+   },
+   "a": "true",
+   "b": "false",
+   "rect": {
+    "x0": 275,
+    "y0": 411,
+    "x1": 307,
+    "y1": 459
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "yard/garden33,18",
+   "label": "garden.fence",
+   "k": 0,
+   "ctx": {
+    "side": "E"
+   },
+   "a": "true",
+   "b": "false",
+   "rect": {
+    "x0": 568,
+    "y0": 280,
+    "x1": 600,
+    "y1": 424
+   },
+   "answer": "a"
+  },
+  {
+   "stream": "cars/carsW167192",
+   "label": "cars.parkedCount",
+   "k": 0,
+   "a": "3",
+   "b": "1",
+   "rect": {
+    "x0": 113,
+    "y0": 401,
+    "x1": 177,
+    "y1": 497
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "neigh",
+   "label": "bld.colour",
+   "k": 10303,
+   "a": "grey",
+   "b": "blue",
+   "rect": {
+    "x0": 744,
+    "y0": 328,
+    "x1": 872,
+    "y1": 424
+   },
+   "answer": "same"
+  }
+ ]
+}

@@ -86,6 +86,8 @@ export interface BuildingRec {
   doors: { x: number; y: number }[];
   /** why the packer put it here */
   reason: string;
+  /** experimental feature that placed it (exp-03 moves buildings) */
+  exp?: string;
 }
 
 /** an area with a purpose: keep-clear zones (why it is empty), yard allocation, curb runs, carriageway */

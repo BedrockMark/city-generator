@@ -1,0 +1,95 @@
+{
+ "version": "0.7.0",
+ "seed": "495364",
+ "options": {
+  "novelty": 0.1,
+  "experiments": true,
+  "exp": {
+   "exp-02": false
+  },
+  "prune": true,
+  "pruneDraft": false,
+  "prefs": true
+ },
+ "novelty": 0.1,
+ "created": "2026-11-05T02:02:29.854Z",
+ "kind": "auto",
+ "changes": [
+  {
+   "stream": "neigh",
+   "label": "bld.shuttered",
+   "k": 16518,
+   "ctx": {
+    "fam": "Ground_Floor_Shop"
+   },
+   "a": "false",
+   "b": "true",
+   "rect": {
+    "x0": 824,
+    "y0": 840,
+    "x1": 952,
+    "y1": 904
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "yard/service24,28",
+   "label": "service.dumpsters",
+   "k": 0,
+   "a": "3",
+   "b": "1",
+   "rect": {
+    "x0": 409,
+    "y0": 422,
+    "x1": 457,
+    "y1": 547
+   },
+   "answer": "b"
+  },
+  {
+   "stream": "neigh",
+   "label": "bld.shuttered",
+   "k": 16517,
+   "ctx": {
+    "fam": "Ground_Floor_Bakery"
+   },
+   "a": "true",
+   "b": "false",
+   "rect": {
+    "x0": 552,
+    "y0": 808,
+    "x1": 680,
+    "y1": 904
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "yard/garden28,15",
+   "label": "garden.flowers",
+   "k": 2,
+   "a": "2",
+   "b": "3",
+   "rect": {
+    "x0": 440,
+    "y0": 216,
+    "x1": 630,
+    "y1": 312
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "curb/curbS124144",
+   "label": "curb.treeGap",
+   "k": 2,
+   "a": "false",
+   "b": "true",
+   "rect": {
+    "x0": 475,
+    "y0": 53,
+    "x1": 539,
+    "y1": 133
+   },
+   "answer": "a"
+  }
+ ]
+}

@@ -1,0 +1,75 @@
+{
+ "version": "0.7.0",
+ "seed": "382792",
+ "options": {
+  "novelty": 0.1,
+  "experiments": true,
+  "exp": {
+   "exp-02": false
+  },
+  "prune": true,
+  "pruneDraft": false,
+  "prefs": true
+ },
+ "novelty": 0.1,
+ "created": "2026-11-05T02:04:07.248Z",
+ "kind": "auto",
+ "changes": [
+  {
+   "stream": "cross",
+   "label": "cross.lightModel",
+   "k": 4,
+   "a": "3_City_Props/Traffic_Light_1",
+   "b": "3_City_Props/Traffic_Light_2",
+   "rect": {
+    "x0": 232,
+    "y0": 596,
+    "x1": 264,
+    "y1": 692
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "fronts/b2139",
+   "label": "front.flowerModel",
+   "k": 0,
+   "a": "3_City_Props/Flower_Bush_6",
+   "b": "3_City_Props/Flower_Bush_3",
+   "rect": {
+    "x0": 392,
+    "y0": 499,
+    "x1": 504,
+    "y1": 584
+   },
+   "answer": "b"
+  },
+  {
+   "stream": "curb/curbN2380",
+   "label": "curb.binModel",
+   "k": 0,
+   "a": "3_City_Props/Trashbin_3",
+   "b": "3_City_Props/Trashbin_1",
+   "rect": {
+    "x0": 13,
+    "y0": 198,
+    "x1": 45,
+    "y1": 246
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "nfronts/b35504",
+   "label": "front.sign",
+   "k": 0,
+   "a": "true",
+   "b": "false",
+   "rect": {
+    "x0": 278,
+    "y0": 51,
+    "x1": 392,
+    "y1": 114
+   },
+   "answer": "b"
+  }
+ ]
+}

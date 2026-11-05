@@ -1,0 +1,34 @@
+{
+ "version": "0.7.0",
+ "seed": "292700",
+ "options": {
+  "novelty": 0.1,
+  "experiments": true,
+  "exp": {
+   "exp-02": false
+  },
+  "prune": true,
+  "pruneDraft": false,
+  "prefs": true
+ },
+ "novelty": 0.1,
+ "created": "2026-11-05T01:50:08.688Z",
+ "kind": "auto",
+ "changes": [
+  {
+   "stream": "curb/curbS540128",
+   "label": "curb.treeSpacing",
+   "k": 2,
+   "a": "7",
+   "b": "5",
+   "rect": {
+    "x0": 174,
+    "y0": 468,
+    "x1": 526,
+    "y1": 550
+   },
+   "answer": "a",
+   "note": "其实是这棵树挡路和视线了，并且没有意义"
+  }
+ ]
+}

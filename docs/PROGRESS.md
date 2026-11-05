@@ -19,7 +19,8 @@
 - **v0.7.0 已完成**（2026-11-04，分支 `stage7`，报告 `docs/v0.7.0.md`，D46–D50）：阶段 7 从选择中学习（局部 A/B、Bradley–Terry 偏好乘子）、创新度、实验转正 / 废弃的建议、“选择解决不了的问题”报告。**等用户**：核对乘子表（`docs/PREFS.md`）、做一些 A/B 题、选扩展方案（exp-03）、答复 `v0.7.0.md` 第 8 节的问题。
   - 还没有任何 A/B 选择数据；乘子表只来自 16 条标注。
 - git：每个版本 commit 一次，并打 tag `v<版本>`。阶段 6 在分支 `stage6` 上做，阶段 7 在 `stage7`（从 `stage6` 分出）上做，确认后合并到 main。
-- 决策记录：`docs/NOTE.md`（D1–D50，D22 已删除）。实验功能登记：`docs/EXPERIMENTS.md`（exp-01、exp-02）。
+- 决策记录：`docs/NOTE.md`（D1–D51，D22 已删除）。实验功能登记：`docs/EXPERIMENTS.md`（exp-01–exp-03）。
+- **exp-03 前后排拉开**（2026-11-04，D51，未提交，默认关）：打包后把后排楼推到最北。关闭时 200 个种子和 v0.7.0 相同（`work/regress/exp03-off`）；打开时 95 个种子变化（`work/regress/exp03-on`）。统计和对比图脚本在 `work/spread/`。等用户在查看器里看（实验 ▾ → exp-03，或 URL `e=exp-03:1`）。
 
 ## 怎么运行
 - 查看器：`cd app && npx vite`，然后打开 http://localhost:5173/?seed=7
@@ -85,7 +86,7 @@
 - 等用户：
   - 做一些 A/B 题（B 键），然后 `prefs.ts train` + `eval`，看留出准确率（目标 ≥ 0.65）和乘子表；
   - 核对 `docs/PREFS.md` 的乘子表；
-  - 从 `v0.7.0.md` 第 6 节选一个扩展提议空间的方案作为 exp-03；
+  - 从 `v0.7.0.md` 第 6 节选一个扩展提议空间的方案作为 exp-04（exp-03 已被“前后排拉开”占用，D51）；
   - exp-01 的去留、默认创新度 0.10 要不要保留。
 - `stage6`、`stage7` 分支都还没合并到 main。
 - 阶段 7 的计划和执行记录：`docs/superpowers/plans/2026-11-04-stage7-learning.md`；`.superpowers/sdd/2026-11-04-stage7-learning/progress.md`（git 忽略，含所有 Ruling）。阶段 6 的：`docs/superpowers/plans/2026-11-03-stage6-judge.md`。

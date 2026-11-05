@@ -10,7 +10,7 @@ import { TILE } from './types';
 
 const PART_NAMES: Record<string, string> = { roof: '屋顶', mid: '中间层', ground: '底层', whole: '整体精灵' };
 
-export interface PlacedBuilding { plan: BuildingPlan; cx: number; cy: number; side: 'S' | 'N'; /** why the packer put it here */ why: string }
+export interface PlacedBuilding { plan: BuildingPlan; cx: number; cy: number; side: 'S' | 'N'; /** why the packer put it here */ why: string; /** produced (moved) by an experiment */ exp?: string }
 export interface Zone { kind: 'alley' | 'plaza' | 'pocket'; x0: number; y0: number; x1: number; y1: number; why: string }   // cells, half-open
 
 export interface BlockPlan {
@@ -23,7 +23,8 @@ export interface BlockPlan {
   yb: Map<number, number>; yt: Map<number, number>;
 }
 
-export function planMainBlock(L: Layout, r0: Rng): BlockPlan {
+/** spread: exp-03 fires (the rows behind slide north) */
+export function planMainBlock(L: Layout, r0: Rng, spread = false): BlockPlan {
   const r = r0.fork('block');
   const yb = new Map<number, number>(), yt = new Map<number, number>();
   for (let x = L.bx0; x < L.bx1; x++) {
@@ -54,7 +55,7 @@ export function planMainBlock(L: Layout, r0: Rng): BlockPlan {
   const mix = r.choose('block.mix', {}, { weights: [[{ modular: 3, single: 2 }, 2], [{ modular: 1, single: 2 }, 1], [{ modular: 3, single: 1 }, 1]] as const });
   const { placed, yard } = pack({
     cols: L.cols, rows: L.rows, buildable: (x, y) => L.inP[y][x] && !carved[y][x], canopy: (x, y) => L.inP[y][x], mix, minH: 8,
-    gapAfter: [[0, 6], [1, 2], [2, 1]], pairChance: 0.4,
+    gapAfter: [[0, 6], [1, 2], [2, 1]], pairChance: 0.4, spread,
     // only buildings that face the street (sidewalk right below the facade) may be shops
     frontFilter: (x0, w, bottom) => {
       let street = true;
@@ -62,29 +63,31 @@ export function planMainBlock(L: Layout, r0: Rng): BlockPlan {
       return street ? null : ['condo', 'house'];
     },
   }, r);
-  const buildings: PlacedBuilding[] = placed.map(p => ({ plan: p.plan, cx: p.cx, cy: p.cy, side: (p.cy + p.plan.h - 1 === yb.get(p.cx) ? 'S' : 'N') as 'S' | 'N', why: p.why }));
+  const buildings: PlacedBuilding[] = placed.map(p => ({ plan: p.plan, cx: p.cx, cy: p.cy, side: (p.cy + p.plan.h - 1 === yb.get(p.cx) ? 'S' : 'N') as 'S' | 'N', why: p.why, ...(p.moved ? { exp: 'exp-03' } : {}) }));
   return { buildings, zones, yard, yb, yt };
 }
 
 /** emit building sprites; the solid footprint is the bottom `foot` rows; doors keep a clear path to the street */
 export function emitBuildings(L: Layout, plan: BlockPlan, sb: SceneBuilder, block: 'main' | 'neigh') {
-  for (const pb of plan.buildings) {
-    const { plan: b, cx, cy } = pb;
-    const x0 = cx * TILE, y0 = cy * TILE, bottom = (cy + b.h) * TILE, solid = bottom - b.foot * TILE;
-    const gid = sb.group('bld', pb.why, { id: b.id, anchor: { kind: 'slot', ref: `${block}:${cx},${cy + b.h - 1}`, x: x0 + b.w * TILE / 2, y: bottom } });
-    sb.buildings.push({ gid, id: b.id, label: b.label, front: b.front, block, side: pb.side, rect: rect(x0, y0, x0 + b.w * TILE, bottom), solid: rect(x0, solid, x0 + b.w * TILE, bottom),
-      doors: b.doors.map(d => ({ x: x0 + d, y: bottom })), reason: pb.why });
-    for (const p of b.parts) {
-      const o = sb.putAt(p.key, x0 + p.dx, y0 + p.dy, 'building', { force: true, occupy: false, foot: bottom - 1, sub: p.sub, gid, why: `${b.label} 的${PART_NAMES[p.role]}` });
-      if (o) o.solid = solid;
-    }
-    sb.occupy(rect(x0, solid, x0 + b.w * TILE, bottom), 'building');
-    for (const [di, d] of b.doors.entries()) {
-      // path from the door down to the curb (or 2 rows into a courtyard)
-      let depth = 0;
-      const dc = Math.floor((x0 + d) / TILE);
-      for (let y = cy + b.h; y < L.rows && depth < 5; y++) { const c = L.cls[y][dc]; if (c === 'road' || (c !== 'walk' && c !== 'nwalk' && depth >= 2)) break; depth++; }
-      sb.clear(rect(x0 + d - 12, bottom, x0 + d + 12, bottom + Math.max(14, depth * TILE - 2)), 'door', `${b.id} 的门${b.doors.length > 1 ? di + 1 : ''}前通道：从门口到路缘保持畅通`, gid);
-    }
+  for (const pb of plan.buildings) pb.exp ? sb.withExp(pb.exp, () => emitBuilding(L, pb, sb, block)) : emitBuilding(L, pb, sb, block);
+}
+
+function emitBuilding(L: Layout, pb: PlacedBuilding, sb: SceneBuilder, block: 'main' | 'neigh') {
+  const { plan: b, cx, cy } = pb;
+  const x0 = cx * TILE, y0 = cy * TILE, bottom = (cy + b.h) * TILE, solid = bottom - b.foot * TILE;
+  const gid = sb.group('bld', pb.why, { id: b.id, anchor: { kind: 'slot', ref: `${block}:${cx},${cy + b.h - 1}`, x: x0 + b.w * TILE / 2, y: bottom } });
+  sb.buildings.push({ gid, id: b.id, label: b.label, front: b.front, block, side: pb.side, rect: rect(x0, y0, x0 + b.w * TILE, bottom), solid: rect(x0, solid, x0 + b.w * TILE, bottom),
+    doors: b.doors.map(d => ({ x: x0 + d, y: bottom })), reason: pb.why, ...(pb.exp ? { exp: pb.exp } : {}) });
+  for (const p of b.parts) {
+    const o = sb.putAt(p.key, x0 + p.dx, y0 + p.dy, 'building', { force: true, occupy: false, foot: bottom - 1, sub: p.sub, gid, why: `${b.label} 的${PART_NAMES[p.role]}` });
+    if (o) o.solid = solid;
+  }
+  sb.occupy(rect(x0, solid, x0 + b.w * TILE, bottom), 'building');
+  for (const [di, d] of b.doors.entries()) {
+    // path from the door down to the curb (or 2 rows into a courtyard)
+    let depth = 0;
+    const dc = Math.floor((x0 + d) / TILE);
+    for (let y = cy + b.h; y < L.rows && depth < 5; y++) { const c = L.cls[y][dc]; if (c === 'road' || (c !== 'walk' && c !== 'nwalk' && depth >= 2)) break; depth++; }
+    sb.clear(rect(x0 + d - 12, bottom, x0 + d + 12, bottom + Math.max(14, depth * TILE - 2)), 'door', `${b.id} 的门${b.doors.length > 1 ? di + 1 : ''}前通道：从门口到路缘保持畅通`, gid);
   }
 }

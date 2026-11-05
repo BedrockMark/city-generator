@@ -4,6 +4,9 @@
 // stays free for yard or other footprints, they only have to stay over the block's own lot (`canopy`).
 // A building whose front would face the back of another building keeps a 2-row clearance (front yard).
 // Cells that cannot take a building become 'yard'.
+// exp-03 (`spread`): afterwards every building with another one in front of it slides north until its footprint reaches
+// the lot's north edge, so the rows behind stand clear of the front row's upper floors instead of packing tight against
+// its footprint; its own upper floors may then hang over the north sidewalk / street (or off the picture).
 import { Rng } from './rng';
 import { pickBuilding, modularStack, type BuildingPlan, type FrontKind } from './buildings';
 
@@ -22,9 +25,11 @@ export interface PackOpts {
   frontFilter?: (x0: number, w: number, bottom: number) => FrontKind[] | null;
   gapAfter?: readonly (readonly [number, number])[];
   pairChance?: number;
+  /** exp-03: slide the buildings behind other buildings north, as far as they go */
+  spread?: boolean;
 }
 
-export interface Packed { plan: BuildingPlan; cx: number; cy: number; why: string }
+export interface Packed { plan: BuildingPlan; cx: number; cy: number; why: string; /** exp-03: rows slid north */ moved?: number }
 
 export function pack(o: PackOpts, r: Rng): { placed: Packed[]; yard: boolean[][] } {
   const { cols, rows } = o;
@@ -92,7 +97,44 @@ export function pack(o: PackOpts, r: Rng): { placed: Packed[]; yard: boolean[][]
       for (let g = 0; g < gap && x < b; g++, x++) { yard[yS][x] = true; free[yS][x] = false; }
     }
   }
+  if (o.spread) spreadNorth(o, placed, bld, free, yard);
   // free cells left over are yard too
   for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) if (free[y][x]) yard[y][x] = true;
   return { placed, yard };
+}
+
+/** exp-03: northmost first, each building that has a building in front (overlapping columns, further south) slides
+ *  north one row at a time while its footprint stays on buildable cells inside the picture, the 2 rows in front of every
+ *  facade stay clear and the allowed fronts still allow it. The upper floors are not held to the lot (user 2026-11-04:
+ *  the footprint goes all the way north, not just the roof) */
+function spreadNorth(o: PackOpts, placed: Packed[], bld: boolean[][], free: boolean[][], yard: boolean[][]) {
+  const { cols, rows } = o;
+  const inside = (x: number, y: number) => x >= 0 && y >= 0 && x < cols && y < rows;
+  const bottom = (p: Packed) => p.cy + p.plan.h - 1;
+  const set = (p: Packed, v: boolean) => {
+    for (let y = bottom(p) - p.plan.foot + 1; y <= bottom(p); y++) for (let x = p.cx; x < p.cx + p.plan.w; x++) if (inside(x, y)) {
+      bld[y][x] = v; free[y][x] = !v; yard[y][x] = false;
+    }
+  };
+  const fitsAt = (p: Packed, bot: number) => {
+    const b = p.plan, x0 = p.cx;
+    for (let y = bot - b.foot + 1; y <= bot; y++) for (let x = x0; x < x0 + b.w; x++) {
+      if (!inside(x, y) || !o.buildable(x, y) || bld[y][x]) return false;
+      // the footprint must not stand in the 2 rows in front of another facade
+      if ((inside(x, y - 1) && bld[y - 1][x]) || (inside(x, y - 2) && bld[y - 2][x])) return false;
+    }
+    for (let y = bot + 1; y <= bot + 2; y++) for (let x = x0; x < x0 + b.w; x++) if (inside(x, y) && bld[y][x]) return false;
+    const allow = o.frontFilter?.(x0, b.w, bot);
+    return !allow || allow.includes(b.front);
+  };
+  for (const p of [...placed].sort((a, b) => bottom(a) - bottom(b))) {
+    const behind = placed.some(q => q !== p && bottom(q) > bottom(p) && q.cx < p.cx + p.plan.w && p.cx < q.cx + q.plan.w);
+    if (!behind) continue;
+    set(p, false);
+    let bot = bottom(p);
+    while (fitsAt(p, bot - 1)) bot--;
+    const d = bottom(p) - bot;
+    if (d > 0) { p.cy -= d; p.moved = d; p.why += `；exp-03 前后排拉开：前面有楼，整栋向北推了 ${d} 行（占地推到不能再推，楼上层可以伸出地块）`; }
+    set(p, true);
+  }
 }

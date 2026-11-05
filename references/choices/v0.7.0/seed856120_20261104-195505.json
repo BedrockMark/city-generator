@@ -1,0 +1,75 @@
+{
+ "version": "0.7.0",
+ "seed": "856120",
+ "options": {
+  "novelty": 0.1,
+  "experiments": true,
+  "exp": {
+   "exp-02": false
+  },
+  "prune": true,
+  "pruneDraft": false,
+  "prefs": true
+ },
+ "novelty": 0.1,
+ "created": "2026-11-05T01:55:05.313Z",
+ "kind": "auto",
+ "changes": [
+  {
+   "stream": "cross",
+   "label": "cross.flip",
+   "k": 5,
+   "a": "false",
+   "b": "true",
+   "rect": {
+    "x0": 151,
+    "y0": 165,
+    "x1": 184,
+    "y1": 315
+   },
+   "answer": "a"
+  },
+  {
+   "stream": "nfronts/b25390",
+   "label": "front.bin",
+   "k": 0,
+   "a": "true",
+   "b": "false",
+   "rect": {
+    "x0": 447,
+    "y0": 51,
+    "x1": 547,
+    "y1": 110
+   },
+   "answer": "b"
+  },
+  {
+   "stream": "yard/garden37,23",
+   "label": "garden.benches",
+   "k": 0,
+   "a": "1",
+   "b": "2",
+   "rect": {
+    "x0": 582,
+    "y0": 341,
+    "x1": 630,
+    "y1": 424
+   },
+   "answer": "b"
+  },
+  {
+   "stream": "nfronts/b12928",
+   "label": "front.bin",
+   "k": 0,
+   "a": "false",
+   "b": "true",
+   "rect": {
+    "x0": 800,
+    "y0": 611,
+    "x1": 832,
+    "y1": 659
+   },
+   "answer": "b"
+  }
+ ]
+}

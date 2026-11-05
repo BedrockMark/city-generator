@@ -1,0 +1,106 @@
+{
+ "version": "0.7.0",
+ "seed": "994200",
+ "options": {
+  "novelty": 0.1,
+  "experiments": true,
+  "exp": {
+   "exp-02": false
+  },
+  "prune": true,
+  "pruneDraft": false,
+  "prefs": true
+ },
+ "novelty": 0.1,
+ "created": "2026-11-05T02:08:56.925Z",
+ "kind": "auto",
+ "changes": [
+  {
+   "stream": "yard/strip31,19",
+   "label": "strip.pots",
+   "k": 0,
+   "a": "true",
+   "b": "false",
+   "rect": {
+    "x0": 487,
+    "y0": 262,
+    "x1": 632,
+    "y1": 328
+   },
+   "answer": "b"
+  },
+  {
+   "stream": "nfronts/b26214",
+   "label": "front.binModel",
+   "k": 0,
+   "a": "3_City_Props/Trashbin_5",
+   "b": "3_City_Props/Trashbin_12",
+   "rect": {
+    "x0": 335,
+    "y0": -13,
+    "x1": 368,
+    "y1": 35
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "road",
+   "label": "road.manholeModel",
+   "k": 0,
+   "a": "3_City_Props/Manhole_1",
+   "b": "3_City_Props/Manhole_3",
+   "rect": {
+    "x0": 569,
+    "y0": 484,
+    "x1": 601,
+    "y1": 516
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "neigh",
+   "label": "bld.groundFloor",
+   "k": 22747,
+   "ctx": {
+    "front": "any"
+   },
+   "a": "Ground_Floor_Shop",
+   "b": "Ground_Floor_Gym",
+   "rect": {
+    "x0": 200,
+    "y0": 632,
+    "x1": 328,
+    "y1": 728
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "road",
+   "label": "road.manholeModel",
+   "k": 1,
+   "a": "3_City_Props/Manhole_4",
+   "b": "3_City_Props/Manhole_5",
+   "rect": {
+    "x0": 696,
+    "y0": 337,
+    "x1": 728,
+    "y1": 370
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "road",
+   "label": "road.holeModel",
+   "k": 0,
+   "a": "3_City_Props/Holes_6",
+   "b": "3_City_Props/Holes_3",
+   "rect": {
+    "x0": 304,
+    "y0": 446,
+    "x1": 369,
+    "y1": 494
+   },
+   "answer": "same"
+  }
+ ]
+}
