@@ -4,7 +4,7 @@
 // stays free for yard or other footprints, they only have to stay over the block's own lot (`canopy`).
 // A building whose front would face the back of another building keeps a 2-row clearance (front yard).
 // Cells that cannot take a building become 'yard'.
-// exp-03 (`spread`): afterwards every building with another one in front of it slides north until its footprint reaches
+// `spread` (exp-03, adopted 2026-11-04, NOTE D51/D52): afterwards every building with another one in front of it slides north until its footprint reaches
 // the lot's north edge, so the rows behind stand clear of the front row's upper floors instead of packing tight against
 // its footprint; its own upper floors may then hang over the north sidewalk / street (or off the picture).
 import { Rng } from './rng';
@@ -25,11 +25,11 @@ export interface PackOpts {
   frontFilter?: (x0: number, w: number, bottom: number) => FrontKind[] | null;
   gapAfter?: readonly (readonly [number, number])[];
   pairChance?: number;
-  /** exp-03: slide the buildings behind other buildings north, as far as they go */
+  /** slide the buildings behind other buildings north until their footprint reaches the lot's north edge (D51) */
   spread?: boolean;
 }
 
-export interface Packed { plan: BuildingPlan; cx: number; cy: number; why: string; /** exp-03: rows slid north */ moved?: number }
+export interface Packed { plan: BuildingPlan; cx: number; cy: number; why: string; /** rows slid north by `spread` */ moved?: number }
 
 export function pack(o: PackOpts, r: Rng): { placed: Packed[]; yard: boolean[][] } {
   const { cols, rows } = o;
@@ -103,7 +103,7 @@ export function pack(o: PackOpts, r: Rng): { placed: Packed[]; yard: boolean[][]
   return { placed, yard };
 }
 
-/** exp-03: northmost first, each building that has a building in front (overlapping columns, further south) slides
+/** `spread`: northmost first, each building that has a building in front (overlapping columns, further south) slides
  *  north one row at a time while its footprint stays on buildable cells inside the picture, the 2 rows in front of every
  *  facade stay clear and the allowed fronts still allow it. The upper floors are not held to the lot (user 2026-11-04:
  *  the footprint goes all the way north, not just the roof) */
@@ -134,7 +134,7 @@ function spreadNorth(o: PackOpts, placed: Packed[], bld: boolean[][], free: bool
     let bot = bottom(p);
     while (fitsAt(p, bot - 1)) bot--;
     const d = bottom(p) - bot;
-    if (d > 0) { p.cy -= d; p.moved = d; p.why += `；exp-03 前后排拉开：前面有楼，整栋向北推了 ${d} 行（占地推到不能再推，楼上层可以伸出地块）`; }
+    if (d > 0) { p.cy -= d; p.moved = d; p.why += `；前后排拉开：前面有楼，整栋向北推了 ${d} 行（占地推到不能再推，楼上层可以伸出地块）`; }
     set(p, true);
   }
 }

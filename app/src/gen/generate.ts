@@ -19,7 +19,7 @@ import { makeAdjust } from './learn/adjust';
 import { PREFS } from './learn/prefs';
 import { markNovel } from './learn/novelty';
 
-export const VERSION = '0.7.0';
+export const VERSION = '0.7.1';
 
 export function generate(seed: string, options: Partial<GenOptions> = {}, onProgress?: (n: number, N: number) => void): Scene {
   const opts = withDefaults(options);
@@ -45,8 +45,7 @@ export function generateBase(seed: string, opts: GenOptions): Scene {
   const rng = new Rng(seed, trace);
   const L = makeLayout(rng);
   const sb = new SceneBuilder(L.cols, L.rows, L.cls);
-  // exp-03: the rows behind the street front slide north (its own stream decides whether it fires)
-  const main = planMainBlock(L, rng, !!expFires(opts, 'exp-03', rng));
+  const main = planMainBlock(L, rng, expEnabled(opts, 'exp-03'));
   const neigh = planNeighbours(L, rng);
   sb.inStream('block', () => emitBuildings(L, main, sb, 'main'));
   sb.inStream('neigh', () => emitBuildings(L, neigh, sb, 'neigh'));

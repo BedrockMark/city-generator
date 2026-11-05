@@ -1,4 +1,4 @@
-// exp-01: air-conditioning units on flat roofs (user label 684358 L3: "it can go on a flat roof, not on the ground").
+// exp-01 (adopted 2026-11-04, NOTE D52): air-conditioning units on flat roofs (user label 684358 L3: "it can go on a flat roof, not on the ground").
 // Only the modular flat roofs (parapet round a flat deck: Roof_1/3/5/7/10); pitched tile roofs never get any.
 // Units are drawn right after their building (same depth) so the building's own sprite never covers them.
 import type { Rng } from './rng';
@@ -22,8 +22,8 @@ export function rooftopAC(plans: BlockPlan[], sb: SceneBuilder, r: Rng) {
     // the flat deck inside the parapet
     const deck = rect(x0 + 10, y0 + 20, x0 + b.w * T - 10, y0 + rh - 10);
     const bottom = (cy + b.h) * T;
-    const why = `平顶屋顶上的空调外机（${b.id}，${roof.key.split('/').pop()}）：空调外机放在平顶上，不放在地面（标注 684358 L3，实验 exp-01）`;
-    const gid = sb.withExp('exp-01', () => sb.group('rooftop', why, { id: b.id, anchor: { kind: 'slot', ref: `${b.id}.roof`, x: (deck.x0 + deck.x1) / 2, y: (deck.y0 + deck.y1) / 2 } }));
+    const why = `平顶屋顶上的空调外机（${b.id}，${roof.key.split('/').pop()}）：空调外机放在平顶上，不放在地面（标注 684358 L3）`;
+    const gid = sb.group('rooftop', why, { id: b.id, anchor: { kind: 'slot', ref: `${b.id}.roof`, x: (deck.x0 + deck.x1) / 2, y: (deck.y0 + deck.y1) / 2 } });
     const taken: Rect[] = [];
     const n = rr.count('roof.acCount', {}, 1, 3);
     for (let i = 0, k = 0; i < n * 6 && k < n; i++) {
@@ -32,7 +32,7 @@ export function rooftopAC(plans: BlockPlan[], sb: SceneBuilder, r: Rng) {
       const y = Math.round(deck.y0 - s.bb[1] + rr.range(0, Math.max(0, deck.y1 - deck.y0 - (s.bb[3] - s.bb[1]))));
       const box = rect(x + s.bb[0], y + s.bb[1], x + s.bb[2], y + s.bb[3]);
       if (box.x0 < deck.x0 || box.x1 > deck.x1 || box.y0 < deck.y0 || box.y1 > deck.y1 || taken.some(t => overlaps(t, rect(box.x0 - 2, box.y0 - 2, box.x1 + 2, box.y1 + 2)))) continue;
-      sb.withExp('exp-01', () => sb.putAt(key, x, y, 'utility', { gid, why: '平顶上的空调外机', force: true, occupy: false, foot: bottom - 0.5, sub: 10 + k }));
+      sb.putAt(key, x, y, 'utility', { gid, why: '平顶上的空调外机', force: true, occupy: false, foot: bottom - 0.5, sub: 10 + k });
       taken.push(box); k++;
     }
   }

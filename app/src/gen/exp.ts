@@ -14,6 +14,9 @@ export interface Experiment {
   /** switched on unless the user turns it off */
   default: boolean;
   /** chance that an enabled experiment fires in a given scene, by novelty (0..1); default always */
+  /** version it was adopted in; regenerating an older version (options.asOf) treats it as experimental, with the
+   *  `default` it had then */
+  adoptedIn?: string;
   fire?: (novelty: number) => number;
 }
 
@@ -22,12 +25,14 @@ export const fireByNovelty = (base: number) => (n: number) => base + n * (1 - ba
 
 export const EXPERIMENTS: Experiment[] = [
   // 2026-11-03, user label 684358 L3 + v0.5.0 question 2: AC units belong on flat roofs, not on the ground
-  { id: 'exp-01', title: '平顶屋顶上的空调外机', status: 'experimental', default: true },
+  // 2026-11-04: adopted (user); keeps its own stream exp/exp-01, so the units are the ones it placed when switched on
+  { id: 'exp-01', title: '平顶屋顶上的空调外机', status: 'adopted', default: true, adoptedIn: '0.7.1' },
   // 2026-11-03, stage 6: re-seed the oddest windows (judge), downgrade when that fails (docs/superpowers/specs/2026-11-03-stage6-judge-design.md)
   // 2026-11-04, v0.6.1: becomes the viewer's 整体修图 switch (global re-pack), off by default (NOTE D45)
   { id: 'exp-02', title: '整体修图：评判器挑出最不像参考图的主街区打包', status: 'experimental', default: false },
   // 2026-11-04: back rows packed tight against the front row hide behind its upper floors; slide them to the north end
-  { id: 'exp-03', title: '前后排拉开：后排的楼推到最北', status: 'experimental', default: false, fire: fireByNovelty(0.5) },
+  // 2026-11-04: adopted the same day (user): always on, no chance draw (NOTE D52); before 0.7.1 it did not exist (off)
+  { id: 'exp-03', title: '前后排拉开：后排的楼推到最北', status: 'adopted', default: false, adoptedIn: '0.7.1' },
 ];
 
 export const DEFAULT_OPTIONS: GenOptions = { novelty: 0.1, experiments: true, exp: {}, prune: true, pruneDraft: false, prefs: true };
@@ -36,11 +41,14 @@ export function withDefaults(o: Partial<GenOptions> = {}): GenOptions {
   return { ...DEFAULT_OPTIONS, ...o, exp: { ...DEFAULT_OPTIONS.exp, ...(o.exp ?? {}) } };
 }
 
+/** a < b for versions like 0.7.1 */
+const older = (a: string, b: string) => { const x = a.split('.').map(Number), y = b.split('.').map(Number); for (let i = 0; i < 3; i++) if ((x[i] ?? 0) !== (y[i] ?? 0)) return (x[i] ?? 0) < (y[i] ?? 0); return false; };
+
 /** switch state (master switch + per-feature switch), independent of chance */
 export function expEnabled(o: GenOptions, id: string): boolean {
   const e = EXPERIMENTS.find(x => x.id === id);
   if (!e || e.status === 'retired') return false;
-  if (e.status === 'adopted') return true;
+  if (e.status === 'adopted' && !(o.asOf && e.adoptedIn && older(o.asOf, e.adoptedIn))) return true;
   return o.experiments && (o.exp[id] ?? e.default);
 }
 

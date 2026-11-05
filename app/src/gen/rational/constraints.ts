@@ -94,7 +94,7 @@ export const CONSTRAINTS: Constraint[] = [
   { id: 'C16', title: '锚点仍然存在（存在理由可追溯）', why: '物件的锚点是另一个物件（椅子→桌子、坐着的人→长椅）时，锚点被删，它也跟着删',
     severity: 'hard', fix: 'remove', status: 'active', rule: { kind: 'anchor' } },
   // ---- from the user's labels (references/labels/v0.4.0) ----
-  { id: 'C17', title: '禁用贴图', why: '标注 684358 L3：空调外机不应出现在地面上（平房屋顶上的空调外机是实验功能 exp-01，不受此限）；406829 L3：Shrub_3 看不清是什么。名单由用户维护',
+  { id: 'C17', title: '禁用贴图', why: '标注 684358 L3：空调外机不应出现在地面上（平房屋顶上的空调外机是 exp-01，已转正，不受此限）；406829 L3：Shrub_3 看不清是什么。名单由用户维护',
     severity: 'hard', fix: 'remove', status: 'active', rule: { kind: 'banned', who: { key: 'Air_Conditioner|/Shrub_3$', notGroup: ['rooftop'] } } },
   { id: 'C18', title: '门前有路通到人行道', why: '标注 994257 L3/L4/L5：“应该有一条路到门口”。从门到最近的人行道、小路或广场要有一条路（优先走铺地、少转弯，不穿过楼的底层占地；楼的高层不占地，D38），路线上不能是草坪，也不能放盆栽。修复：删掉挡路的物件，揭掉路线上的草坪（下面本来就是铺地）；走不出去时只报告',
     severity: 'soft', fix: 'remove', status: 'active', rule: { kind: 'door-path', depth: 12 } },

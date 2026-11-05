@@ -76,7 +76,7 @@ export function attributeLabels(minVersion = '0.5.1'): { items: LabelAttribution
         let sc: Scene | null = null, same = false;
         if (verGE(l.version, '0.7.0')) sc = hasStream ? old : null;
         else {
-          const o: Partial<GenOptions> = { ...l.options, novelty: 0, prefs: false, force: undefined }, key = JSON.stringify([l.seed, o]);
+          const o: Partial<GenOptions> = { ...l.options, novelty: 0, prefs: false, force: undefined, asOf: l.version }, key = JSON.stringify([l.seed, o]);
           if (!gens.has(key)) gens.set(key, generate(l.seed, o));
           const now = gens.get(key)!;
           same = JSON.stringify(signature(now)) === JSON.stringify(signature(old));

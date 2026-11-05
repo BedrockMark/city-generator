@@ -10,7 +10,7 @@ import { TILE } from './types';
 
 const PART_NAMES: Record<string, string> = { roof: '屋顶', mid: '中间层', ground: '底层', whole: '整体精灵' };
 
-export interface PlacedBuilding { plan: BuildingPlan; cx: number; cy: number; side: 'S' | 'N'; /** why the packer put it here */ why: string; /** produced (moved) by an experiment */ exp?: string }
+export interface PlacedBuilding { plan: BuildingPlan; cx: number; cy: number; side: 'S' | 'N'; /** why the packer put it here */ why: string }
 export interface Zone { kind: 'alley' | 'plaza' | 'pocket'; x0: number; y0: number; x1: number; y1: number; why: string }   // cells, half-open
 
 export interface BlockPlan {
@@ -23,8 +23,8 @@ export interface BlockPlan {
   yb: Map<number, number>; yt: Map<number, number>;
 }
 
-/** spread: exp-03 fires (the rows behind slide north) */
-export function planMainBlock(L: Layout, r0: Rng, spread = false): BlockPlan {
+/** spread: the rows behind slide north (exp-03, adopted; off only when regenerating an older version) */
+export function planMainBlock(L: Layout, r0: Rng, spread = true): BlockPlan {
   const r = r0.fork('block');
   const yb = new Map<number, number>(), yt = new Map<number, number>();
   for (let x = L.bx0; x < L.bx1; x++) {
@@ -63,13 +63,13 @@ export function planMainBlock(L: Layout, r0: Rng, spread = false): BlockPlan {
       return street ? null : ['condo', 'house'];
     },
   }, r);
-  const buildings: PlacedBuilding[] = placed.map(p => ({ plan: p.plan, cx: p.cx, cy: p.cy, side: (p.cy + p.plan.h - 1 === yb.get(p.cx) ? 'S' : 'N') as 'S' | 'N', why: p.why, ...(p.moved ? { exp: 'exp-03' } : {}) }));
+  const buildings: PlacedBuilding[] = placed.map(p => ({ plan: p.plan, cx: p.cx, cy: p.cy, side: (p.cy + p.plan.h - 1 === yb.get(p.cx) ? 'S' : 'N') as 'S' | 'N', why: p.why }));
   return { buildings, zones, yard, yb, yt };
 }
 
 /** emit building sprites; the solid footprint is the bottom `foot` rows; doors keep a clear path to the street */
 export function emitBuildings(L: Layout, plan: BlockPlan, sb: SceneBuilder, block: 'main' | 'neigh') {
-  for (const pb of plan.buildings) pb.exp ? sb.withExp(pb.exp, () => emitBuilding(L, pb, sb, block)) : emitBuilding(L, pb, sb, block);
+  for (const pb of plan.buildings) emitBuilding(L, pb, sb, block);
 }
 
 function emitBuilding(L: Layout, pb: PlacedBuilding, sb: SceneBuilder, block: 'main' | 'neigh') {
@@ -77,7 +77,7 @@ function emitBuilding(L: Layout, pb: PlacedBuilding, sb: SceneBuilder, block: 'm
   const x0 = cx * TILE, y0 = cy * TILE, bottom = (cy + b.h) * TILE, solid = bottom - b.foot * TILE;
   const gid = sb.group('bld', pb.why, { id: b.id, anchor: { kind: 'slot', ref: `${block}:${cx},${cy + b.h - 1}`, x: x0 + b.w * TILE / 2, y: bottom } });
   sb.buildings.push({ gid, id: b.id, label: b.label, front: b.front, block, side: pb.side, rect: rect(x0, y0, x0 + b.w * TILE, bottom), solid: rect(x0, solid, x0 + b.w * TILE, bottom),
-    doors: b.doors.map(d => ({ x: x0 + d, y: bottom })), reason: pb.why, ...(pb.exp ? { exp: pb.exp } : {}) });
+    doors: b.doors.map(d => ({ x: x0 + d, y: bottom })), reason: pb.why });
   for (const p of b.parts) {
     const o = sb.putAt(p.key, x0 + p.dx, y0 + p.dy, 'building', { force: true, occupy: false, foot: bottom - 1, sub: p.sub, gid, why: `${b.label} 的${PART_NAMES[p.role]}` });
     if (o) o.solid = solid;

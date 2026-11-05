@@ -19,8 +19,10 @@
 - **v0.7.0 已完成**（2026-11-04，分支 `stage7`，报告 `docs/v0.7.0.md`，D46–D50）：阶段 7 从选择中学习（局部 A/B、Bradley–Terry 偏好乘子）、创新度、实验转正 / 废弃的建议、“选择解决不了的问题”报告。**等用户**：核对乘子表（`docs/PREFS.md`）、做一些 A/B 题、选扩展方案（exp-03）、答复 `v0.7.0.md` 第 8 节的问题。
   - 还没有任何 A/B 选择数据；乘子表只来自 16 条标注。
 - git：每个版本 commit 一次，并打 tag `v<版本>`。阶段 6 在分支 `stage6` 上做，阶段 7 在 `stage7`（从 `stage6` 分出）上做，确认后合并到 main。
-- 决策记录：`docs/NOTE.md`（D1–D51，D22 已删除）。实验功能登记：`docs/EXPERIMENTS.md`（exp-01–exp-03）。
-- **exp-03 前后排拉开**（2026-11-04，D51，未提交，默认关）：打包后把后排楼推到最北。关闭时 200 个种子和 v0.7.0 相同（`work/regress/exp03-off`）；打开时 95 个种子变化（`work/regress/exp03-on`）。统计和对比图脚本在 `work/spread/`。等用户在查看器里看（实验 ▾ → exp-03，或 URL `e=exp-03:1`）。
+- 决策记录：`docs/NOTE.md`（D1–D52，D22 已删除）。实验功能登记：`docs/EXPERIMENTS.md`（exp-01、exp-03 已转正，exp-02 仍是实验）。
+- **v0.7.1**（2026-11-04，分支 `stage7`，报告 `docs/v0.7.1.md`，D51–D52）：exp-03 前后排拉开（后排楼的占地推到地块最北，楼上层可以伸出地块），用户看过后当天和 exp-01 一起转正，始终开启。179/200 个种子变化，C02 10 → 0，C18 56 → 3。
+  - 转正的实验带 `adoptedIn`；重新生成旧版本的标注时传 `asOf: <标注版本>`，转正之前的版本里它们按当时的开关运行（偏好学习因此还能复现 v0.5.1 的标注）。
+  - v0.7.1 之前做的 A/B 选择（`references/choices/v0.7.0/`，17 个文件）用的是存下的场景，不受影响。
 
 ## 怎么运行
 - 查看器：`cd app && npx vite`，然后打开 http://localhost:5173/?seed=7
@@ -32,7 +34,7 @@
     - 手动出题：标注模式里选中物件或区域后按 B，挑一个决策和备选项，“只看这一处”或“再配几处”。
   - K / “存档为合格”：把当前场景写进 `references/holdout/`（重新运行 `export_usage.py` 才计入使用次数）。
   - 顶栏“学到的偏好”复选框（URL `l=0` 关）；创新度滑块。标注层金色虚线框 = `novel`（新贴图），悬停显示偏好乘子；“实验 ▾”菜单每行显示证据和建议。
-  - URL 参数：`nov=0.3`（创新度），`l=0`（关掉学到的偏好；`l=0&nov=0` 和 v0.6.1 画面完全相同），`x=0`（关闭全部实验），`e=exp-01:0,exp-02:1`（逐个开关；exp-02:1 = 整体修图），`p=0`（完全不剪枝）。可以把 scene JSON 拖进页面查看。v0.6.1 起查看器没有 `pd`（修复预览）了，脚本里的 `--pd` 还在。
+  - URL 参数：`nov=0.3`（创新度），`l=0`（关掉学到的偏好；v0.7.1 起 `l=0&nov=0` 不再和 v0.6.1 相同，因为转正的 exp-03 改了打包），`x=0`（关闭全部实验，转正的 exp-01、exp-03 不受影响），`e=exp-02:1`（逐个开关；exp-02:1 = 整体修图），`p=0`（完全不剪枝）。可以把 scene JSON 拖进页面查看。v0.6.1 起查看器没有 `pd`（修复预览）了，脚本里的 `--pd` 还在。
   - 标注层的“约束”图层：红框 = 违规，灰色叉框 = 已删除的物件，紫框 = 降级的区域，青框 = 改过的地面。
 - 测试：`cd app && npm test`（约 1 分钟）、`npx tsc --noEmit`。
 - 回归：`cd app && npx tsx scripts/regress.ts snapshot ../work/regress/<名> [--pd] [--on <实验>] [--off <实验>] [--nov <x>] [--noprefs]`（整体修图 = `--on exp-02`）；用 `snapshot-par <目录> [同样的参数] [--jobs 8]` 多进程跑（v0.7.0 约 35–45 秒，整体修图更久；14 个进程并不更快）。然后：
@@ -40,7 +42,7 @@
   - `report <A> <B>`：画面变化、各约束违规与修复、标注测试；
   - `labels [--pd]`：只跑标注测试；
   - `explain`：检查解释覆盖率。
-  - 种子集在 `scripts/regression_seeds.json`（200 个，只增不改）。基线在 `work/regress/v0.3.0`、`v0.4.0`、`v0.5.0`、`v0.5.0-pd`、`v0.5.1`、`v0.6.0-off`（exp-02 关）、`v0.6.0`、`v0.6.0-global`、`v0.6.1b-off`、`v0.6.1b-on`（整体修图）、`v0.7.0`（默认）、`v0.7.0-n0`、`v0.7.0-n05`、`v0.7.0-n1`（创新度 0 / 0.5 / 1）、`v0.7.0-n0-l0`（创新度 0 + 偏好关）（work/ 不进 git，丢了就从对应 tag 重建）。
+  - 种子集在 `scripts/regression_seeds.json`（200 个，只增不改）。基线在 `work/regress/v0.3.0`、`v0.4.0`、`v0.5.0`、`v0.5.0-pd`、`v0.5.1`、`v0.6.0-off`（exp-02 关）、`v0.6.0`、`v0.6.0-global`、`v0.6.1b-off`、`v0.6.1b-on`（整体修图）、`v0.7.0`（默认）、`v0.7.0-n0`、`v0.7.0-n05`、`v0.7.0-n1`（创新度 0 / 0.5 / 1）、`v0.7.0-n0-l0`（创新度 0 + 偏好关）、`v0.7.1`（默认）（work/ 不进 git，丢了就从对应 tag 重建）。
   - `report` 的标注测试只跑 B 的模式。
 - 评判器：`cd app && npx tsx scripts/judge.ts train`（重训，写 `src/gen/data/judge.json`），`judge.ts eval`（写 `docs/JUDGE.md` 和热力图，要 `work/refworld`）。不同意的特征写进 `src/gen/judge/blacklist.json` 再重训。
 - 偏好（阶段 7）：`cd app && npx tsx scripts/prefs.ts train`（A/B 选择 + 标注 → `src/gen/data/prefs.json`），`prefs.ts eval`（写 `docs/PREFS.md`），`prefs.ts gaps`（选择解决不了的坏标注 → `work/gaps/gaps.md` 和截图）。不同意的条目写进 `src/gen/learn/blacklist.json`（`标签` 或 `标签|选项`）再重训。
@@ -87,7 +89,8 @@
   - 做一些 A/B 题（B 键），然后 `prefs.ts train` + `eval`，看留出准确率（目标 ≥ 0.65）和乘子表；
   - 核对 `docs/PREFS.md` 的乘子表；
   - 从 `v0.7.0.md` 第 6 节选一个扩展提议空间的方案作为 exp-04（exp-03 已被“前后排拉开”占用，D51）；
-  - exp-01 的去留、默认创新度 0.10 要不要保留。
+  - 是否要限制楼上层伸进北边马路（v0.7.1 报告第 3 节）；
+  - 默认创新度 0.10 要不要保留（exp-01 已转正）。
 - `stage6`、`stage7` 分支都还没合并到 main。
 - 阶段 7 的计划和执行记录：`docs/superpowers/plans/2026-11-04-stage7-learning.md`；`.superpowers/sdd/2026-11-04-stage7-learning/progress.md`（git 忽略，含所有 Ruling）。阶段 6 的：`docs/superpowers/plans/2026-11-03-stage6-judge.md`。
 

@@ -86,8 +86,6 @@ export interface BuildingRec {
   doors: { x: number; y: number }[];
   /** why the packer put it here */
   reason: string;
-  /** experimental feature that placed it (exp-03 moves buildings) */
-  exp?: string;
 }
 
 /** an area with a purpose: keep-clear zones (why it is empty), yard allocation, curb runs, carriageway */
@@ -148,6 +146,8 @@ export interface GenOptions {
   force?: Record<string, string>;
   /** stage 7: apply the learned preferences (default true) */
   prefs?: boolean;
+  /** regenerate as version `asOf` did (old labels): experiments adopted later behave as they did then (exp.ts) */
+  asOf?: string;
   /** internal: false = no judge repair (its own candidates) */
   judgeRepair?: boolean;
 }
