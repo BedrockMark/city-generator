@@ -1,0 +1,42 @@
+{
+ "version": "0.7.5",
+ "seed": "453256",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-07T18:53:45.414Z",
+   "version": "0.7.5",
+   "seed": "453256",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {
+     "exp-07": true
+    },
+    "prune": true,
+    "pruneDraft": false,
+    "prefs": true
+   },
+   "scene": "seed453256_exp-071.scene.json",
+   "verdict": "good",
+   "tags": [],
+   "text": "",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 544,
+     "y0": 496,
+     "x1": 560,
+     "y1": 512
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "z6",
+     "k74"
+    ]
+   }
+  }
+ ]
+}

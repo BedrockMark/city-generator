@@ -1,0 +1,45 @@
+{
+ "version": "0.7.5",
+ "seed": "329528",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-07T18:53:27.728Z",
+   "version": "0.7.5",
+   "seed": "329528",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {
+     "exp-07": true
+    },
+    "prune": true,
+    "pruneDraft": false,
+    "prefs": true
+   },
+   "scene": "seed329528_exp-071.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "没有存在理由"
+   ],
+   "text": "应该是删除左侧的小路，而不是联通它",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 480,
+     "y0": 448,
+     "x1": 496,
+     "y1": 464
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "k2",
+     "z2",
+     "k48"
+    ]
+   }
+  }
+ ]
+}

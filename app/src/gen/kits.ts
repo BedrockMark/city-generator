@@ -1,4 +1,4 @@
-// exp-05: the packs' other building kits (2026-11-06, user: put every other composable building into the random mix).
+// exp-05 (adopted 2026-11-07, v0.7.5): the packs' other building kits (2026-11-06, user: put every other composable building into the random mix).
 // Each kit is a set of pieces drawn to be put together; the builders below follow the way the pack's own examples are
 // assembled (measured on the sprites, e.g. Condo_4_39 = bay + plain + door end, Hotel_1 = cap + roof row + top + floor + base):
 //   - Condo_3 (brown brick, 4_Generic_Building): 11-row columns, left edge + 1-wide wall x a + 3-wide door column + wall x b
@@ -33,7 +33,7 @@ class Parts {
 }
 
 const plan = (w: number, h: number, foot: number, p: Parts, doors: number[], front: BuildingPlan['front'], label: string): BuildingPlan =>
-  ({ id: kitId(), w, h, foot: Math.min(foot, h), parts: p.list, doors: doors.map(d => Math.round(d * T)), front, tall: h >= 14, label, exp: EXP05 });
+  ({ id: kitId(), w, h, foot: Math.min(foot, h), parts: p.list, doors: doors.map(d => Math.round(d * T)), front, tall: h >= 14, label });
 
 // ---------------------------------------------------------------------------------------------- Condo_3
 

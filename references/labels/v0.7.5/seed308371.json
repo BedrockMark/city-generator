@@ -1,0 +1,45 @@
+{
+ "version": "0.7.5",
+ "seed": "308371",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-07T18:03:40.371Z",
+   "version": "0.7.5",
+   "seed": "308371",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {
+     "exp-07": true
+    },
+    "prune": true,
+    "pruneDraft": false,
+    "prefs": true
+   },
+   "scene": "seed308371_exp-071.scene.json",
+   "verdict": "good",
+   "tags": [
+    "自然有机",
+    "布局合理"
+   ],
+   "text": "改的很好",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 496,
+     "y0": 432,
+     "x1": 512,
+     "y1": 448
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "z1",
+     "k66"
+    ]
+   }
+  }
+ ]
+}

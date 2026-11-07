@@ -63,7 +63,9 @@ test('condo bays and terraced rows have the asked width and fit', () => {
 });
 
 test('exp-04 is adopted: always on, untagged; older versions run without it', () => {
-  const on = generate('7'), x0 = generate('7', { experiments: false, exp: { 'exp-04': false } });
+  // seed 1: since exp-05 took twice the buildings (0.7.5), seed 7 has no linked neighbours left; exp-07 is the one
+  // experiment on by default, so the master switch changes the picture by it
+  const on = generate('1', { exp: { 'exp-07': false } }), x0 = generate('1', { experiments: false, exp: { 'exp-04': false } });
   assert.ok(!on.objects.some(o => o.exp === 'exp-04') && !(on.groups ?? []).some(g => g.exp === 'exp-04'));
   assert.ok(on.objects.some(o => o.reason?.includes('链接条')));
   assert.deepEqual(x0.objects.map(o => [o.key, o.x, o.y]), on.objects.map(o => [o.key, o.x, o.y]));

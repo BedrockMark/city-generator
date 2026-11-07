@@ -1,0 +1,60 @@
+{
+ "version": "0.7.5",
+ "seed": "862872",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-07T18:05:20.748Z",
+   "version": "0.7.5",
+   "seed": "862872",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {
+     "exp-07": true
+    },
+    "prune": true,
+    "pruneDraft": false,
+    "prefs": true
+   },
+   "scene": "seed862872_exp-071.scene.json",
+   "verdict": "good",
+   "tags": [
+    "有特色"
+   ],
+   "text": "",
+   "target": {
+    "kind": "object",
+    "rect": {
+     "x0": 562,
+     "y0": 370,
+     "x1": 671,
+     "y1": 558
+    },
+    "objects": [
+     {
+      "id": "o132",
+      "key": "3_City_Props/Kiosk_Icecream",
+      "cls": "kiosk",
+      "gid": "island#0",
+      "x": 559,
+      "y": 366
+     }
+    ],
+    "gids": [
+     "island#0"
+    ],
+    "zones": [
+     "k36",
+     "k60",
+     "k61",
+     "z5",
+     "z10",
+     "z19",
+     "z42"
+    ]
+   }
+  }
+ ]
+}

@@ -81,6 +81,7 @@ function ruleText(r: Rule): string {
     case 'not-near': return `${selText(r.who)} 和 ${r.to.map(x => typeof x === 'string' ? (x === 'door-front' ? '门前（门两侧 16px、向下 64px）' : x) : 'cls' in x ? x.cls.join('/') : 'key' in x ? `/${x.key}/` : `区域 ${x.zone.join('/')}${x.below ? `（含前方 ${x.below}px）` : ''}`).join(' 或 ')} 相距 > ${r.within}px${r.whole ? '（违规时整组删除）' : ''}`;
     case 'door-path': return `门到最近的人行道 / 小路 / 广场的路线（优先铺地、少转弯，≤ ${r.depth} 格）上没有物件、不是草坪`;
     case 'path-ends': return '花园小路两头通到人行道、另一条小路、门或空地；穿到楼后的段铺好、没有杂物';
+    case 'dead-end': return `花园小路 / 巷子能看见的每一头通到人行道、别的小路、门、地图边缘或连着街的铺地；不通时往前找 ≤ ${r.reach} 格的路接上，接不上就改成草坪`;
     case 'path-redundant': return `花园小路沿线每一处离人行道都 ≤ ${r.within}px 时算多余`;
     case 'mouth-gap': return `${r.zone} 和 ${r.from} 至少相隔 ${r.min}px`;
     case 'occludes-door': return '门前（脚更靠南、画在楼前面）的物件不盖住门';

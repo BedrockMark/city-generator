@@ -1,0 +1,42 @@
+{
+ "version": "0.7.5",
+ "seed": "849873",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-07T18:51:52.752Z",
+   "version": "0.7.5",
+   "seed": "849873",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {
+     "exp-07": true
+    },
+    "prune": true,
+    "pruneDraft": false,
+    "prefs": true
+   },
+   "scene": "seed849873_exp-071.scene.json",
+   "verdict": "bad",
+   "tags": [],
+   "text": "右边的路不应该被算作断头路：它连到停车场了",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 240,
+     "y0": 352,
+     "x1": 256,
+     "y1": 368
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "k41",
+     "z30"
+    ]
+   }
+  }
+ ]
+}

@@ -21,7 +21,7 @@ import { makeAdjust } from './learn/adjust';
 import { PREFS } from './learn/prefs';
 import { markNovel } from './learn/novelty';
 
-export const VERSION = '0.7.4';
+export const VERSION = '0.7.5';
 
 export function generate(seed: string, options: Partial<GenOptions> = {}, onProgress?: (n: number, N: number) => void): Scene {
   const opts = withDefaults(options);
@@ -51,9 +51,9 @@ export function generateBase(seed: string, opts: GenOptions): Scene {
   // exp-04: composite buildings on its own stream; touching neighbours switch to their linked state (no random numbers)
   const e04 = expFires(opts, EXP04, rng);
   const composite = e04 ? { r: e04, p: compositeChance(opts.novelty) } : undefined;
-  // exp-05: the packs' other building kits in place of a picked building, on its own stream
+  // exp-05 (adopted 0.7.5): the packs' other building kits in place of a picked building, on its own stream
   const e05 = expFires(opts, EXP05, rng);
-  const kits = e05 ? { r: e05, p: kitChance(opts.novelty) } : undefined;
+  const kits = e05 ? { r: e05, p: kitChance(opts.novelty, opts) } : undefined;
   const main = planMainBlock(L, rng, expEnabled(opts, 'exp-03'), composite, kits);
   const neigh = planNeighbours(L, rng, composite, kits);
   if (e04) linkBuildings([main, neigh]);
@@ -64,7 +64,7 @@ export function generateBase(seed: string, opts: GenOptions): Scene {
   // yard spaces first: parking driveways cut the curb, which changes the curb runs
   // each subsystem runs on its own stream; sb records which stream placed what (stage 6 judge repair)
   const on = (label: string, fn: (r: Rng) => void) => { const r = rng.fork(label); sb.inStream(r.stream, () => fn(r)); };
-  // exp-06: touching gardens share one path (decided on its own stream)
+  // exp-06 (adopted 0.7.5): touching gardens share one path (decided on its own stream)
   const e06 = expFires(opts, 'exp-06', rng);
   on('yard', r => yardSpaces(L, main, sb, r, e06));
   const runs = curbRuns(L);

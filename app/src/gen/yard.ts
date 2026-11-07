@@ -82,18 +82,18 @@ export function yardSpaces(L: Layout, plan: BlockPlan, sb: SceneBuilder, r: Rng,
     else { kind = 'paved'; why = `零碎空地（${size}）：太小或同类已满，朴素铺地（宁删勿补）`; }
     rects.push({ rc, kind, b: fronted, side: street[0], why });
   }
-  // exp-06: the cut may split one space into neighbouring gardens; they become one garden, their paths linked
+  // exp-06 (adopted 0.7.5): the cut may split one space into neighbouring gardens; they become one garden, their paths linked
   const blocked = rects.filter(q => q.kind === 'parking' || q.kind === 'passage' || q.kind === 'forecourt').map(q => q.rc);
   const gapOk = (x: number, y: number) => plan.yard[y]?.[x] === true && !blocked.some(q => x >= q.x && x < q.x + q.w && y >= q.y && y < q.y + q.h);
   const join = e06 ? joinGardens(L, rects.filter(q => q.kind === 'garden'), (rc, side) => ownPath(rc, side, r.fork(`garden${rc.x},${rc.y}`)), e06, gapOk) : null;
   let mergedGid: string | undefined;
   if (join) {
     const ra = rects.find(q => q.rc === join.a)!, c = { x: (join.a.x + join.a.w / 2) * T, y: (join.a.y + join.a.h / 2) * T };
-    mergedGid = sb.withExp(EXP06, () => sb.group('garden', `${ra.why}；与相邻的花园合成一个，小路连通（exp-06）`, { anchor: { kind: 'yard', ref: `garden@${join.a.x},${join.a.y}`, x: c.x, y: c.y } }));
+    mergedGid = sb.group('garden', `${ra.why}；与相邻的花园合成一个，小路连通`, { anchor: { kind: 'yard', ref: `garden@${join.a.x},${join.a.y}`, x: c.x, y: c.y } });
     // the link is kept clear before anything in the yard is placed (the gap may be a green strip)
     const k = join.link;
-    if (k) sb.withExp(EXP06, () => sb.clear(k.w === 1 ? rect(k.x * T + 2, k.y * T, (k.x + 1) * T - 2, (k.y + k.h) * T) : rect(k.x * T, k.y * T + 2, (k.x + k.w) * T, (k.y + 1) * T - 2),
-      'path', '花园小路的连接段：把相邻两半边花园的小路接起来（exp-06）', mergedGid));
+    if (k) sb.clear(k.w === 1 ? rect(k.x * T + 2, k.y * T, (k.x + 1) * T - 2, (k.y + k.h) * T) : rect(k.x * T, k.y * T + 2, (k.x + k.w) * T, (k.y + 1) * T - 2),
+      'path', '花园小路的连接段：把相邻两半边花园的小路接起来', mergedGid);
   }
   for (const { rc, kind, b, side, why } of rects) {
     const shared = join && (rc === join.a || rc === join.b) ? join : undefined;
@@ -102,7 +102,7 @@ export function yardSpaces(L: Layout, plan: BlockPlan, sb: SceneBuilder, r: Rng,
       const px = rect(rc.x * T, rc.y * T, (rc.x + rc.w) * T, (rc.y + rc.h) * T);
       const gid = shared ? mergedGid! : sb.group(kind, why, kind === 'forecourt' ? { id: b!.plan.id, anchor: { kind: 'door', ref: `${b!.plan.id}.door`, x: b!.cx * T + (b!.plan.doors[0] ?? b!.plan.w * T / 2), y: (b!.cy + b!.plan.h) * T } }
         : { anchor: { kind: 'yard', ref: `${kind}@${rc.x},${rc.y}`, x: px.x0 + (px.x1 - px.x0) / 2, y: px.y0 + (px.y1 - px.y0) / 2 } });
-      sb.zone('yard', kind, px, shared ? `${why}；和相邻的花园是同一个花园，小路连通（exp-06）` : why, gid);
+      sb.zone('yard', kind, px, shared ? `${why}；和相邻的花园是同一个花园，小路连通` : why, gid);
       if (kind === 'garden') garden(L, sb, rr, rc, side, plan, gid, shared);
       else if (kind === 'forecourt') forecourt(L, sb, rr, rc, b!, gid);
       else if (kind === 'passage') passage(sb, rr, rc, gid);
@@ -110,7 +110,7 @@ export function yardSpaces(L: Layout, plan: BlockPlan, sb: SceneBuilder, r: Rng,
       else if (kind === 'service') service(sb, rr, rc, gid);
       else if (kind === 'paved' && rc.w * rc.h >= 2 && rr.choose('paved.pot', {}, { p: 0.5 })) sb.putFoot(rr.choose('paved.potModel', {}, variants('17_Garden/Bush_Potted')), (rc.x + 0.5) * T, (rc.y + 1) * T - 2, 'plant', { gid, why: '零碎空地上的一盆盆栽' });
     };
-    if (shared) sb.withExp(EXP06, emit); else emit();
+    emit();
   }
   // exp-06: the link is paved last, in the paving of the bigger garden's path (strips in the gap may have planted it)
   if (join?.link) for (const [x, y] of cellsOf(join.link)) { GRASS[y][x] = false; L.base[y][x] = slab(join.style!, x, y); }

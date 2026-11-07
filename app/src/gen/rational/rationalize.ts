@@ -9,10 +9,11 @@
 import { CONSTRAINTS, evaluate, makeCtx, union, type Constraint, type Violation } from './constraints';
 import { worldFromScene, isGrassTile } from './world';
 import { rooted } from './graph';
-import type { Scene, PxRect, TileRef } from '../types';
+import { expEnabled } from '../exp';
+import type { Scene, PxRect, TileRef, GenOptions } from '../types';
 import { TILE as T } from '../types';
 
-export interface Pruned { id: string; key: string; cls: string; gid?: string; x: number; y: number; w: number; h: number; c: string; msg: string }
+export interface Pruned { id: string; key: string; cls: string; gid?: string; x: number; y: number; w: number; h: number; c: string; msg: string; exp?: string }
 export interface Audit {
   /** constraint id -> remaining violations after repair */
   counts: Record<string, number>;
@@ -20,9 +21,9 @@ export interface Audit {
   before: Record<string, number>;
   violations: Violation[];
   pruned: Pruned[];
-  downgraded: { zone: string; kind: string; c: string; style: string; rect: PxRect; msg: string }[];
+  downgraded: { zone: string; kind: string; c: string; style: string; rect: PxRect; msg: string; exp?: string }[];
   /** ground repairs: lawn lifted to show the paving (unlawn), path laid on (pave), path turned into lawn */
-  regrounded: { c: string; rect: PxRect; what: 'unlawn' | 'pave' | 'lawn'; msg: string }[];
+  regrounded: { c: string; rect: PxRect; what: 'unlawn' | 'pave' | 'lawn'; msg: string; exp?: string }[];
   /** constraints that repaired in this run */
   applied: string[];
   graph: { comps: number; rooted: number; places: number; links: number; doors: number; doorsBlocked: number; doorsCutOff: number };
@@ -30,8 +31,9 @@ export interface Audit {
   emptyGroups: string[];
 }
 
-export function rationalize(sc: Scene, o: { prune: boolean; pruneDraft: boolean }): Audit {
-  const live = CONSTRAINTS.filter(c => c.status !== 'off');
+export function rationalize(sc: Scene, o: GenOptions): Audit {
+  // a constraint of an experimental feature (exp-07) is judged only while the feature is on
+  const live = CONSTRAINTS.filter(c => c.status !== 'off' && (!c.exp || expEnabled(o, c.exp)));
   const repairing = live.filter(c => c.fix !== 'report' && (c.status === 'active' ? o.prune : c.status === 'draft' && o.pruneDraft));
   const pruned: Pruned[] = [];
   const downgraded: Audit['downgraded'] = [];
@@ -40,29 +42,30 @@ export function rationalize(sc: Scene, o: { prune: boolean; pruneDraft: boolean 
   const groundDone = new Set<string>();
   let first = true;
   for (let iter = 0; iter < 40; iter++) {
-    const cx = makeCtx(worldFromScene(sc));
+    const cx = makeCtx(worldFromScene(sc), { seenWalks: expEnabled(o, 'exp-07') });
     if (first) { for (const c of live) before[c.id] = evaluate(c, cx).length; first = false; }
     if (!repairing.length) break;
     // one constraint at a time (list order), re-judged after every change, so repairs never act on a stale map
     const remove = new Map<string, Violation>();
     let reground = false;
-    const c = repairing.find(k => evaluate(k, cx).some(v => v.objs.length || (v.zone && !downgraded.some(d => d.zone === v.zone)) || ((v.clearLawn?.length || v.toLawn?.length || v.pave?.length || v.dropZones?.length) && !groundDone.has(`${v.c}:${v.target}`))));
+    const c = repairing.find(k => evaluate(k, cx).some(v => v.objs.length || (v.zone && !downgraded.some(d => d.zone === v.zone)) || ((v.clearLawn?.length || v.toLawn?.length || v.pave?.length || v.dropZones?.length) && !groundDone.has(groundKey(v)))));
     if (!c) break;
     for (const v of evaluate(c, cx)) {
       // ground repairs (once per violation target): uncover paving, lay a path on, turn a needless path into lawn
-      const key = `${v.c}:${v.target}`;
+      const key = groundKey(v);
       if ((v.clearLawn?.length || v.toLawn?.length || v.pave?.length || v.dropZones?.length) && !groundDone.has(key)) {
         groundDone.add(key); reground = true;
-        for (const pv of v.pave ?? []) sc.ground[0][pv.cell[1]][pv.cell[0]] = sc.ground[0][pv.src[1]][pv.src[0]];
+        for (const pv of v.pave ?? []) sc.ground[0][pv.cell[1]][pv.cell[0]] = continuePaving(sc.ground[0][pv.src[1]][pv.src[0]], pv.src, pv.cell);
         if (v.clearLawn?.length) unlawn(sc, v.clearLawn);
         for (const r of v.toLawn ?? []) lawn(sc, r);
         if (v.dropZones?.length) sc.zones = sc.zones!.filter(z => !v.dropZones!.includes(z.id));
+        for (const z of v.addZones ?? []) sc.zones!.push({ id: `k${nextKeep(sc)}`, ...z });
         const rs = [...(v.toLawn ?? []), ...(v.clearLawn ?? [])];
-        if (rs.length) regrounded.push({ c: v.c, rect: union(rs), what: v.toLawn?.length ? 'lawn' : v.pave?.length ? 'pave' : 'unlawn', msg: v.msg });
+        if (rs.length) regrounded.push({ c: v.c, rect: union(rs), what: v.pave?.length ? 'pave' : v.toLawn?.length ? 'lawn' : 'unlawn', msg: v.msg, ...(c.exp ? { exp: c.exp } : {}) });
       }
       if (c.fix === 'downgrade' && v.zone && !downgraded.some(d => d.zone === v.zone)) {
         const z = sc.zones!.find(z => z.id === v.zone)!;
-        downgraded.push({ zone: z.id, kind: z.kind, c: c.id, style: c.downgrade ?? 'clear', rect: z.rect, msg: v.msg }); reground = true;
+        downgraded.push({ zone: z.id, kind: z.kind, c: c.id, style: c.downgrade ?? 'clear', rect: z.rect, msg: v.msg, ...(c.exp ? { exp: c.exp } : {}) }); reground = true;
         z.reason += `（阶段 5 降级：${c.id} ${c.title} → ${c.downgrade === 'lawn' ? '草坪' : '只留植物'}）`;
         if (c.downgrade === 'lawn') lawn(sc, z.rect);
         // the zone's own keep-clear areas lose their reason with it
@@ -74,7 +77,8 @@ export function rationalize(sc: Scene, o: { prune: boolean; pruneDraft: boolean 
     const keep = sc.objects.filter(p => !remove.has(p.id!));
     for (const p of sc.objects) {
       const v = remove.get(p.id!); if (!v) continue;
-      pruned.push({ id: p.id!, key: p.key, cls: p.cls, gid: p.gid, x: p.x, y: p.y, w: p.w, h: p.h, c: v.c, msg: v.msg });
+      const ce = CONSTRAINTS.find(k => k.id === v.c)?.exp;
+      pruned.push({ id: p.id!, key: p.key, cls: p.cls, gid: p.gid, x: p.x, y: p.y, w: p.w, h: p.h, c: v.c, msg: v.msg, ...(ce ? { exp: ce } : {}) });
     }
     sc.objects = keep;
   }
@@ -83,7 +87,7 @@ export function rationalize(sc: Scene, o: { prune: boolean; pruneDraft: boolean 
     const gone = new Set(pruned.map(p => p.id));
     for (const g of sc.groups ?? []) g.members = g.members.filter(m => !gone.has(m));
   }
-  const cx = makeCtx(worldFromScene(sc));
+  const cx = makeCtx(worldFromScene(sc), { seenWalks: expEnabled(o, 'exp-07') });
   // a downgraded zone has been dealt with (it is no longer a passage / a used space)
   const done = new Set(downgraded.map(d => d.zone));
   const violations = live.flatMap(c => evaluate(c, cx)).filter(v => !(v.zone && done.has(v.zone)));
@@ -96,6 +100,20 @@ export function rationalize(sc: Scene, o: { prune: boolean; pruneDraft: boolean 
       doors: g.doors.length, doorsBlocked: g.doors.filter(d => d.comp < 0).length, doorsCutOff: g.doors.filter(d => d.comp >= 0 && !g.compRoots[d.comp].has('street') && !g.compRoots[d.comp].has('edge')).length },
     emptyGroups: (sc.groups ?? []).filter(gr => !gr.members.length).map(gr => gr.gid),
   };
+}
+
+/** a ground repair is made once; keyed by what and where, so that a door whose path an other repair changed (a garden
+ *  path it led to turned into lawn) gets a new one */
+const groundKey = (v: Violation) => `${v.c}:${v.target}:${v.rect.x0},${v.rect.y0},${v.rect.x1},${v.rect.y1}`;
+
+/** next free keep-clear zone number (zones the repairs add) */
+const nextKeep = (sc: Scene) => 1 + Math.max(-1, ...(sc.zones ?? []).map(z => /^k(\d+)$/.exec(z.id)).filter(Boolean).map(m => +m![1]));
+
+/** the tile at `cell` continuing the paving of `src`: slab patches repeat every 4 columns and 2 rows (layout.ts slab) */
+function continuePaving(t: TileRef | null, src: [number, number], cell: [number, number]): TileRef | null {
+  if (!t || t[0] !== 'city') return t;
+  const m = (a: number, n: number) => ((a % n) + n) % n;
+  return ['city', t[1] - m(src[0], 4) + m(cell[0], 4), t[2] - m(src[1], 2) + m(cell[1], 2)];
 }
 
 /** remove the lawn overlay from the cells of the rects (the paving under it shows) and re-slice the lawn around */

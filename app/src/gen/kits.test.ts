@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Rng } from './rng';
-import { condo3, condo4Row, condo4Tower, condo7Row, office, hotel, EXP05 } from './kits';
+import { condo3, condo4Row, condo4Tower, condo7Row, office, hotel } from './kits';
+import { expEnabled, kitChance, fireByNovelty, withDefaults } from './exp';
 import { generate } from './generate';
 import { spr } from './assets';
 import type { BuildingPlan } from './buildings';
@@ -16,7 +17,7 @@ function sane(b: BuildingPlan) {
   b.parts.forEach((p, i) => assert.equal(p.sub, i));
   for (const d of b.doors) assert.ok(d > 0 && d < b.w * TILE, `${b.label}: door ${d}`);
   assert.ok(b.foot >= 3 && b.foot <= b.h);
-  assert.equal(b.exp, EXP05);
+  assert.equal(b.exp, undefined, 'adopted: untagged');
   assert.ok(/^k\d+$/.test(b.id), 'kit buildings number apart (D23)');
 }
 
@@ -44,14 +45,21 @@ test('the body pieces of a kit stack without gaps (Condo_4, hotel, office)', () 
   assert.ok(rows(office(new Rng('c'), 2, 3), /Roof_(Left|Middle_Modular|Stairs)|Building_\d_(Left|Middle_Modular|Right)$/));
 });
 
-test('exp-05 off leaves the picture as it was; on, its buildings carry the tag', () => {
+test('exp-05 is adopted (0.7.5): always on, untagged, twice the chance; 0.7.4 runs it as an experiment, off by default', () => {
   for (const seed of ['1', '4']) {
-    const off = generate(seed, { judgeRepair: false } as never), off2 = generate(seed, { judgeRepair: false, exp: { 'exp-05': false } } as never);
-    assert.equal(JSON.stringify(off.objects), JSON.stringify(off2.objects));
-    const on = generate(seed, { judgeRepair: false, exp: { 'exp-05': true } } as never);
+    const on = generate(seed, { judgeRepair: false } as never);
     const kits = on.buildings!.filter(b => /^k\d+$/.test(b.id));
-    assert.ok(kits.length > 0, `seed ${seed} has kit buildings (found in the 200-seed run)`);
-    for (const k of kits) assert.equal(on.groups!.find(g => g.gid === k.gid)?.exp, EXP05);
-    assert.ok(!off.buildings!.some(b => /^k\d+$/.test(b.id)));
+    assert.ok(kits.length > 0, `seed ${seed} has kit buildings`);
+    for (const k of kits) assert.equal(on.groups!.find(g => g.gid === k.gid)?.exp, undefined);
+    const old = generate(seed, { judgeRepair: false, asOf: '0.7.4' } as never);
+    assert.ok(!old.buildings!.some(b => /^k\d+$/.test(b.id)));
   }
+  assert.equal(expEnabled(withDefaults({ experiments: false }), 'exp-05'), true);
+  assert.equal(expEnabled(withDefaults({ asOf: '0.7.4' }), 'exp-05'), false);
+  assert.equal(expEnabled(withDefaults({ asOf: '0.7.4', exp: { 'exp-05': true } }), 'exp-05'), true);
+  for (const n of [0, 0.1, 0.3]) {
+    assert.equal(kitChance(n, withDefaults({})), 2 * fireByNovelty(0.2)(n));
+    assert.equal(kitChance(n, withDefaults({ asOf: '0.7.4' })), fireByNovelty(0.2)(n));
+  }
+  assert.equal(kitChance(0.9, withDefaults({})), 1);
 });

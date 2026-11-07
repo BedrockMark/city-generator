@@ -1,0 +1,41 @@
+{
+ "version": "0.7.5",
+ "seed": "887735",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-07T18:06:02.852Z",
+   "version": "0.7.5",
+   "seed": "887735",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {
+     "exp-07": true
+    },
+    "prune": true,
+    "pruneDraft": false,
+    "prefs": true
+   },
+   "scene": "seed887735_exp-071.scene.json",
+   "verdict": "bad",
+   "tags": [],
+   "text": "误判：这不是断头路，另一头也是人行道，所以其实算小巷！",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 784,
+     "y0": 400,
+     "x1": 800,
+     "y1": 416
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "z0"
+    ]
+   }
+  }
+ ]
+}

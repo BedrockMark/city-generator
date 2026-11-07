@@ -44,20 +44,27 @@ export const EXPERIMENTS: Experiment[] = [
   // 2026-11-06: the user: the packs' other composable buildings into the random mix too (scope: the five street kits,
   // Condo_3 / Condo_4 / Condo_7 / office / hotel; not hospital, school corridor, greenhouse, hangar). kits.ts
   // no `fire`, like exp-04: each building the packer picks gives way to a kit building with kitChance(novelty)
-  { id: 'exp-05', title: '其余拼接楼：Condo_3 / Condo_4 / Condo_7、办公楼、酒店', status: 'experimental', default: false, addedIn: '0.7.3' },
+  // 2026-11-07: adopted (user): always on, still tied to novelty, twice the chance it had (kitChance); keeps its stream
+  { id: 'exp-05', title: '其余拼接楼：Condo_3 / Condo_4 / Condo_7、办公楼、酒店', status: 'adopted', default: false, addedIn: '0.7.3', adoptedIn: '0.7.5' },
   // 2026-11-07, user (seed 716771, novelty 0.7 + exp-05): one yard space cut into two touching rectangles became two
   // gardens with paths a row apart. Gardens touching or up to 2 cells apart become one garden, their paths linked
   // (yard.ts joinGardens); the same day the user: gardens a column apart too (161781)
   // no `fire`: a fix, it runs whenever two gardens are neighbours
-  { id: 'exp-06', title: '相邻的花园合成一个：小路连通', status: 'experimental', default: false, addedIn: '0.7.4' },
+  // 2026-11-07: adopted (user): always on
+  { id: 'exp-06', title: '相邻的花园合成一个：小路连通', status: 'adopted', default: false, addedIn: '0.7.4', adoptedIn: '0.7.5' },
+  // 2026-11-07, user labels 464294 L1 (a garden path from wall to wall), 271666 (an alley ending on the grass, its bin
+  // in the way): a dead-end path or alley is first continued a few cells to somewhere walkable, else turned into lawn.
+  // A repair after generation (constraint C25, rational/constraints.ts), no random numbers; on unless switched off
+  { id: 'exp-07', title: '断头路：先接上，接不上就删', status: 'experimental', default: true, addedIn: '0.7.5' },
 ];
 
 /** exp-04 (adopted): chance per occasion (a floor-modular building that may grow into a terrace, a condo / house that may be
  *  put together from parts) */
 export const compositeChance = fireByNovelty(0.35);
 
-/** exp-05: chance that a picked residential building becomes a kit building (a shop: half of it), see pack.ts kitSwap */
-export const kitChance = fireByNovelty(0.2);
+/** exp-05 (adopted): chance that a picked residential building becomes a kit building (a shop: half of it), see pack.ts
+ *  kitSwap. Since 0.7.5 twice the experiment's fireByNovelty(0.2), capped at 1 (user: 出现概率翻倍) */
+export const kitChance = (n: number, o?: GenOptions) => Math.min(1, (o && !since(o, '0.7.5') ? 1 : 2) * fireByNovelty(0.2)(n));
 
 export const DEFAULT_OPTIONS: GenOptions = { novelty: 0.1, experiments: true, exp: {}, prune: true, pruneDraft: false, prefs: true };
 
@@ -67,6 +74,9 @@ export function withDefaults(o: Partial<GenOptions> = {}): GenOptions {
 
 /** a < b for versions like 0.7.1 */
 const older = (a: string, b: string) => { const x = a.split('.').map(Number), y = b.split('.').map(Number); for (let i = 0; i < 3; i++) if ((x[i] ?? 0) !== (y[i] ?? 0)) return (x[i] ?? 0) < (y[i] ?? 0); return false; };
+
+/** does a scene made with options `o` include what changed in version v (options.asOf: regenerating an older version) */
+export const since = (o: GenOptions, v: string) => !(o.asOf && older(o.asOf, v));
 
 /** switch state (master switch + per-feature switch), independent of chance */
 export function expEnabled(o: GenOptions, id: string): boolean {

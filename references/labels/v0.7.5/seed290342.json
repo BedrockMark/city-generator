@@ -1,0 +1,41 @@
+{
+ "version": "0.7.5",
+ "seed": "290342",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-07T18:04:45.242Z",
+   "version": "0.7.5",
+   "seed": "290342",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {
+     "exp-07": true
+    },
+    "prune": true,
+    "pruneDraft": false,
+    "prefs": true
+   },
+   "scene": "seed290342_exp-071.scene.json",
+   "verdict": "bad",
+   "tags": [],
+   "text": "正确删除，但是没有删全，左下角还有小路留着是死路",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 384,
+     "y0": 368,
+     "x1": 400,
+     "y1": 384
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "z2"
+    ]
+   }
+  }
+ ]
+}

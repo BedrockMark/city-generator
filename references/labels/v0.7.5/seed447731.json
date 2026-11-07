@@ -1,0 +1,78 @@
+{
+ "version": "0.7.5",
+ "seed": "447731",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-07T18:49:50.937Z",
+   "version": "0.7.5",
+   "seed": "447731",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {
+     "exp-07": true
+    },
+    "prune": true,
+    "pruneDraft": false,
+    "prefs": true
+   },
+   "scene": "seed447731_exp-071.scene.json",
+   "verdict": "good",
+   "tags": [],
+   "text": "这整条路都应该保留，注意到上方还有一点绿地也应该一起删除",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 512,
+     "y0": 480,
+     "x1": 528,
+     "y1": 496
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "z9",
+     "k70"
+    ]
+   }
+  },
+  {
+   "id": "L2",
+   "created": "2026-11-07T18:50:26.612Z",
+   "version": "0.7.5",
+   "seed": "447731",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {
+     "exp-07": true
+    },
+    "prune": true,
+    "pruneDraft": false,
+    "prefs": true
+   },
+   "scene": "seed447731_exp-071.scene.json",
+   "verdict": "bad",
+   "tags": [],
+   "text": "这条路没有很大理由，再有小巷的时候以小巷的路为主，可以将长椅改到朝向小巷的路",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 464,
+     "y0": 480,
+     "x1": 480,
+     "y1": 496
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "k21",
+     "z3"
+    ]
+   }
+  }
+ ]
+}

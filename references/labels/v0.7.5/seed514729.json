@@ -1,0 +1,41 @@
+{
+ "version": "0.7.5",
+ "seed": "514729",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-07T18:03:03.193Z",
+   "version": "0.7.5",
+   "seed": "514729",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {
+     "exp-07": true
+    },
+    "prune": true,
+    "pruneDraft": false,
+    "prefs": true
+   },
+   "scene": "seed514729_exp-071.scene.json",
+   "verdict": "good",
+   "tags": [],
+   "text": "正确，这条路没有意义，如果树能放回来就更好了，长椅可以改放到面向人行道",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 688,
+     "y0": 256,
+     "x1": 704,
+     "y1": 272
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "z2"
+    ]
+   }
+  }
+ ]
+}

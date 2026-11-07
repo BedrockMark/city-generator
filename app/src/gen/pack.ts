@@ -217,7 +217,7 @@ function kitSwap(c: { r: Rng; p: number }, bp: BuildingPlan, rem: number, avail:
     }
   }
   if (!p || p.h < minH || p.h > avail || p.w > rem) return null;
-  return { plan: p, why: `拼接楼（exp-05）：${was}，换成${why}` };
+  return { plan: p, why: `拼接楼：${was}，换成${why}` };
 }
 
 /** `spread`: northmost first, each building that has a building in front (overlapping columns, further south) slides

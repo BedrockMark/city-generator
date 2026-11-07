@@ -1,0 +1,77 @@
+{
+ "version": "0.7.5",
+ "seed": "254889",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-07T18:02:00.645Z",
+   "version": "0.7.5",
+   "seed": "254889",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {
+     "exp-07": true
+    },
+    "prune": true,
+    "pruneDraft": false,
+    "prefs": true
+   },
+   "scene": "seed254889_exp-071.scene.json",
+   "verdict": "bad",
+   "tags": [],
+   "text": "为什么这条路的两头用草坪堵上了？",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 352,
+     "y0": 368,
+     "x1": 368,
+     "y1": 384
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "z0",
+     "k55"
+    ]
+   }
+  },
+  {
+   "id": "L2",
+   "created": "2026-11-07T18:02:12.948Z",
+   "version": "0.7.5",
+   "seed": "254889",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {
+     "exp-07": true
+    },
+    "prune": true,
+    "pruneDraft": false,
+    "prefs": true
+   },
+   "scene": "seed254889_exp-071.scene.json",
+   "verdict": "good",
+   "tags": [],
+   "text": "正确，这条路没有意义",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 384,
+     "y0": 432,
+     "x1": 400,
+     "y1": 448
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "z13"
+    ]
+   }
+  }
+ ]
+}

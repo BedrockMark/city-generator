@@ -1,0 +1,44 @@
+{
+ "version": "0.7.5",
+ "seed": "499529",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-07T18:52:09.276Z",
+   "version": "0.7.5",
+   "seed": "499529",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {
+     "exp-07": true
+    },
+    "prune": true,
+    "pruneDraft": false,
+    "prefs": true
+   },
+   "scene": "seed499529_exp-071.scene.json",
+   "verdict": "good",
+   "tags": [
+    "布局合理"
+   ],
+   "text": "",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 432,
+     "y0": 336,
+     "x1": 448,
+     "y1": 352
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "z5",
+     "k76"
+    ]
+   }
+  }
+ ]
+}

@@ -1,0 +1,127 @@
+{
+ "version": "0.7.5",
+ "seed": "865057",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-07T18:00:31.264Z",
+   "version": "0.7.5",
+   "seed": "865057",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {
+     "exp-07": true
+    },
+    "prune": true,
+    "pruneDraft": false,
+    "prefs": true
+   },
+   "scene": "seed865057_exp-071.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "挡路"
+   ],
+   "text": "",
+   "target": {
+    "kind": "object",
+    "rect": {
+     "x0": 402,
+     "y0": 392,
+     "x1": 431,
+     "y1": 432
+    },
+    "objects": [
+     {
+      "id": "o74",
+      "key": "3_City_Props/Dumpster_6",
+      "cls": "trash",
+      "gid": "alley#1",
+      "x": 401,
+      "y": 384
+     }
+    ],
+    "gids": [
+     "alley#1"
+    ],
+    "zones": [
+     "k48",
+     "z9",
+     "k49"
+    ]
+   }
+  },
+  {
+   "id": "L2",
+   "created": "2026-11-07T18:01:14.457Z",
+   "version": "0.7.5",
+   "seed": "865057",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {
+     "exp-07": true
+    },
+    "prune": true,
+    "pruneDraft": false,
+    "prefs": true
+   },
+   "scene": "seed865057_exp-071.scene.json",
+   "verdict": "bad",
+   "tags": [],
+   "text": "这条路可以继续联通，不删除也很好",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 544,
+     "y0": 416,
+     "x1": 560,
+     "y1": 432
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "z0"
+    ]
+   }
+  },
+  {
+   "id": "L3",
+   "created": "2026-11-07T18:01:25.473Z",
+   "version": "0.7.5",
+   "seed": "865057",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {
+     "exp-07": true
+    },
+    "prune": true,
+    "pruneDraft": false,
+    "prefs": true
+   },
+   "scene": "seed865057_exp-071.scene.json",
+   "verdict": "good",
+   "tags": [],
+   "text": "这条路的删除正确",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 352,
+     "y0": 352,
+     "x1": 368,
+     "y1": 368
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "k3",
+     "z1"
+    ]
+   }
+  }
+ ]
+}

@@ -1,0 +1,53 @@
+{
+ "version": "0.7.5",
+ "seed": "268172",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-07T18:54:20.045Z",
+   "version": "0.7.5",
+   "seed": "268172",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {
+     "exp-07": true
+    },
+    "prune": true,
+    "pruneDraft": false,
+    "prefs": true
+   },
+   "scene": "seed268172_exp-071.scene.json",
+   "verdict": "good",
+   "tags": [],
+   "text": "",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 496,
+     "y0": 272,
+     "x1": 512,
+     "y1": 288
+    },
+    "objects": [
+     {
+      "id": "o157",
+      "key": "3_City_Props/Trashbin_4",
+      "cls": "trash",
+      "gid": "front:k0",
+      "x": 488,
+      "y": 266
+     }
+    ],
+    "gids": [
+     "front:k0"
+    ],
+    "zones": [
+     "z3",
+     "k65"
+    ]
+   }
+  }
+ ]
+}

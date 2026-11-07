@@ -38,6 +38,8 @@ export interface World {
   baseTile?(cx: number, cy: number): TileRef | null;
   /** building footprints (solid); the upper floors take no ground (D38) */
   walls: PxRect[];
+  /** whole building outlines, upper floors included: ground under them is hidden from view */
+  covers: PxRect[];
   objs: WObj[];
   doors: WDoor[];
   zones: ZoneRec[];
@@ -58,6 +60,7 @@ const isSit = (frame?: [number, number]) => frame?.[1] === 4;
 export function worldFromScene(sc: Scene): World {
   const W = sc.cols * T, H = sc.rows * T;
   const walls = (sc.buildings ?? []).map(b => b.solid);
+  const covers = (sc.buildings ?? []).map(b => b.rect);
   // the carriageway is not for pedestrians, but driveways and zebras are
   const crossable = (sc.zones ?? []).filter(z => z.kind === 'driveway' || z.kind === 'zebra').map(z => z.rect);
   const ground = (px: number, py: number): Ground => {
@@ -80,7 +83,7 @@ export function worldFromScene(sc: Scene): World {
   for (const b of sc.buildings ?? []) for (const d of b.doors) doors.push({ bid: b.id, x: d.x, y: d.y, block: b.block });
   const lawn = (px: number, py: number) => isGrassTile(sc.ground[1]?.[Math.floor(py / T)]?.[Math.floor(px / T)]);
   const baseTile = (cx: number, cy: number) => sc.ground[0]?.[cy]?.[cx] ?? null;
-  return { src: 'gen', name: `seed${sc.seed}`, W, H, ground, lawn, baseTile, walls, objs, doors, zones: sc.zones ?? [] };
+  return { src: 'gen', name: `seed${sc.seed}`, W, H, ground, lawn, baseTile, walls, covers, objs, doors, zones: sc.zones ?? [] };
 }
 
 /** analysed reference (work/refworld/<name>.json) */
@@ -120,5 +123,5 @@ export function worldFromRef(j: RefWorldJSON): World {
       fp: flat ? null : { x0: bb.x0, y0: bb.y1 - d, x1: bb.x1, y1: bb.y1 }, bb, conf: o.conf });
   });
   const lawn = (px: number, py: number) => g(px, py) === 'grass';
-  return { src: 'ref', name: j.name, W, H, ground, lawn, walls, objs, doors: [], zones: [] };
+  return { src: 'ref', name: j.name, W, H, ground, lawn, walls, covers: walls, objs, doors: [], zones: [] };
 }
