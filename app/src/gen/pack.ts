@@ -10,6 +10,7 @@
 import { Rng } from './rng';
 import { pickBuilding, modularStack, type BuildingPlan, type FrontKind } from './buildings';
 import { terraceSection, condoBays, terracedRow } from './terrace';
+import { condo3, condo4Row, condo4Tower, condo7Row, office, hotel } from './kits';
 
 export interface PackOpts {
   cols: number; rows: number;
@@ -31,6 +32,8 @@ export interface PackOpts {
   /** exp-04: buildings put together from parts, proposed on the experiment's own stream with chance p per occasion;
    *  buildings placed as one run (terrace sections, the D15 pair) then move together in `spread` */
   composite?: { r: Rng; p: number };
+  /** exp-05: the packs' other building kits (kits.ts) in place of the picked building, on the experiment's own stream */
+  kits?: { r: Rng; p: number };
 }
 
 export interface Packed { plan: BuildingPlan; cx: number; cy: number; why: string; /** rows slid north by `spread` */ moved?: number;
@@ -90,6 +93,12 @@ export function pack(o: PackOpts, r: Rng): { placed: Packed[]; yard: boolean[][]
         const c = composed(o.composite, bp, rem, avail, o.minH ?? 8);
         const allowC = c && o.frontFilter ? o.frontFilter(x, c.plan.w, yS) : null;
         if (c && fits(c.plan, x, yS) && (!allowC || allowC.includes(c.plan.front))) { bp = c.plan; note = `；${c.why}`; }
+      }
+      if (o.kits && !note) {
+        // exp-05: a kit building (Condo_3/4/7, office, hotel) with the same kind of front, where it fits
+        const k = kitSwap(o.kits, bp, rem, avail, o.minH ?? 8);
+        const allowK = k && o.frontFilter ? o.frontFilter(x, k.plan.w, yS) : null;
+        if (k && fits(k.plan, x, yS) && (!allowK || allowK.includes(k.plan.front))) { bp = k.plan; note = `；${k.why}`; }
       }
       const allowed = o.frontFilter ? o.frontFilter(x, bp.w, yS) : null;
       const first: Packed = { plan: bp, cx: x, cy: yS - bp.h + 1, why: `打包：第 ${yS} 行是最低的空行，放在空段 ${a}–${b - 1} 的 x=${x} 处，底边对齐；${!o.frontFilter ? '' : allowed ? '立面不临街 → 只能是住宅；' : '立面临街 → 可为店铺；'}可用高度 ${avail} 格${note}` };
@@ -156,6 +165,59 @@ function composed(c: { r: Rng; p: number }, bp: BuildingPlan, rem: number, avail
   const p = terracedRow(c.r, n, avail);
   if (p && p.h >= minH) return { plan: p, why: `拼接楼：原本抽到 ${bp.label}，换成 ${n} 户相连的联排住宅（Terraced_House_Modular）` };
   return null;
+}
+
+/** exp-05: a kit building in place of `bp` (residential for residential, office / hotel for a shop), or null.
+ *  Sizes are drawn within the free run `rem` and the height `avail`; fits() still checks the footprint. */
+function kitSwap(c: { r: Rng; p: number }, bp: BuildingPlan, rem: number, avail: number, minH: number): { plan: BuildingPlan; why: string } | null {
+  const r = c.r;
+  const res = bp.front === 'condo' || bp.front === 'house';
+  // shops are the street's life: a shop gives way half as often as a residential building
+  if (!r.choose('kit.swap', { res }, { p: res ? c.p : c.p / 2 })) return null;
+  const range = (a: number, b: number) => Array.from({ length: Math.max(0, b - a + 1) }, (_, i) => a + i);
+  type K = 'condo3' | 'condo4' | 'tower' | 'condo7' | 'office' | 'hotel';
+  const ok: Record<K, boolean> = {
+    condo3: res && rem >= 5 && avail >= 11, condo4: res && rem >= 12 && avail >= 15, tower: res && rem >= 6 && avail >= 13, condo7: res && rem >= 6 && avail >= 12,
+    office: !res && rem >= 7 && avail >= 11, hotel: !res && rem >= 17 && avail >= 18,
+  };
+  const W: [K, number][] = ([['condo3', 2], ['condo4', 3], ['tower', 1], ['condo7', 2], ['office', 2], ['hotel', 2]] as [K, number][]).filter(([k]) => ok[k]);
+  if (!W.length) return null;
+  const kind = r.choose('kit.kind', { res }, { weights: W });
+  const was = `原本抽到 ${bp.label}（${bp.w} 格宽）`;
+  let p: BuildingPlan | null = null, why = '';
+  switch (kind) {
+    case 'condo3': {
+      const ws = range(Math.max(5, bp.w - 2), Math.min(rem, bp.w + 4, 14));
+      if (!ws.length) return null;
+      const w = r.choose('kit.condo3.w', {}, ws);
+      p = condo3(r, w); why = `${w} 格宽的 Condo_3 砖楼（左右端 + 墙段 + 门段拼成，两层，窗户和花箱逐个放）`; break;
+    }
+    case 'condo4': {
+      const m = r.choose('kit.condo4.m', {}, range(0, Math.min(3, Math.floor((rem - 12) / 4))));
+      const n = r.choose('kit.condo4.n', {}, range(0, Math.min(2, Math.floor((avail - 15) / 3))));
+      p = condo4Row(r, m, n); why = `Condo_4 红砖公寓（凸窗转角段 + ${m} 个平段 + 拱门端段，${n + 2} 层）`; break;
+    }
+    case 'tower': {
+      const n = r.choose('kit.tower.n', {}, range(0, Math.min(2, Math.floor((avail - 13) / 3))));
+      p = condo4Tower(n); why = `Condo_4 八角塔楼（${n + 2} 层）`; break;
+    }
+    case 'condo7': {
+      const k = r.choose('kit.condo7.k', {}, range(2, Math.min(4, Math.floor(rem / 3))));
+      p = condo7Row(r, k, avail); why = `${k} 栋相连的 Condo_7 窄楼（每栋顶 + 中段 × n + 底，高度各不相同）`; break;
+    }
+    case 'office': {
+      const k = r.choose('kit.office.k', {}, range(1, Math.min(4, Math.floor((rem - 4) / 3))));
+      const f = r.choose('kit.office.f', {}, range(1, Math.min(5, Math.floor((avail - 5) / 3) - 1)));
+      p = office(r, k, f); why = `${4 + 3 * k} 格宽、${f + 1} 层的办公楼（屋顶 / 两层一块的楼体 / 底层入口拼成，每层一种窗）`; break;
+    }
+    case 'hotel': {
+      const n = r.choose('kit.hotel.n', {}, range(0, Math.min(3, Math.floor((avail - 18) / 4))));
+      const e = r.choose('kit.hotel.e', {}, range(0, Math.min(2, avail - 18 - 4 * n)));
+      p = hotel(n, e); why = `${n + 2} 层的酒店（顶 + 屋顶行 × ${e} + 顶层 + 标准层 × ${n} + 底层）`; break;
+    }
+  }
+  if (!p || p.h < minH || p.h > avail || p.w > rem) return null;
+  return { plan: p, why: `拼接楼（exp-05）：${was}，换成${why}` };
 }
 
 /** `spread`: northmost first, each building that has a building in front (overlapping columns, further south) slides

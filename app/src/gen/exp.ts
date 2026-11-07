@@ -41,11 +41,18 @@ export const EXPERIMENTS: Experiment[] = [
   // 2026-11-06: adopted (user): always on (NOTE D54); keeps its own stream exp/exp-04 and compositeChance, so the picture
   // is the one it made when switched on
   { id: 'exp-04', title: '拼接楼：多段拼成的楼，相邻的楼自动换成链接版', status: 'adopted', default: true, addedIn: '0.7.2', adoptedIn: '0.7.2' },
+  // 2026-11-06: the user: the packs' other composable buildings into the random mix too (scope: the five street kits,
+  // Condo_3 / Condo_4 / Condo_7 / office / hotel; not hospital, school corridor, greenhouse, hangar). kits.ts
+  // no `fire`, like exp-04: each building the packer picks gives way to a kit building with kitChance(novelty)
+  { id: 'exp-05', title: '其余拼接楼：Condo_3 / Condo_4 / Condo_7、办公楼、酒店', status: 'experimental', default: false, addedIn: '0.7.3' },
 ];
 
 /** exp-04 (adopted): chance per occasion (a floor-modular building that may grow into a terrace, a condo / house that may be
  *  put together from parts) */
 export const compositeChance = fireByNovelty(0.35);
+
+/** exp-05: chance that a picked residential building becomes a kit building (a shop: half of it), see pack.ts kitSwap */
+export const kitChance = fireByNovelty(0.2);
 
 export const DEFAULT_OPTIONS: GenOptions = { novelty: 0.1, experiments: true, exp: {}, prune: true, pruneDraft: false, prefs: true };
 

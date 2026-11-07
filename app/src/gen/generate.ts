@@ -9,8 +9,9 @@ import { explainGround } from './explain';
 import { curbRuns, reserveWalkways, crossingVignettes, curbStrips, frontVignettes, zoneVignettes, islandSquares, busStop, cars, roadDetails, walkers } from './vignettes';
 import { yardSpaces } from './yard';
 import { SHEETS, TILE, type Scene, type GenOptions } from './types';
-import { withDefaults, expFires, expEnabled, compositeChance } from './exp';
+import { withDefaults, expFires, expEnabled, compositeChance, kitChance } from './exp';
 import { linkBuildings, EXP04 } from './terrace';
+import { EXP05, resetKitIds } from './kits';
 import { rooftopAC } from './rooftop';
 import { rationalize } from './rational/rationalize';
 import { alignScene } from './judge/align';
@@ -20,7 +21,7 @@ import { makeAdjust } from './learn/adjust';
 import { PREFS } from './learn/prefs';
 import { markNovel } from './learn/novelty';
 
-export const VERSION = '0.7.2';
+export const VERSION = '0.7.3';
 
 export function generate(seed: string, options: Partial<GenOptions> = {}, onProgress?: (n: number, N: number) => void): Scene {
   const opts = withDefaults(options);
@@ -41,6 +42,7 @@ export function generate(seed: string, options: Partial<GenOptions> = {}, onProg
 /** the generator proper, constraint repairs included (stage 5); the judge and its repair come on top (stage 6) */
 export function generateBase(seed: string, opts: GenOptions): Scene {
   resetIds();
+  resetKitIds();
   // stage 7: learned preferences (and novelty) reweight decisions; undefined = every draw is the old one
   const trace = new Trace(seed, opts.reseed ?? {}, opts.force ?? {}, makeAdjust(opts, PREFS));
   const rng = new Rng(seed, trace);
@@ -49,8 +51,11 @@ export function generateBase(seed: string, opts: GenOptions): Scene {
   // exp-04: composite buildings on its own stream; touching neighbours switch to their linked state (no random numbers)
   const e04 = expFires(opts, EXP04, rng);
   const composite = e04 ? { r: e04, p: compositeChance(opts.novelty) } : undefined;
-  const main = planMainBlock(L, rng, expEnabled(opts, 'exp-03'), composite);
-  const neigh = planNeighbours(L, rng, composite);
+  // exp-05: the packs' other building kits in place of a picked building, on its own stream
+  const e05 = expFires(opts, EXP05, rng);
+  const kits = e05 ? { r: e05, p: kitChance(opts.novelty) } : undefined;
+  const main = planMainBlock(L, rng, expEnabled(opts, 'exp-03'), composite, kits);
+  const neigh = planNeighbours(L, rng, composite, kits);
   if (e04) linkBuildings([main, neigh]);
   sb.inStream('block', () => emitBuildings(L, main, sb, 'main'));
   sb.inStream('neigh', () => emitBuildings(L, neigh, sb, 'neigh'));

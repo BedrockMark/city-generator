@@ -3,7 +3,7 @@ import { Rng } from './rng';
 import { MODULAR, spr, hasSprite, type ModPiece } from './assets';
 import { TILE } from './types';
 
-export type FrontKind = 'cafe' | 'bakery' | 'retail' | 'closed' | 'gym' | 'condo' | 'market' | 'house' | 'hardware';
+export type FrontKind = 'cafe' | 'bakery' | 'retail' | 'closed' | 'gym' | 'condo' | 'market' | 'house' | 'hardware' | 'office' | 'hotel';
 
 export interface BuildingPlan {
   id: string;
@@ -15,6 +15,8 @@ export interface BuildingPlan {
   front: FrontKind;
   tall: boolean;
   label: string;
+  /** experiment that produced it (exp-05 kit buildings) */
+  exp?: string;
 }
 
 const pieces = (fam: string, colour?: string, pred?: (p: ModPiece) => boolean) =>

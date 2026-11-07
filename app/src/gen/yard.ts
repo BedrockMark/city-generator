@@ -292,12 +292,12 @@ function forecourt(L: Layout, sb: SceneBuilder, rr: Rng, rc: CellRect, b: Placed
       }
       break;
     }
-    case 'retail': case 'hardware': case 'market': case 'gym': case 'closed': {
+    case 'retail': case 'hardware': case 'market': case 'gym': case 'closed': case 'office': case 'hotel': {
       // planters framing the entrance, a bench, sale crates / boxes on display, browsing customers
       const pot = rr.choose('forecourt.potModel', {}, variants('17_Garden/Bush_Potted'));
       for (let x = x0 + 8; x < x1; x += rr.int(28, 48)) sb.putFoot(pot, x, y1 - 3, 'plant', { gid: g, why: '楼前空地临街边缘的一排盆栽，框出店门前的空间' });
       if (rr.choose('forecourt.bench', {}, { p: 0.6 })) sb.putFoot(C + 'Bench_1', door + (rr.choose('forecourt.benchRight', {}, { p: 0.5 }) ? 34 : -34), rc.y * T + 28, 'bench', { gid: g, why: '店门旁的长椅，面朝街道' });
-      if (b.plan.front !== 'gym' && rr.choose('forecourt.crates', {}, { p: 0.6 })) for (let i = 0; i < rr.count('forecourt.crateCount', {}, 1, 3); i++) sb.putFoot(rr.choose('forecourt.crateModel', {}, variants('6_Garage_Sales/Box')), door + (rr.choose('forecourt.crateRight', {}, { p: 0.5 }) ? 1 : -1) * rr.int(24, 56), rc.y * T + 14, 'crate', { gid: g, why: '摆在店门两侧的货箱（门口展示）' });
+      if (!['gym', 'office', 'hotel'].includes(b.plan.front) && rr.choose('forecourt.crates', {}, { p: 0.6 })) for (let i = 0; i < rr.count('forecourt.crateCount', {}, 1, 3); i++) sb.putFoot(rr.choose('forecourt.crateModel', {}, variants('6_Garage_Sales/Box')), door + (rr.choose('forecourt.crateRight', {}, { p: 0.5 }) ? 1 : -1) * rr.int(24, 56), rc.y * T + 14, 'crate', { gid: g, why: '摆在店门两侧的货箱（门口展示）' });
       for (let i = 0; i < rr.count('forecourt.customers', {}, 0, 2); i++) person(sb, rr, door + rr.int(-40, 40), rc.y * T + rr.int(14, 24), 'stand', 'up', 'customer', g, '在店门前的顾客，面朝店门');
       break;
     }

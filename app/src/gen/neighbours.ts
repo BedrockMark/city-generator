@@ -6,7 +6,7 @@ import type { BlockPlan, PlacedBuilding } from './block';
 import { pack } from './pack';
 import { pickBuilding } from './buildings';
 
-export function planNeighbours(L: Layout, r0: Rng, composite?: { r: Rng; p: number }): BlockPlan {
+export function planNeighbours(L: Layout, r0: Rng, composite?: { r: Rng; p: number }, kits?: { r: Rng; p: number }): BlockPlan {
   const r = r0.fork('neigh');
   // pack on an extended grid: virtual cells beyond the picture edge continue the edge cell, so shallow
   // visible strips of neighbour blocks still get (partially visible) buildings
@@ -20,7 +20,7 @@ export function planNeighbours(L: Layout, r0: Rng, composite?: { r: Rng; p: numb
   };
   const { placed: pe } = pack({
     cols: L.cols + 2 * E, rows: L.rows + E + EB, buildable: (x, y) => virt(x - E, y - E), canopy: (x, y) => virt(x - E, y - E),
-    mix: { modular: 2, single: 2 }, minH: 7, gapAfter: [[0, 4], [1, 3], [2, 2]], pairChance: 0.3, composite: composite && { r: composite.r.fork('neigh'), p: composite.p },
+    mix: { modular: 2, single: 2 }, minH: 7, gapAfter: [[0, 4], [1, 3], [2, 2]], pairChance: 0.3, composite: composite && { r: composite.r.fork('neigh'), p: composite.p }, kits: kits && { r: kits.r.fork('neigh'), p: kits.p },
   }, r);
   const placed = pe.map(p => ({ ...p, cx: p.cx - E, cy: p.cy - E, why: `邻近街区（同一打包器；画面外按到路的距离延续地块）。${p.why}` }))
     .filter(p => p.cx + p.plan.w > 0 && p.cy + p.plan.h > 0 && p.cx < L.cols && p.cy < L.rows);

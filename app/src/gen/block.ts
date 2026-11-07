@@ -24,7 +24,7 @@ export interface BlockPlan {
 }
 
 /** spread: the rows behind slide north (exp-03, adopted; off only when regenerating an older version) */
-export function planMainBlock(L: Layout, r0: Rng, spread = true, composite?: { r: Rng; p: number }): BlockPlan {
+export function planMainBlock(L: Layout, r0: Rng, spread = true, composite?: { r: Rng; p: number }, kits?: { r: Rng; p: number }): BlockPlan {
   const r = r0.fork('block');
   const yb = new Map<number, number>(), yt = new Map<number, number>();
   for (let x = L.bx0; x < L.bx1; x++) {
@@ -56,6 +56,7 @@ export function planMainBlock(L: Layout, r0: Rng, spread = true, composite?: { r
   const { placed, yard } = pack({
     cols: L.cols, rows: L.rows, buildable: (x, y) => L.inP[y][x] && !carved[y][x], canopy: (x, y) => L.inP[y][x], mix, minH: 8,
     gapAfter: [[0, 6], [1, 2], [2, 1]], pairChance: 0.4, spread, composite: composite && { r: composite.r.fork('main'), p: composite.p },
+    kits: kits && { r: kits.r.fork('main'), p: kits.p },
     // only buildings that face the street (sidewalk right below the facade) may be shops
     frontFilter: (x0, w, bottom) => {
       let street = true;
@@ -72,7 +73,13 @@ export function emitBuildings(L: Layout, plan: BlockPlan, sb: SceneBuilder, bloc
   for (const pb of plan.buildings) emitBuilding(L, pb, sb, block);
 }
 
+/** a building made by an experiment (exp-05 kits) carries its tag on every sprite and on its group */
 function emitBuilding(L: Layout, pb: PlacedBuilding, sb: SceneBuilder, block: 'main' | 'neigh'): void {
+  if (pb.plan.exp) sb.withExp(pb.plan.exp, () => emitBuildingAs(L, pb, sb, block));
+  else emitBuildingAs(L, pb, sb, block);
+}
+
+function emitBuildingAs(L: Layout, pb: PlacedBuilding, sb: SceneBuilder, block: 'main' | 'neigh'): void {
   const { plan: b, cx, cy } = pb;
   const x0 = cx * TILE, y0 = cy * TILE, bottom = (cy + b.h) * TILE, solid = bottom - b.foot * TILE;
   const gid = sb.group('bld', pb.why, { id: b.id, anchor: { kind: 'slot', ref: `${block}:${cx},${cy + b.h - 1}`, x: x0 + b.w * TILE / 2, y: bottom } });

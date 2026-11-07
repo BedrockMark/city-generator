@@ -219,72 +219,95 @@ const FRONT_REASONS: Record<string, string> = {
   cafe: '餐饮店门前：门两侧放露天桌椅、立牌，有顾客', bakery: '面包店门前：门两侧放露天桌椅、立牌，有顾客',
   retail: '零售店门前：门两侧对称的盆栽、立牌、垃圾桶，看橱窗的顾客', hardware: '五金店门前：盆栽、立牌、垃圾桶、顾客',
   market: '超市门前：盆栽、立牌、垃圾桶，进出的顾客较多', condo: '住宅门前：花丛、信箱、垃圾桶，偶尔有住户',
-  house: '住宅门前：花丛、信箱、垃圾桶，偶尔有住户', gym: '健身房门前：门口有人，旁边一个垃圾桶', closed: '歇业的店（卷帘门）：门口堆着垃圾袋和纸箱',
+  house: '住宅门前：花丛、信箱、垃圾桶，偶尔有住户', office: '办公楼门前：门两侧的盆栽、垃圾桶，进出的上班族',
+  hotel: '酒店门前：门两侧的盆栽，行李车，进出的客人', gym: '健身房门前：门口有人，旁边一个垃圾桶', closed: '歇业的店（卷帘门）：门口堆着垃圾袋和纸箱',
 };
 
 export function frontVignettes(L: Layout, plan: BlockPlan, sb: SceneBuilder, r: Rng) {
+  // a building made by an experiment (exp-05) tags what stands in front of it too
   for (const pb of plan.buildings) {
-    const rr = sb.enter(r.fork(pb.plan.id, { building: pb.plan.id, front: pb.plan.front, side: pb.side }));
-    const { plan: b, cx, cy } = pb;
-    const x0 = cx * T, bottom = (cy + b.h) * T;
-    // how deep is the free strip in front of the facade (cells, until road / building)
-    let depth = 0;
-    for (let y = cy + b.h; y < L.rows && (L.cls[y][cx + 1] === 'walk' || L.cls[y][cx + 1] === 'lot') && depth < 6; y++) depth++;
-    const door = b.doors[0] ?? b.w * T / 2;
-    const dx = x0 + door;
-    const g = sb.group('front', `${b.id}（${b.label}）的${FRONT_REASONS[b.front]}`, { id: b.id, anchor: { kind: 'door', ref: `${b.id}.door`, x: dx, y: bottom } });
-    const side = rr.choose('front.side', {}, { p: 0.5 }) ? 1 : -1;
-    const base = bottom + 10;          // foot line hugging the facade
-    const put = (key: string, fx: number, fy: number, cls: string, why: string) => sb.putFoot(key, fx, fy, cls, { gid: g, why, depth: 9 });
-    const tableAnchor = (tx: number, ty: number, i: number): Anchor => ({ kind: 'object', ref: `${g}/table${i}`, x: tx, y: ty });
-    switch (b.front) {
-      case 'cafe': case 'bakery': {
-        if (b.front === 'cafe' && b.label.startsWith('Ice_Cream') && hasSprite('5_Floor_Modular_Building/Ground_Floor_Ice_Cream_Shop_Props_3'))
-          put('5_Floor_Modular_Building/Ground_Floor_Ice_Cream_Shop_Props_3', dx + (door > 56 ? -48 : 44), base + 12, 'table', '冰淇淋店配套的门口道具');
-        // tables only where the pavement leaves room for them (the walkway check rejects the rest)
-        const table = rr.choose('front.tableModel', {}, variants(V + 'Street_Food_Table'));
-        for (let i = 0; i < rr.count('front.tables', {}, 1, 3); i++) {
-          const tx = x0 + 12 + rr.int(0, 6) + i * 34;
-          if (Math.abs(tx - dx) < 22) continue;
-          const ty = bottom + 20;
-          if (!sb.putFoot(table, tx, ty, 'table', { gid: g, why: '露天座位的桌子：贴着立面、避开门前通道' })) continue;
-          for (const [sx, dir] of [[-12, 'right'], [12, 'left']] as const) {
-            const anchor = tableAnchor(tx, ty, i);
-            if (rr.choose('front.seatTaken', {}, { p: 0.55 })) { if (!sb.putChar(...seated(rr, tx + sx, ty - 1, dir), 'customer', { gid: g, why: '坐在桌旁的顾客，面朝桌子', anchor })) sb.putFoot(V + 'Street_Food_Chair_1', tx + sx, ty - 2, 'chair', { gid: g, why: '桌旁的椅子', anchor }); }
-            else sb.putFoot(V + 'Street_Food_Chair_1', tx + sx, ty - 2, 'chair', { gid: g, why: '桌旁的空椅子', anchor });
-          }
+    if (pb.plan.exp) sb.withExp(pb.plan.exp, () => frontOf(L, pb, sb, r));
+    else frontOf(L, pb, sb, r);
+  }
+}
+
+function frontOf(L: Layout, pb: PlacedBuilding, sb: SceneBuilder, r: Rng) {
+  const rr = sb.enter(r.fork(pb.plan.id, { building: pb.plan.id, front: pb.plan.front, side: pb.side }));
+  const { plan: b, cx, cy } = pb;
+  const x0 = cx * T, bottom = (cy + b.h) * T;
+  // how deep is the free strip in front of the facade (cells, until road / building)
+  let depth = 0;
+  for (let y = cy + b.h; y < L.rows && (L.cls[y][cx + 1] === 'walk' || L.cls[y][cx + 1] === 'lot') && depth < 6; y++) depth++;
+  const door = b.doors[0] ?? b.w * T / 2;
+  const dx = x0 + door;
+  const g = sb.group('front', `${b.id}（${b.label}）的${FRONT_REASONS[b.front]}`, { id: b.id, anchor: { kind: 'door', ref: `${b.id}.door`, x: dx, y: bottom } });
+  const side = rr.choose('front.side', {}, { p: 0.5 }) ? 1 : -1;
+  const base = bottom + 10;          // foot line hugging the facade
+  const put = (key: string, fx: number, fy: number, cls: string, why: string) => sb.putFoot(key, fx, fy, cls, { gid: g, why, depth: 9 });
+  const tableAnchor = (tx: number, ty: number, i: number): Anchor => ({ kind: 'object', ref: `${g}/table${i}`, x: tx, y: ty });
+  switch (b.front) {
+    case 'cafe': case 'bakery': {
+      if (b.front === 'cafe' && b.label.startsWith('Ice_Cream') && hasSprite('5_Floor_Modular_Building/Ground_Floor_Ice_Cream_Shop_Props_3'))
+        put('5_Floor_Modular_Building/Ground_Floor_Ice_Cream_Shop_Props_3', dx + (door > 56 ? -48 : 44), base + 12, 'table', '冰淇淋店配套的门口道具');
+      // tables only where the pavement leaves room for them (the walkway check rejects the rest)
+      const table = rr.choose('front.tableModel', {}, variants(V + 'Street_Food_Table'));
+      for (let i = 0; i < rr.count('front.tables', {}, 1, 3); i++) {
+        const tx = x0 + 12 + rr.int(0, 6) + i * 34;
+        if (Math.abs(tx - dx) < 22) continue;
+        const ty = bottom + 20;
+        if (!sb.putFoot(table, tx, ty, 'table', { gid: g, why: '露天座位的桌子：贴着立面、避开门前通道' })) continue;
+        for (const [sx, dir] of [[-12, 'right'], [12, 'left']] as const) {
+          const anchor = tableAnchor(tx, ty, i);
+          if (rr.choose('front.seatTaken', {}, { p: 0.55 })) { if (!sb.putChar(...seated(rr, tx + sx, ty - 1, dir), 'customer', { gid: g, why: '坐在桌旁的顾客，面朝桌子', anchor })) sb.putFoot(V + 'Street_Food_Chair_1', tx + sx, ty - 2, 'chair', { gid: g, why: '桌旁的椅子', anchor }); }
+          else sb.putFoot(V + 'Street_Food_Chair_1', tx + sx, ty - 2, 'chair', { gid: g, why: '桌旁的空椅子', anchor });
         }
-        put(rr.choose('front.signModel', {}, signs()), dx + side * 22, base, 'info_sign', '店招立牌，放在门的一侧');
-        if (rr.choose('front.customer', {}, { p: 0.6 })) person(sb, rr, dx + side * rr.int(10, 30), base + rr.int(6, 12), 'stand', 'up', 'customer', g, '在店门口张望的顾客，面朝店门');
-        break;
       }
-      case 'retail': case 'hardware': case 'market': {
-        const shrub = rr.choose('front.potModel', {}, [C + 'Shrub_3', C + 'Shrub_4', ...variants(C + 'Pot')]);
-        if (rr.choose('front.pots', {}, { p: 0.7 })) { put(shrub, dx - 22, base, 'plant', '门两侧对称的盆栽（左）'); put(shrub, dx + 22, base, 'plant', '门两侧对称的盆栽（右）'); }
-        if (rr.choose('front.sign', {}, { p: 0.55 })) put(rr.choose('front.signModel', {}, signs()), dx + side * 34, base, 'info_sign', '店招立牌，放在门的一侧');
-        if (rr.choose('front.bin', {}, { p: 0.5 })) put(rr.choose('front.binModel', {}, variants(C + 'Trashbin')), dx - side * rr.int(38, 52), base, 'trash', '店门旁的垃圾桶（与立牌分在门的两侧）');
-        const n = b.front === 'market' ? rr.count('front.customers', { market: true }, 1, 3) : rr.count('front.customers', { market: false }, 0, 2);
-        for (let i = 0; i < n; i++) person(sb, rr, dx + rr.int(-40, 40), base + rr.int(6, 14), rr.choose('front.customerPose', {}, { p: 0.7 }) ? 'stand' : 'phone', rr.choose('front.customerDir', {}, ['up', 'up', 'left', 'right'] as const), 'customer', g, '店门口的顾客（看橱窗或打电话）');
-        break;
-      }
-      case 'condo': case 'house': {
-        const fl = rr.choose('front.flowerModel', {}, variants(C + 'Flower_Bush'));
-        if (rr.choose('front.flowers', {}, { p: 0.6 })) { put(fl, dx - 32, base, 'plant', '住宅门旁的花丛'); if (rr.choose('front.flowersBoth', {}, { p: 0.6 })) put(fl, dx + 32, base, 'plant', '住宅门旁的花丛（另一侧）'); }
-        if (rr.choose('front.mailbox', {}, { p: 0.35 })) put(C + 'Mailbox_1', dx + side * 20, base, 'utility', '住宅门口的信箱');
-        if (rr.choose('front.bin', {}, { p: 0.25 })) put(rr.choose('front.binModel', {}, variants(C + 'Trashbin')), dx - side * rr.int(40, 60), base, 'trash', '住户的垃圾桶，放在门的另一侧');
-        if (rr.choose('front.resident', {}, { p: 0.35 })) person(sb, rr, dx + rr.int(-20, 20), base + rr.int(4, 12), rr.choose('front.residentPose', {}, { p: 0.5 }) ? 'stand' : 'phone', rr.choose('front.residentDir', {}, ['down', 'left', 'right'] as const), 'resident', g, '在家门口的住户');
-        break;
-      }
-      case 'gym': {
-        if (rr.choose('front.person', {}, { p: 0.7 })) person(sb, rr, dx + side * 16, base + 8, 'stand', 'down', 'citizen', g, '健身房门口的人');
-        put(rr.choose('front.binModel', {}, variants(C + 'Trashbin')), dx + side * 40, base, 'trash', '健身房门旁的垃圾桶');
-        break;
-      }
-      case 'closed': {
-        if (rr.choose('front.litter', {}, { p: 0.6 })) for (let i = 0; i < rr.count('front.litterBags', {}, 1, 3); i++) put(rr.choose('front.litterModel', {}, variants(C + 'Trash')), dx + side * rr.int(20, 44), base, 'trash', '歇业店门口堆积的垃圾袋');
-        if (rr.choose('front.cardboard', {}, { p: 0.3 })) put(rr.choose('front.cardboardModel', {}, variants(C + 'Cardboard_Trash')), dx - side * rr.int(20, 36), base, 'trash', '歇业店门口的废纸箱');
-        break;
-      }
+      put(rr.choose('front.signModel', {}, signs()), dx + side * 22, base, 'info_sign', '店招立牌，放在门的一侧');
+      if (rr.choose('front.customer', {}, { p: 0.6 })) person(sb, rr, dx + side * rr.int(10, 30), base + rr.int(6, 12), 'stand', 'up', 'customer', g, '在店门口张望的顾客，面朝店门');
+      break;
+    }
+    case 'retail': case 'hardware': case 'market': {
+      const shrub = rr.choose('front.potModel', {}, [C + 'Shrub_3', C + 'Shrub_4', ...variants(C + 'Pot')]);
+      if (rr.choose('front.pots', {}, { p: 0.7 })) { put(shrub, dx - 22, base, 'plant', '门两侧对称的盆栽（左）'); put(shrub, dx + 22, base, 'plant', '门两侧对称的盆栽（右）'); }
+      if (rr.choose('front.sign', {}, { p: 0.55 })) put(rr.choose('front.signModel', {}, signs()), dx + side * 34, base, 'info_sign', '店招立牌，放在门的一侧');
+      if (rr.choose('front.bin', {}, { p: 0.5 })) put(rr.choose('front.binModel', {}, variants(C + 'Trashbin')), dx - side * rr.int(38, 52), base, 'trash', '店门旁的垃圾桶（与立牌分在门的两侧）');
+      const n = b.front === 'market' ? rr.count('front.customers', { market: true }, 1, 3) : rr.count('front.customers', { market: false }, 0, 2);
+      for (let i = 0; i < n; i++) person(sb, rr, dx + rr.int(-40, 40), base + rr.int(6, 14), rr.choose('front.customerPose', {}, { p: 0.7 }) ? 'stand' : 'phone', rr.choose('front.customerDir', {}, ['up', 'up', 'left', 'right'] as const), 'customer', g, '店门口的顾客（看橱窗或打电话）');
+      break;
+    }
+    case 'condo': case 'house': {
+      const fl = rr.choose('front.flowerModel', {}, variants(C + 'Flower_Bush'));
+      if (rr.choose('front.flowers', {}, { p: 0.6 })) { put(fl, dx - 32, base, 'plant', '住宅门旁的花丛'); if (rr.choose('front.flowersBoth', {}, { p: 0.6 })) put(fl, dx + 32, base, 'plant', '住宅门旁的花丛（另一侧）'); }
+      if (rr.choose('front.mailbox', {}, { p: 0.35 })) put(C + 'Mailbox_1', dx + side * 20, base, 'utility', '住宅门口的信箱');
+      if (rr.choose('front.bin', {}, { p: 0.25 })) put(rr.choose('front.binModel', {}, variants(C + 'Trashbin')), dx - side * rr.int(40, 60), base, 'trash', '住户的垃圾桶，放在门的另一侧');
+      if (rr.choose('front.resident', {}, { p: 0.35 })) person(sb, rr, dx + rr.int(-20, 20), base + rr.int(4, 12), rr.choose('front.residentPose', {}, { p: 0.5 }) ? 'stand' : 'phone', rr.choose('front.residentDir', {}, ['down', 'left', 'right'] as const), 'resident', g, '在家门口的住户');
+      break;
+    }
+    case 'gym': {
+      if (rr.choose('front.person', {}, { p: 0.7 })) person(sb, rr, dx + side * 16, base + 8, 'stand', 'down', 'citizen', g, '健身房门口的人');
+      put(rr.choose('front.binModel', {}, variants(C + 'Trashbin')), dx + side * 40, base, 'trash', '健身房门旁的垃圾桶');
+      break;
+    }
+    case 'office': {
+      // exp-05 office: planters either side of the entrance, a bin, people coming and going (phone in hand)
+      const pot = rr.choose('front.potModel', {}, variants('17_Garden/Bush_Potted'));
+      if (rr.choose('front.pots', {}, { p: 0.75 })) { put(pot, dx - 30, base, 'plant', '办公楼入口两侧的盆栽（左）'); put(pot, dx + 30, base, 'plant', '办公楼入口两侧的盆栽（右）'); }
+      if (rr.choose('front.bin', {}, { p: 0.5 })) put(rr.choose('front.binModel', {}, variants(C + 'Trashbin')), dx + side * rr.int(44, 60), base, 'trash', '办公楼门旁的垃圾桶');
+      for (let i = 0; i < rr.count('front.workers', {}, 0, 2); i++) person(sb, rr, dx + rr.int(-36, 36), base + rr.int(6, 14), rr.choose('front.workerPose', {}, { p: 0.5 }) ? 'stand' : 'phone', rr.choose('front.workerDir', {}, ['down', 'left', 'right', 'up'] as const), 'citizen', g, '办公楼门口进出的上班族');
+      break;
+    }
+    case 'hotel': {
+      // exp-05 hotel: planters framing the entrance, a luggage trolley beside it, guests
+      const pot = rr.choose('front.potModel', {}, variants('17_Garden/Bush_Potted'));
+      put(pot, dx - 34, base, 'plant', '酒店入口两侧的盆栽（左）'); put(pot, dx + 34, base, 'plant', '酒店入口两侧的盆栽（右）');
+      if (rr.choose('front.trolley', {}, { p: 0.7 })) put(rr.choose('front.trolleyModel', {}, variants('12_Hotel_and_Hospital/Luggage_Trolley')), dx + side * 22, base + 4, 'utility', '酒店门口的行李车');
+      for (let i = 0; i < rr.count('front.guests', {}, 1, 3); i++) person(sb, rr, dx + rr.int(-44, 44), base + rr.int(6, 14), rr.choose('front.guestPose', {}, { p: 0.6 }) ? 'stand' : 'phone', rr.choose('front.guestDir', {}, ['down', 'up', 'left', 'right'] as const), 'customer', g, '酒店门口的客人');
+      break;
+    }
+    case 'closed': {
+      if (rr.choose('front.litter', {}, { p: 0.6 })) for (let i = 0; i < rr.count('front.litterBags', {}, 1, 3); i++) put(rr.choose('front.litterModel', {}, variants(C + 'Trash')), dx + side * rr.int(20, 44), base, 'trash', '歇业店门口堆积的垃圾袋');
+      if (rr.choose('front.cardboard', {}, { p: 0.3 })) put(rr.choose('front.cardboardModel', {}, variants(C + 'Cardboard_Trash')), dx - side * rr.int(20, 36), base, 'trash', '歇业店门口的废纸箱');
+      break;
     }
   }
 }
