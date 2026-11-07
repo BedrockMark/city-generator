@@ -75,15 +75,15 @@
 红色越深越怪（每个像素取覆盖它的窗口里的最高分），黄框 = 超过阈值的窗口。
 
 - 生成图 seed8（修复前）：平均 0.626，最高 0.844
-  ![](v0.6.0/heat_seed8.png)
+  ![](judge/heat_seed8.png)
 - 生成图 seed44522（修复前）：平均 0.682，最高 0.913
-  ![](v0.6.0/heat_seed44522.png)
+  ![](judge/heat_seed44522.png)
 - 生成图 seed161112（修复前）：平均 0.662，最高 0.937
-  ![](v0.6.0/heat_seed161112.png)
+  ![](judge/heat_seed161112.png)
 - 参考图 market_on_street：平均 0.538，最高 0.810
-  ![](v0.6.0/heat_market_on_street.png)
+  ![](judge/heat_market_on_street.png)
 - 参考图 suburb_neighborhood_1：平均 0.275，最高 0.926
-  ![](v0.6.0/heat_suburb_neighborhood_1.png)
+  ![](judge/heat_suburb_neighborhood_1.png)
 
 ## 5. 各参考图的整图平均分
 

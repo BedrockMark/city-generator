@@ -1,4 +1,4 @@
-"""Illustrative crops for docs/ANALYSIS.md (native px boxes, upscaled x2)."""
+"""Illustrative crops for docs/reports/ANALYSIS.md (native px boxes, upscaled x2)."""
 from PIL import Image
 from common import *
 FIGS = {
@@ -10,7 +10,7 @@ FIGS = {
     'shop_front_dense':   ('police_station',          (0, 150, 292, 331)),
     'corner_furniture':   ('simple_street_corner',    (0, 100, 260, 330)),
 }
-out = ROOT/'docs'/'fig'
+out = ROOT/'docs'/'reports'/'fig'
 for k, (n, box) in FIGS.items():
     im = Image.open(REFS/f'{n}.png').crop(box)
     im.resize((im.width * 2, im.height * 2), Image.NEAREST).save(out/f'{k}.png')

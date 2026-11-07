@@ -1,0 +1,78 @@
+{
+ "version": "0.7.1",
+ "seed": "52390",
+ "options": {
+  "novelty": 0.1,
+  "experiments": true,
+  "exp": {
+   "exp-02": false
+  },
+  "prune": true,
+  "pruneDraft": false,
+  "prefs": true
+ },
+ "novelty": 0.1,
+ "created": "2026-11-06T01:08:43.718Z",
+ "kind": "auto",
+ "changes": [
+  {
+   "stream": "island/island5",
+   "label": "island.bench",
+   "k": 0,
+   "a": "true",
+   "b": "false",
+   "rect": {
+    "x0": 279,
+    "y0": 459,
+    "x1": 349,
+    "y1": 523
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "yard/park35,18",
+   "label": "parking.bayTaken",
+   "k": 0,
+   "a": "true",
+   "b": "false",
+   "rect": {
+    "x0": 616,
+    "y0": 280,
+    "x1": 777,
+    "y1": 398
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "fronts/b0",
+   "label": "front.customers",
+   "k": 0,
+   "ctx": {
+    "market": false
+   },
+   "a": "2",
+   "b": "0",
+   "rect": {
+    "x0": 671,
+    "y0": 484,
+    "x1": 765,
+    "y1": 564
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "curb/curbN174224",
+   "label": "curb.bollardModel",
+   "k": 0,
+   "a": "3_City_Props/Pedestrian_Barrier_Post_7",
+   "b": "3_City_Props/Pedestrian_Barrier_Post_3",
+   "rect": {
+    "x0": 717,
+    "y0": 150,
+    "x1": 749,
+    "y1": 182
+   },
+   "answer": "same"
+  }
+ ]
+}

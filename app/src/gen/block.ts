@@ -8,7 +8,7 @@ import { pack } from './pack';
 import { SceneBuilder, rect } from './place';
 import { TILE } from './types';
 
-const PART_NAMES: Record<string, string> = { roof: '屋顶', mid: '中间层', ground: '底层', whole: '整体精灵' };
+const PART_NAMES: Record<string, string> = { roof: '屋顶', mid: '中间层', ground: '底层', whole: '整体精灵', link: '链接条（盖住与邻楼相接的墙缝）' };
 
 export interface PlacedBuilding { plan: BuildingPlan; cx: number; cy: number; side: 'S' | 'N'; /** why the packer put it here */ why: string }
 export interface Zone { kind: 'alley' | 'plaza' | 'pocket'; x0: number; y0: number; x1: number; y1: number; why: string }   // cells, half-open
@@ -24,7 +24,7 @@ export interface BlockPlan {
 }
 
 /** spread: the rows behind slide north (exp-03, adopted; off only when regenerating an older version) */
-export function planMainBlock(L: Layout, r0: Rng, spread = true): BlockPlan {
+export function planMainBlock(L: Layout, r0: Rng, spread = true, composite?: { r: Rng; p: number }): BlockPlan {
   const r = r0.fork('block');
   const yb = new Map<number, number>(), yt = new Map<number, number>();
   for (let x = L.bx0; x < L.bx1; x++) {
@@ -55,7 +55,7 @@ export function planMainBlock(L: Layout, r0: Rng, spread = true): BlockPlan {
   const mix = r.choose('block.mix', {}, { weights: [[{ modular: 3, single: 2 }, 2], [{ modular: 1, single: 2 }, 1], [{ modular: 3, single: 1 }, 1]] as const });
   const { placed, yard } = pack({
     cols: L.cols, rows: L.rows, buildable: (x, y) => L.inP[y][x] && !carved[y][x], canopy: (x, y) => L.inP[y][x], mix, minH: 8,
-    gapAfter: [[0, 6], [1, 2], [2, 1]], pairChance: 0.4, spread,
+    gapAfter: [[0, 6], [1, 2], [2, 1]], pairChance: 0.4, spread, composite: composite && { r: composite.r.fork('main'), p: composite.p },
     // only buildings that face the street (sidewalk right below the facade) may be shops
     frontFilter: (x0, w, bottom) => {
       let street = true;
@@ -72,7 +72,7 @@ export function emitBuildings(L: Layout, plan: BlockPlan, sb: SceneBuilder, bloc
   for (const pb of plan.buildings) emitBuilding(L, pb, sb, block);
 }
 
-function emitBuilding(L: Layout, pb: PlacedBuilding, sb: SceneBuilder, block: 'main' | 'neigh') {
+function emitBuilding(L: Layout, pb: PlacedBuilding, sb: SceneBuilder, block: 'main' | 'neigh'): void {
   const { plan: b, cx, cy } = pb;
   const x0 = cx * TILE, y0 = cy * TILE, bottom = (cy + b.h) * TILE, solid = bottom - b.foot * TILE;
   const gid = sb.group('bld', pb.why, { id: b.id, anchor: { kind: 'slot', ref: `${block}:${cx},${cy + b.h - 1}`, x: x0 + b.w * TILE / 2, y: bottom } });

@@ -17,7 +17,7 @@ for (const a of args) { const m = a.match(/^(\d+)\.\.(\d+)$/); if (m) for (let i
 mkdirSync(outDir, { recursive: true });
 
 const browser = await chromium.launch({ channel: 'msedge', headless: true, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
-const page = await browser.newPage({ viewport: { width: 1400, height: 1000 }, acceptDownloads: true });
+const page = await browser.newPage({ viewport: { width: 1700, height: 1000 }, acceptDownloads: true });
 page.on('console', m => { if (m.type() === 'error') console.log('[page error]', m.text()); });
 page.on('pageerror', e => console.log('[page exception]', e.message));
 for (const [i, s] of seeds.entries()) {

@@ -1,0 +1,602 @@
+{
+"5_Floor_Modular_Building/Ground_Floor_Bait_Shop_1": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_1",
+"R": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_2"
+},
+"5_Floor_Modular_Building/Ground_Floor_Bait_Shop_10": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_3",
+"R": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_4"
+},
+"5_Floor_Modular_Building/Ground_Floor_Bait_Shop_11": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_3",
+"R": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_4"
+},
+"5_Floor_Modular_Building/Ground_Floor_Bait_Shop_12": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_3",
+"R": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_4"
+},
+"5_Floor_Modular_Building/Ground_Floor_Bait_Shop_13": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_5",
+"R": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_6"
+},
+"5_Floor_Modular_Building/Ground_Floor_Bait_Shop_14": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_5",
+"R": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_6"
+},
+"5_Floor_Modular_Building/Ground_Floor_Bait_Shop_15": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_5",
+"R": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_6"
+},
+"5_Floor_Modular_Building/Ground_Floor_Bait_Shop_16": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_5",
+"R": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_6"
+},
+"5_Floor_Modular_Building/Ground_Floor_Bait_Shop_17": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_5",
+"R": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_6"
+},
+"5_Floor_Modular_Building/Ground_Floor_Bait_Shop_18": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_5",
+"R": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_6"
+},
+"5_Floor_Modular_Building/Ground_Floor_Bait_Shop_2": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_1",
+"R": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_2"
+},
+"5_Floor_Modular_Building/Ground_Floor_Bait_Shop_3": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_1",
+"R": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_2"
+},
+"5_Floor_Modular_Building/Ground_Floor_Bait_Shop_4": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_1",
+"R": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_2"
+},
+"5_Floor_Modular_Building/Ground_Floor_Bait_Shop_5": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_1",
+"R": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_2"
+},
+"5_Floor_Modular_Building/Ground_Floor_Bait_Shop_6": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_1",
+"R": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_2"
+},
+"5_Floor_Modular_Building/Ground_Floor_Bait_Shop_7": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_3",
+"R": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_4"
+},
+"5_Floor_Modular_Building/Ground_Floor_Bait_Shop_8": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_3",
+"R": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_4"
+},
+"5_Floor_Modular_Building/Ground_Floor_Bait_Shop_9": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_3",
+"R": "5_Floor_Modular_Building/Ground_Floor_Bait_Shop_Modular_4"
+},
+"5_Floor_Modular_Building/Ground_Floor_Bakery_1": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Bakery_Modular_1",
+"R": "5_Floor_Modular_Building/Ground_Floor_Bakery_Modular_2"
+},
+"5_Floor_Modular_Building/Ground_Floor_Bakery_10": {
+"L": null,
+"R": null
+},
+"5_Floor_Modular_Building/Ground_Floor_Bakery_11": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Bakery_Modular_5",
+"R": "5_Floor_Modular_Building/Ground_Floor_Bakery_Modular_6"
+},
+"5_Floor_Modular_Building/Ground_Floor_Bakery_12": {
+"L": null,
+"R": null
+},
+"5_Floor_Modular_Building/Ground_Floor_Bakery_2": {
+"L": null,
+"R": null
+},
+"5_Floor_Modular_Building/Ground_Floor_Bakery_3": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Bakery_Modular_1",
+"R": "5_Floor_Modular_Building/Ground_Floor_Bakery_Modular_2"
+},
+"5_Floor_Modular_Building/Ground_Floor_Bakery_4": {
+"L": null,
+"R": null
+},
+"5_Floor_Modular_Building/Ground_Floor_Bakery_5": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Bakery_Modular_3",
+"R": "5_Floor_Modular_Building/Ground_Floor_Bakery_Modular_4"
+},
+"5_Floor_Modular_Building/Ground_Floor_Bakery_6": {
+"L": null,
+"R": null
+},
+"5_Floor_Modular_Building/Ground_Floor_Bakery_7": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Bakery_Modular_3",
+"R": "5_Floor_Modular_Building/Ground_Floor_Bakery_Modular_4"
+},
+"5_Floor_Modular_Building/Ground_Floor_Bakery_8": {
+"L": null,
+"R": null
+},
+"5_Floor_Modular_Building/Ground_Floor_Bakery_9": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Bakery_Modular_5",
+"R": "5_Floor_Modular_Building/Ground_Floor_Bakery_Modular_6"
+},
+"5_Floor_Modular_Building/Ground_Floor_Butchery_1": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Butchery_Modular_1",
+"R": "5_Floor_Modular_Building/Ground_Floor_Butchery_Modular_2"
+},
+"5_Floor_Modular_Building/Ground_Floor_Butchery_10": {
+"L": null,
+"R": null
+},
+"5_Floor_Modular_Building/Ground_Floor_Butchery_11": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Butchery_Modular_5",
+"R": "5_Floor_Modular_Building/Ground_Floor_Butchery_Modular_6"
+},
+"5_Floor_Modular_Building/Ground_Floor_Butchery_12": {
+"L": null,
+"R": null
+},
+"5_Floor_Modular_Building/Ground_Floor_Butchery_2": {
+"L": null,
+"R": null
+},
+"5_Floor_Modular_Building/Ground_Floor_Butchery_3": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Butchery_Modular_1",
+"R": "5_Floor_Modular_Building/Ground_Floor_Butchery_Modular_2"
+},
+"5_Floor_Modular_Building/Ground_Floor_Butchery_4": {
+"L": null,
+"R": null
+},
+"5_Floor_Modular_Building/Ground_Floor_Butchery_5": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Butchery_Modular_3",
+"R": "5_Floor_Modular_Building/Ground_Floor_Butchery_Modular_4"
+},
+"5_Floor_Modular_Building/Ground_Floor_Butchery_6": {
+"L": null,
+"R": null
+},
+"5_Floor_Modular_Building/Ground_Floor_Butchery_7": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Butchery_Modular_3",
+"R": "5_Floor_Modular_Building/Ground_Floor_Butchery_Modular_4"
+},
+"5_Floor_Modular_Building/Ground_Floor_Butchery_8": {
+"L": null,
+"R": null
+},
+"5_Floor_Modular_Building/Ground_Floor_Butchery_9": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Butchery_Modular_5",
+"R": "5_Floor_Modular_Building/Ground_Floor_Butchery_Modular_6"
+},
+"5_Floor_Modular_Building/Ground_Floor_Condo_1": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Condo_Modular_1",
+"R": "5_Floor_Modular_Building/Ground_Floor_Condo_Modular_2"
+},
+"5_Floor_Modular_Building/Ground_Floor_Condo_10": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Condo_Modular_19",
+"R": "5_Floor_Modular_Building/Ground_Floor_Condo_Modular_20"
+},
+"5_Floor_Modular_Building/Ground_Floor_Condo_11": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Condo_Modular_21",
+"R": "5_Floor_Modular_Building/Ground_Floor_Condo_Modular_22"
+},
+"5_Floor_Modular_Building/Ground_Floor_Condo_12": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Condo_Modular_23",
+"R": "5_Floor_Modular_Building/Ground_Floor_Condo_Modular_24"
+},
+"5_Floor_Modular_Building/Ground_Floor_Condo_2": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Condo_Modular_3",
+"R": "5_Floor_Modular_Building/Ground_Floor_Condo_Modular_4"
+},
+"5_Floor_Modular_Building/Ground_Floor_Condo_3": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Condo_Modular_5",
+"R": "5_Floor_Modular_Building/Ground_Floor_Condo_Modular_6"
+},
+"5_Floor_Modular_Building/Ground_Floor_Condo_4": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Condo_Modular_7",
+"R": "5_Floor_Modular_Building/Ground_Floor_Condo_Modular_8"
+},
+"5_Floor_Modular_Building/Ground_Floor_Condo_5": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Condo_Modular_9",
+"R": "5_Floor_Modular_Building/Ground_Floor_Condo_Modular_10"
+},
+"5_Floor_Modular_Building/Ground_Floor_Condo_6": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Condo_Modular_11",
+"R": "5_Floor_Modular_Building/Ground_Floor_Condo_Modular_12"
+},
+"5_Floor_Modular_Building/Ground_Floor_Condo_7": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Condo_Modular_13",
+"R": "5_Floor_Modular_Building/Ground_Floor_Condo_Modular_14"
+},
+"5_Floor_Modular_Building/Ground_Floor_Condo_8": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Condo_Modular_15",
+"R": "5_Floor_Modular_Building/Ground_Floor_Condo_Modular_16"
+},
+"5_Floor_Modular_Building/Ground_Floor_Condo_9": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Condo_Modular_17",
+"R": "5_Floor_Modular_Building/Ground_Floor_Condo_Modular_18"
+},
+"5_Floor_Modular_Building/Ground_Floor_Gun_Store_1": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Gun_Store_Modular_1",
+"R": "5_Floor_Modular_Building/Ground_Floor_Gun_Store_Modular_2"
+},
+"5_Floor_Modular_Building/Ground_Floor_Gun_Store_2": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Gun_Store_Modular_3",
+"R": "5_Floor_Modular_Building/Ground_Floor_Gun_Store_Modular_4"
+},
+"5_Floor_Modular_Building/Ground_Floor_Gun_Store_3": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Gun_Store_Modular_5",
+"R": "5_Floor_Modular_Building/Ground_Floor_Gun_Store_Modular_6"
+},
+"5_Floor_Modular_Building/Ground_Floor_Gym_1": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Gym_Modular_1",
+"R": "5_Floor_Modular_Building/Ground_Floor_Gym_Modular_2"
+},
+"5_Floor_Modular_Building/Ground_Floor_Gym_10": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Gym_Modular_5",
+"R": "5_Floor_Modular_Building/Ground_Floor_Gym_Modular_6"
+},
+"5_Floor_Modular_Building/Ground_Floor_Gym_11": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Gym_Modular_5",
+"R": "5_Floor_Modular_Building/Ground_Floor_Gym_Modular_6"
+},
+"5_Floor_Modular_Building/Ground_Floor_Gym_12": {
+"L": null,
+"R": null
+},
+"5_Floor_Modular_Building/Ground_Floor_Gym_2": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Gym_Modular_1",
+"R": "5_Floor_Modular_Building/Ground_Floor_Gym_Modular_2"
+},
+"5_Floor_Modular_Building/Ground_Floor_Gym_3": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Gym_Modular_1",
+"R": "5_Floor_Modular_Building/Ground_Floor_Gym_Modular_2"
+},
+"5_Floor_Modular_Building/Ground_Floor_Gym_4": {
+"L": null,
+"R": null
+},
+"5_Floor_Modular_Building/Ground_Floor_Gym_5": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Gym_Modular_3",
+"R": "5_Floor_Modular_Building/Ground_Floor_Gym_Modular_4"
+},
+"5_Floor_Modular_Building/Ground_Floor_Gym_6": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Gym_Modular_3",
+"R": "5_Floor_Modular_Building/Ground_Floor_Gym_Modular_4"
+},
+"5_Floor_Modular_Building/Ground_Floor_Gym_7": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Gym_Modular_3",
+"R": "5_Floor_Modular_Building/Ground_Floor_Gym_Modular_4"
+},
+"5_Floor_Modular_Building/Ground_Floor_Gym_8": {
+"L": null,
+"R": null
+},
+"5_Floor_Modular_Building/Ground_Floor_Gym_9": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Gym_Modular_5",
+"R": "5_Floor_Modular_Building/Ground_Floor_Gym_Modular_6"
+},
+"5_Floor_Modular_Building/Ground_Floor_Ice_Cream_Shop_1": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Ice_Cream_Shop_Modular_1",
+"R": "5_Floor_Modular_Building/Ground_Floor_Ice_Cream_Shop_Modular_2"
+},
+"5_Floor_Modular_Building/Ground_Floor_Ice_Cream_Shop_2": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Ice_Cream_Shop_Modular_1",
+"R": "5_Floor_Modular_Building/Ground_Floor_Ice_Cream_Shop_Modular_2"
+},
+"5_Floor_Modular_Building/Ground_Floor_Ice_Cream_Shop_3": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Ice_Cream_Shop_Modular_3",
+"R": "5_Floor_Modular_Building/Ground_Floor_Ice_Cream_Shop_Modular_4"
+},
+"5_Floor_Modular_Building/Ground_Floor_Ice_Cream_Shop_4": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Ice_Cream_Shop_Modular_3",
+"R": "5_Floor_Modular_Building/Ground_Floor_Ice_Cream_Shop_Modular_4"
+},
+"5_Floor_Modular_Building/Ground_Floor_Ice_Cream_Shop_5": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Ice_Cream_Shop_Modular_5",
+"R": "5_Floor_Modular_Building/Ground_Floor_Ice_Cream_Shop_Modular_6"
+},
+"5_Floor_Modular_Building/Ground_Floor_Ice_Cream_Shop_6": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Ice_Cream_Shop_Modular_5",
+"R": "5_Floor_Modular_Building/Ground_Floor_Ice_Cream_Shop_Modular_6"
+},
+"5_Floor_Modular_Building/Ground_Floor_Music_Store_1": {
+"L": null,
+"R": null
+},
+"5_Floor_Modular_Building/Ground_Floor_Music_Store_10": {
+"L": null,
+"R": null
+},
+"5_Floor_Modular_Building/Ground_Floor_Music_Store_11": {
+"L": null,
+"R": null
+},
+"5_Floor_Modular_Building/Ground_Floor_Music_Store_12": {
+"L": null,
+"R": null
+},
+"5_Floor_Modular_Building/Ground_Floor_Music_Store_2": {
+"L": null,
+"R": null
+},
+"5_Floor_Modular_Building/Ground_Floor_Music_Store_3": {
+"L": null,
+"R": null
+},
+"5_Floor_Modular_Building/Ground_Floor_Music_Store_4": {
+"L": null,
+"R": null
+},
+"5_Floor_Modular_Building/Ground_Floor_Music_Store_7": {
+"L": null,
+"R": null
+},
+"5_Floor_Modular_Building/Ground_Floor_Music_Store_8": {
+"L": null,
+"R": null
+},
+"5_Floor_Modular_Building/Ground_Floor_Music_Store_9": {
+"L": null,
+"R": null
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_1": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_1",
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_3"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_10": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_6",
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_4"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_11": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_11",
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_3"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_12": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_6",
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_4"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_13": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_13",
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_15"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_14": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_18",
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_16"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_15": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_17",
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_15"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_16": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_18",
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_16"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_17": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_19",
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_15"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_18": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_18",
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_16"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_19": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_21",
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_15"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_2": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_6",
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_4"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_20": {
+"L": null,
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_16"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_21": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_13",
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_15"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_22": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_18",
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_16"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_23": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_23",
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_15"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_24": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_18",
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_16"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_25": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_25",
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_27"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_26": {
+"L": null,
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_28"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_27": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_29",
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_27"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_28": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_30",
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_28"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_29": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_31",
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_27"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_3": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_5",
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_3"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_30": {
+"L": null,
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_28"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_31": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_33",
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_27"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_32": {
+"L": null,
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_28"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_33": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_25",
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_27"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_34": {
+"L": null,
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_28"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_35": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_35",
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_27"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_36": {
+"L": null,
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_28"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_4": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_6",
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_4"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_5": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_7",
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_3"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_6": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_6",
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_4"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_7": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_9",
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_3"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_8": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_6",
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_4"
+},
+"5_Floor_Modular_Building/Ground_Floor_Shop_9": {
+"L": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_1",
+"R": "5_Floor_Modular_Building/Ground_Floor_Shop_Modular_3"
+},
+"5_Floor_Modular_Building/Middle_Floor_1": {
+"L": "5_Floor_Modular_Building/Middle_Floor_Modular_1",
+"R": "5_Floor_Modular_Building/Middle_Floor_Modular_2"
+},
+"5_Floor_Modular_Building/Middle_Floor_10": {
+"L": "5_Floor_Modular_Building/Middle_Floor_Modular_17",
+"R": "5_Floor_Modular_Building/Middle_Floor_Modular_18"
+},
+"5_Floor_Modular_Building/Middle_Floor_11": {
+"L": "5_Floor_Modular_Building/Middle_Floor_Modular_19",
+"R": "5_Floor_Modular_Building/Middle_Floor_Modular_20"
+},
+"5_Floor_Modular_Building/Middle_Floor_12": {
+"L": null,
+"R": null
+},
+"5_Floor_Modular_Building/Middle_Floor_13": {
+"L": "5_Floor_Modular_Building/Middle_Floor_Modular_21",
+"R": "5_Floor_Modular_Building/Middle_Floor_Modular_22"
+},
+"5_Floor_Modular_Building/Middle_Floor_14": {
+"L": "5_Floor_Modular_Building/Middle_Floor_Modular_23",
+"R": "5_Floor_Modular_Building/Middle_Floor_Modular_24"
+},
+"5_Floor_Modular_Building/Middle_Floor_15": {
+"L": "5_Floor_Modular_Building/Middle_Floor_Modular_25",
+"R": "5_Floor_Modular_Building/Middle_Floor_Modular_26"
+},
+"5_Floor_Modular_Building/Middle_Floor_16": {
+"L": "5_Floor_Modular_Building/Middle_Floor_Modular_27",
+"R": "5_Floor_Modular_Building/Middle_Floor_Modular_28"
+},
+"5_Floor_Modular_Building/Middle_Floor_17": {
+"L": "5_Floor_Modular_Building/Middle_Floor_Modular_29",
+"R": "5_Floor_Modular_Building/Middle_Floor_Modular_30"
+},
+"5_Floor_Modular_Building/Middle_Floor_18": {
+"L": null,
+"R": null
+},
+"5_Floor_Modular_Building/Middle_Floor_2": {
+"L": "5_Floor_Modular_Building/Middle_Floor_Modular_3",
+"R": "5_Floor_Modular_Building/Middle_Floor_Modular_4"
+},
+"5_Floor_Modular_Building/Middle_Floor_3": {
+"L": "5_Floor_Modular_Building/Middle_Floor_Modular_5",
+"R": "5_Floor_Modular_Building/Middle_Floor_Modular_6"
+},
+"5_Floor_Modular_Building/Middle_Floor_4": {
+"L": "5_Floor_Modular_Building/Middle_Floor_Modular_7",
+"R": "5_Floor_Modular_Building/Middle_Floor_Modular_8"
+},
+"5_Floor_Modular_Building/Middle_Floor_5": {
+"L": "5_Floor_Modular_Building/Middle_Floor_Modular_9",
+"R": "5_Floor_Modular_Building/Middle_Floor_Modular_10"
+},
+"5_Floor_Modular_Building/Middle_Floor_6": {
+"L": null,
+"R": null
+},
+"5_Floor_Modular_Building/Middle_Floor_7": {
+"L": "5_Floor_Modular_Building/Middle_Floor_Modular_11",
+"R": "5_Floor_Modular_Building/Middle_Floor_Modular_12"
+},
+"5_Floor_Modular_Building/Middle_Floor_8": {
+"L": "5_Floor_Modular_Building/Middle_Floor_Modular_13",
+"R": "5_Floor_Modular_Building/Middle_Floor_Modular_14"
+},
+"5_Floor_Modular_Building/Middle_Floor_9": {
+"L": "5_Floor_Modular_Building/Middle_Floor_Modular_15",
+"R": "5_Floor_Modular_Building/Middle_Floor_Modular_16"
+},
+"5_Floor_Modular_Building/Roof_1": {
+"L": "5_Floor_Modular_Building/Roof_Modular_1",
+"R": "5_Floor_Modular_Building/Roof_Modular_2"
+},
+"5_Floor_Modular_Building/Roof_10": {
+"L": "5_Floor_Modular_Building/Roof_Modular_12",
+"R": "5_Floor_Modular_Building/Roof_Modular_13"
+},
+"5_Floor_Modular_Building/Roof_11": {
+"L": null,
+"R": null
+},
+"5_Floor_Modular_Building/Roof_2": {
+"L": "5_Floor_Modular_Building/Roof_Modular_3",
+"R": "5_Floor_Modular_Building/Roof_Modular_3"
+},
+"5_Floor_Modular_Building/Roof_3": {
+"L": "5_Floor_Modular_Building/Roof_Modular_4",
+"R": "5_Floor_Modular_Building/Roof_Modular_5"
+},
+"5_Floor_Modular_Building/Roof_4": {
+"L": "5_Floor_Modular_Building/Roof_Modular_6",
+"R": "5_Floor_Modular_Building/Roof_Modular_6"
+},
+"5_Floor_Modular_Building/Roof_5": {
+"L": "5_Floor_Modular_Building/Roof_Modular_7",
+"R": "5_Floor_Modular_Building/Roof_Modular_8"
+},
+"5_Floor_Modular_Building/Roof_6": {
+"L": "5_Floor_Modular_Building/Roof_Modular_9",
+"R": "5_Floor_Modular_Building/Roof_Modular_9"
+},
+"5_Floor_Modular_Building/Roof_7": {
+"L": "5_Floor_Modular_Building/Roof_Modular_10",
+"R": "5_Floor_Modular_Building/Roof_Modular_11"
+},
+"5_Floor_Modular_Building/Roof_8": {
+"L": null,
+"R": null
+},
+"5_Floor_Modular_Building/Roof_9": {
+"L": null,
+"R": null
+}
+}

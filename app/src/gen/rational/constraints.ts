@@ -1,5 +1,5 @@
 // Stage 5: declarative constraint list. Each entry = a rule kind from a small vocabulary + parameters.
-// The list is data: docs/CONSTRAINTS.md is generated from it (scripts/constraints.ts doc), and the user decides
+// The list is data: docs/reports/CONSTRAINTS.md is generated from it (scripts/constraints.ts doc), and the user decides
 // per entry whether it is active, how severe it is and what the repair does.
 //
 // status: draft (measured and shown, never repairs) | active (repairs when pruning is on) | off (ignored)

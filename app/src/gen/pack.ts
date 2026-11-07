@@ -9,6 +9,7 @@
 // its footprint; its own upper floors may then hang over the north sidewalk / street (or off the picture).
 import { Rng } from './rng';
 import { pickBuilding, modularStack, type BuildingPlan, type FrontKind } from './buildings';
+import { terraceSection, condoBays, terracedRow } from './terrace';
 
 export interface PackOpts {
   cols: number; rows: number;
@@ -27,9 +28,13 @@ export interface PackOpts {
   pairChance?: number;
   /** slide the buildings behind other buildings north until their footprint reaches the lot's north edge (D51) */
   spread?: boolean;
+  /** exp-04: buildings put together from parts, proposed on the experiment's own stream with chance p per occasion;
+   *  buildings placed as one run (terrace sections, the D15 pair) then move together in `spread` */
+  composite?: { r: Rng; p: number };
 }
 
-export interface Packed { plan: BuildingPlan; cx: number; cy: number; why: string; /** rows slid north by `spread` */ moved?: number }
+export interface Packed { plan: BuildingPlan; cx: number; cy: number; why: string; /** rows slid north by `spread` */ moved?: number;
+  /** exp-04: buildings placed side by side as one run (id of the first) */ run?: string }
 
 export function pack(o: PackOpts, r: Rng): { placed: Packed[]; yard: boolean[][] } {
   const { cols, rows } = o;
@@ -79,10 +84,19 @@ export function pack(o: PackOpts, r: Rng): { placed: Packed[]; yard: boolean[][]
         }
       }
       if (!bp) { yard[yS][x] = inside(x, yS); free[yS][x] = false; x++; continue; }
+      let note = '';
+      if (o.composite) {
+        // exp-04: the picked single building gives way to one put together from parts (same kind of front)
+        const c = composed(o.composite, bp, rem, avail, o.minH ?? 8);
+        const allowC = c && o.frontFilter ? o.frontFilter(x, c.plan.w, yS) : null;
+        if (c && fits(c.plan, x, yS) && (!allowC || allowC.includes(c.plan.front))) { bp = c.plan; note = `；${c.why}`; }
+      }
       const allowed = o.frontFilter ? o.frontFilter(x, bp.w, yS) : null;
-      placed.push({ plan: bp, cx: x, cy: yS - bp.h + 1, why: `打包：第 ${yS} 行是最低的空行，放在空段 ${a}–${b - 1} 的 x=${x} 处，底边对齐；${!o.frontFilter ? '' : allowed ? '立面不临街 → 只能是住宅；' : '立面临街 → 可为店铺；'}可用高度 ${avail} 格` });
+      const first: Packed = { plan: bp, cx: x, cy: yS - bp.h + 1, why: `打包：第 ${yS} 行是最低的空行，放在空段 ${a}–${b - 1} 的 x=${x} 处，底边对齐；${!o.frontFilter ? '' : allowed ? '立面不临街 → 只能是住宅；' : '立面临街 → 可为店铺；'}可用高度 ${avail} 格${note}` };
+      placed.push(first);
       mark(bp, x, yS);
       x += bp.w;
+      let last = bp, sections = 1;
       // continuous facade: a second modular stack in the same colourway right next to it
       const m = bp.label.split('/');
       if (m.length === 3 && r.choose('pack.pair', {}, { p: o.pairChance ?? 0.35 })) {
@@ -90,8 +104,27 @@ export function pack(o: PackOpts, r: Rng): { placed: Packed[]; yard: boolean[][]
         const mk = r.mark();
         const b2 = modularStack(r, { colour: m[1] as 'red' | 'blue' | 'grey', floors: +m[2][0], avoidFamily: m[0] });
         const allow2 = o.frontFilter ? o.frontFilter(x, b2.w, yS) : null;
-        if (b2.h === bp.h && fits(b2, x, yS) && (!allow2 || allow2.includes(b2.front))) { placed.push({ plan: b2, cx: x, cy: yS - b2.h + 1, why: `连续立面：紧接 ${bp.id}（${bp.label}），同色同高，但底商换一家（D15）` }); mark(b2, x, yS); x += b2.w; }
+        if (b2.h === bp.h && fits(b2, x, yS) && (!allow2 || allow2.includes(b2.front))) {
+          placed.push({ plan: b2, cx: x, cy: yS - b2.h + 1, why: `连续立面：紧接 ${bp.id}（${bp.label}），同色同高，但底商换一家（D15）`, ...(o.composite ? { run: bp.id } : {}) });
+          mark(b2, x, yS); x += b2.w; last = b2; sections++; if (o.composite) first.run = bp.id;
+        }
         else r.reject(mk, 'building:pair');
+      }
+      // exp-04: the floor-modular building grows into a terrace of up to 3 sections (own storefronts, one colourway)
+      const cr = o.composite?.r;
+      if (cr && m.length === 3 && sections < 3 && cr.choose('terrace.grow', { sections }, { p: o.composite!.p })) {
+        const want = sections === 1 ? cr.choose('terrace.more', {}, [1, 2]) : 1;
+        for (let i = 0; i < want; i++) {
+          const f0 = +last.label.split('/')[2][0];
+          const floors = cr.choose('terrace.floors', { f0 }, { weights: [[f0, 2], [Math.max(0, f0 - 1), 1], [Math.min(3, f0 + 1), 1]] as const });
+          const allow3 = o.frontFilter ? o.frontFilter(x, 7, yS) : null;
+          const s3 = terraceSection(cr, last, { floors, avoidFamily: last.label.split('/')[0], front: allow3 ? 'condo' : undefined });
+          if (!s3 || !fits(s3, x, yS) || (allow3 && !allow3.includes(s3.front))) break;
+          placed.push({ plan: s3, cx: x, cy: yS - s3.h + 1, run: bp.id,
+            why: `拼接楼：${bp.id} 的第 ${sections + 1} 段，紧接 ${last.id}（${last.label}），同一色系、${floors === f0 ? '同高' : floors > f0 ? '高一层' : '矮一层'}，底商换一家` });
+          first.run = bp.id;
+          mark(s3, x, yS); x += s3.w; last = s3; sections++;
+        }
       }
       const gap = r.choose('pack.gap', {}, { weights: o.gapAfter ?? [[0, 5], [1, 2], [2, 1]] });
       for (let g = 0; g < gap && x < b; g++, x++) { yard[yS][x] = true; free[yS][x] = false; }
@@ -101,6 +134,28 @@ export function pack(o: PackOpts, r: Rng): { placed: Packed[]; yard: boolean[][]
   // free cells left over are yard too
   for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) if (free[y][x]) yard[y][x] = true;
   return { placed, yard };
+}
+
+/** exp-04: a building put together from parts in place of `bp` (same kind of front), or null */
+function composed(c: { r: Rng; p: number }, bp: BuildingPlan, rem: number, avail: number, minH: number): { plan: BuildingPlan; why: string } | null {
+  const single = bp.parts.length === 1 && bp.parts[0].role === 'whole';
+  if (!single) return null;
+  if ((bp.front !== 'condo' && bp.front !== 'house') || !c.r.choose('composite.swap', { front: bp.front }, { p: c.p })) return null;
+  // residential either way: condo bays (Condo_1/2) or a row of terraced houses
+  const kinds = [...(bp.front === 'condo' && bp.w % 2 === 0 && bp.w <= 12 ? [['bays', 3] as const] : []), ...(rem >= 20 ? [['row', 1] as const] : [])];
+  if (!kinds.length) return null;
+  if (c.r.choose('composite.kind', { front: bp.front }, { weights: kinds }) === 'bays') {
+    // mostly the same width (the packing stays as it was), sometimes one to three middle bays more where the run allows
+    const ws = [0, 2, 4, 6].map(d => bp.w + d).filter(w => w <= Math.min(rem, 12));
+    const w = c.r.choose('condoBays.width', { w: bp.w }, { weights: ws.map((x, i) => [x, i ? 1 : 3] as const) });
+    const p = condoBays(c.r, w, avail);
+    if (p && p.h >= minH) return { plan: p, why: `拼接楼：原本抽到 ${bp.label}（${bp.w} 格宽），换成${w === bp.w ? '同宽' : ` ${w} 格宽`}的分段公寓（左段带门 + ${(w - 4) / 2} 个中段 + 右端头）` };
+    return null;
+  }
+  const n = rem >= 30 ? c.r.choose('terracedRow.n', {}, [2, 3]) : 2;
+  const p = terracedRow(c.r, n, avail);
+  if (p && p.h >= minH) return { plan: p, why: `拼接楼：原本抽到 ${bp.label}，换成 ${n} 户相连的联排住宅（Terraced_House_Modular）` };
+  return null;
 }
 
 /** `spread`: northmost first, each building that has a building in front (overlapping columns, further south) slides
@@ -127,14 +182,18 @@ function spreadNorth(o: PackOpts, placed: Packed[], bld: boolean[][], free: bool
     const allow = o.frontFilter?.(x0, b.w, bot);
     return !allow || allow.includes(b.front);
   };
+  const done = new Set<Packed>();
   for (const p of [...placed].sort((a, b) => bottom(a) - bottom(b))) {
-    const behind = placed.some(q => q !== p && bottom(q) > bottom(p) && q.cx < p.cx + p.plan.w && p.cx < q.cx + q.plan.w);
+    if (done.has(p)) continue;
+    // exp-04: a run (terrace sections, pair) moves as one, so it stays linked
+    const unit = p.run ? placed.filter(q => q.run === p.run) : [p];
+    unit.forEach(q => done.add(q));
+    const behind = unit.some(u => placed.some(q => !unit.includes(q) && bottom(q) > bottom(u) && q.cx < u.cx + u.plan.w && u.cx < q.cx + q.plan.w));
     if (!behind) continue;
-    set(p, false);
-    let bot = bottom(p);
-    while (fitsAt(p, bot - 1)) bot--;
-    const d = bottom(p) - bot;
-    if (d > 0) { p.cy -= d; p.moved = d; p.why += `；前后排拉开：前面有楼，整栋向北推了 ${d} 行（占地推到不能再推，楼上层可以伸出地块）`; }
-    set(p, true);
+    unit.forEach(u => set(u, false));
+    let d = 0;
+    while (unit.every(u => fitsAt(u, bottom(u) - d - 1))) d++;
+    for (const u of unit) if (d > 0) { u.cy -= d; u.moved = d; u.why += `；前后排拉开：前面有楼，整栋${unit.length > 1 ? `（连同相连的 ${unit.length - 1} 栋）` : ''}向北推了 ${d} 行（占地推到不能再推，楼上层可以伸出地块）`; }
+    unit.forEach(u => set(u, true));
   }
 }

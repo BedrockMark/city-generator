@@ -1,0 +1,81 @@
+{
+ "version": "0.7.1",
+ "seed": "731886",
+ "options": {
+  "novelty": 0.1,
+  "experiments": true,
+  "exp": {
+   "exp-02": false
+  },
+  "prune": true,
+  "pruneDraft": false,
+  "prefs": true
+ },
+ "novelty": 0.1,
+ "created": "2026-11-06T01:08:05.176Z",
+ "kind": "auto",
+ "changes": [
+  {
+   "stream": "cars/carsS396496",
+   "label": "cars.parked",
+   "k": 0,
+   "ctx": {
+    "main": true
+   },
+   "a": "true",
+   "b": "false",
+   "rect": {
+    "x0": 520,
+    "y0": 374,
+    "x1": 600,
+    "y1": 438
+   },
+   "answer": "a"
+  },
+  {
+   "stream": "nfronts/b21836",
+   "label": "front.side",
+   "k": 0,
+   "a": "true",
+   "b": "false",
+   "rect": {
+    "x0": 76,
+    "y0": 66,
+    "x1": 108,
+    "y1": 114
+   },
+   "answer": "same"
+  },
+  {
+   "stream": "yard/garden29,17",
+   "label": "garden.benchModel",
+   "k": 0,
+   "ctx": {
+    "faces": "right"
+   },
+   "a": "3_City_Props/Bench_4",
+   "b": "3_City_Props/Bench_6",
+   "rect": {
+    "x0": 552,
+    "y0": 276,
+    "x1": 584,
+    "y1": 340
+   },
+   "answer": "b"
+  },
+  {
+   "stream": "island/island5",
+   "label": "island.sideTree",
+   "k": 1,
+   "a": "false",
+   "b": "true",
+   "rect": {
+    "x0": 611,
+    "y0": 508,
+    "x1": 683,
+    "y1": 563
+   },
+   "answer": "a"
+  }
+ ]
+}

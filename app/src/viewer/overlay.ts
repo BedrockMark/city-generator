@@ -136,7 +136,8 @@ export function drawOverlay(ctx: CanvasRenderingContext2D, sc: Scene, v: View, s
   // ---- groups ----
   if (st.layers.groups) {
     for (const g of sc.groups ?? []) {
-      if (!g.bbox || !g.members.length || st.hiddenTypes.has(g.type) || g.type === 'bld') continue;
+      // buildings get no group box, except experimental ones
+      if (!g.bbox || !g.members.length || st.hiddenTypes.has(g.type) || (g.type === 'bld' && !g.exp)) continue;
       const c = typeColor(g.type);
       const r = { x0: g.bbox.x0 - 1, y0: g.bbox.y0 - 1, x1: g.bbox.x1 + 1, y1: g.bbox.y1 + 1 };
       if (g.exp) { box(r, EXP_COLOR, 3, [8, 4]); tag(`实验 ${g.exp}`, X(r.x0), Y(r.y0), EXP_COLOR, '#fff'); }

@@ -9,7 +9,8 @@ import { explainGround } from './explain';
 import { curbRuns, reserveWalkways, crossingVignettes, curbStrips, frontVignettes, zoneVignettes, islandSquares, busStop, cars, roadDetails, walkers } from './vignettes';
 import { yardSpaces } from './yard';
 import { SHEETS, TILE, type Scene, type GenOptions } from './types';
-import { withDefaults, expFires, expEnabled } from './exp';
+import { withDefaults, expFires, expEnabled, compositeChance } from './exp';
+import { linkBuildings, EXP04 } from './terrace';
 import { rooftopAC } from './rooftop';
 import { rationalize } from './rational/rationalize';
 import { alignScene } from './judge/align';
@@ -19,7 +20,7 @@ import { makeAdjust } from './learn/adjust';
 import { PREFS } from './learn/prefs';
 import { markNovel } from './learn/novelty';
 
-export const VERSION = '0.7.1';
+export const VERSION = '0.7.2';
 
 export function generate(seed: string, options: Partial<GenOptions> = {}, onProgress?: (n: number, N: number) => void): Scene {
   const opts = withDefaults(options);
@@ -45,8 +46,12 @@ export function generateBase(seed: string, opts: GenOptions): Scene {
   const rng = new Rng(seed, trace);
   const L = makeLayout(rng);
   const sb = new SceneBuilder(L.cols, L.rows, L.cls);
-  const main = planMainBlock(L, rng, expEnabled(opts, 'exp-03'));
-  const neigh = planNeighbours(L, rng);
+  // exp-04: composite buildings on its own stream; touching neighbours switch to their linked state (no random numbers)
+  const e04 = expFires(opts, EXP04, rng);
+  const composite = e04 ? { r: e04, p: compositeChance(opts.novelty) } : undefined;
+  const main = planMainBlock(L, rng, expEnabled(opts, 'exp-03'), composite);
+  const neigh = planNeighbours(L, rng, composite);
+  if (e04) linkBuildings([main, neigh]);
   sb.inStream('block', () => emitBuildings(L, main, sb, 'main'));
   sb.inStream('neigh', () => emitBuildings(L, neigh, sb, 'neigh'));
   const e01 = expFires(opts, 'exp-01', rng);

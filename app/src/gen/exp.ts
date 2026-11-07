@@ -17,6 +17,8 @@ export interface Experiment {
   /** version it was adopted in; regenerating an older version (options.asOf) treats it as experimental, with the
    *  `default` it had then */
   adoptedIn?: string;
+  /** version it was registered in; regenerating an older version (options.asOf) runs without it */
+  addedIn?: string;
   fire?: (novelty: number) => number;
 }
 
@@ -33,7 +35,17 @@ export const EXPERIMENTS: Experiment[] = [
   // 2026-11-04: back rows packed tight against the front row hide behind its upper floors; slide them to the north end
   // 2026-11-04: adopted the same day (user): always on, no chance draw (NOTE D52); before 0.7.1 it did not exist (off)
   { id: 'exp-03', title: '前后排拉开：后排的楼推到最北', status: 'adopted', default: false, adoptedIn: '0.7.1' },
+  // 2026-11-05: few building looks; the packs draw seamless / linked replacement strips. Composite buildings (terrace
+  // sections, condo bays, terraced rows) and neighbours that touch switch to their linked state (terrace.ts)
+  // no `fire`: when on, touching neighbours always link; each composite occasion fires with compositeChance(novelty)
+  // 2026-11-06: adopted (user): always on (NOTE D54); keeps its own stream exp/exp-04 and compositeChance, so the picture
+  // is the one it made when switched on
+  { id: 'exp-04', title: '拼接楼：多段拼成的楼，相邻的楼自动换成链接版', status: 'adopted', default: true, addedIn: '0.7.2', adoptedIn: '0.7.2' },
 ];
+
+/** exp-04 (adopted): chance per occasion (a floor-modular building that may grow into a terrace, a condo / house that may be
+ *  put together from parts) */
+export const compositeChance = fireByNovelty(0.35);
 
 export const DEFAULT_OPTIONS: GenOptions = { novelty: 0.1, experiments: true, exp: {}, prune: true, pruneDraft: false, prefs: true };
 
@@ -48,6 +60,7 @@ const older = (a: string, b: string) => { const x = a.split('.').map(Number), y 
 export function expEnabled(o: GenOptions, id: string): boolean {
   const e = EXPERIMENTS.find(x => x.id === id);
   if (!e || e.status === 'retired') return false;
+  if (o.asOf && e.addedIn && older(o.asOf, e.addedIn)) return false;
   if (e.status === 'adopted' && !(o.asOf && e.adoptedIn && older(o.asOf, e.adoptedIn))) return true;
   return o.experiments && (o.exp[id] ?? e.default);
 }

@@ -1,28 +1,34 @@
 # 进度
 
 ## 当前状态（2026-11-04）
-- 阶段 1（分析，`docs/ANALYSIS.md`）和阶段 2（原型，v0.2.0）已完成。
+- 阶段 1（分析，`docs/reports/ANALYSIS.md`）和阶段 2（原型，v0.2.0）已完成。
 - 现在是迭代阶段，按版本号汇报。
   - 用户反馈是查看器里的好 / 坏标注（`references/labels/v<版本>/`）。文字评价 remarks 和反面案例 anti_references 已不再使用（D37）。
-  - 每版报告是 `docs/v<版本>.md`，截图在 `docs/v<版本>/`。
-- 过时的文件归档在 `docs/_prev/`（保持原目录结构）：`STAGE2.md`、`v0.3.0.md`、`v0.4.0.md` 及截图，`anti_references/`，`references/remarks/`。
-- 2026-11-01 用户更新了 `docs/BRIEF.md`：阶段 1–3 完成，新增阶段 4–7，迭代方式改为“标注 → 约束 / 评判 → 学习”。方法现状见 `docs/methodology.md`。
+  - 每版报告是 `docs/reports/v<版本>.md`，截图在 `docs/reports/v<版本>/`。
+- 文档布局（2026-11-05 整理）：
+  - `docs/` 根目录只放接续工作用的：`BRIEF.md`、`NOTE.md`、`PROGRESS.md`、`EXPERIMENTS.md`，以及 `superpowers/specs/`（阶段 6、7 的设计）。
+  - `docs/reports/`：写给用户的技术说明——`ANALYSIS.md`、`methodology.md`、由代码生成的 `CONSTRAINTS.md` / `JUDGE.md`（热力图在 `reports/judge/`）/ `PREFS.md`、`fig/`，以及还有待答复问题的最近版本报告（`v0.7.0.md`、`v0.7.1.md` 及截图）。新版本报告也写在这里；用户答复完、不再需要的旧报告移到 `_prev/`。
+  - `docs/_prev/`：只作记录的旧文件（保持原目录结构）：`STAGE2.md`、`v0.3.0`–`v0.6.1` 的报告及截图，`superpowers/plans/`（已执行完的计划），`anti_references/`，`references/remarks/`。
+- 2026-11-01 用户更新了 `docs/BRIEF.md`：阶段 1–3 完成，新增阶段 4–7，迭代方式改为“标注 → 约束 / 评判 → 学习”。方法现状见 `docs/reports/methodology.md`。
 - 阶段 4（v0.4.0）已确认（2026-11-02）：标注存放位置、预设标签、创新度默认 0.10 都可以。
-- 阶段 5（v0.5.0）已确认（2026-11-03，D39）：C01–C24 全部生效（C19、C23、C24 只报告）。约束清单在 `docs/CONSTRAINTS.md`（由代码生成）。
+- 阶段 5（v0.5.0）已确认（2026-11-03，D39）：C01–C24 全部生效（C19、C23、C24 只报告）。约束清单在 `docs/reports/CONSTRAINTS.md`（由代码生成）。
   - 用户在 2026-11-02 做了 26 条标注（`references/labels/v0.4.0/`），C17–C24 由这些标注而来；2026-11-03 在 v0.5.0 上又标了 4 条（`references/labels/v0.5.0/`）。
-- v0.5.1 已提交（2026-11-03，报告 `docs/v0.5.1.md`）：约束生效、C02 优先删树、exp-01 平顶空调外机、楼只有底层占地（D38）。用户确认保留“前排楼高层盖住后排楼 / 停车场”的效果。
+- v0.5.1 已提交（2026-11-03，报告 `docs/_prev/v0.5.1.md`）：约束生效、C02 优先删树、exp-01 平顶空调外机、楼只有底层占地（D38）。用户确认保留“前排楼高层盖住后排楼 / 停车场”的效果。
   - 打包改动让 200 个种子全部变化；旧标注大多指向旧布局里的物件，标注测试对这一版参考意义有限。
-- v0.6.0 已提交（2026-11-04，报告 `docs/v0.6.0.md`，评判器报告 `docs/JUDGE.md`）：阶段 6 局部评判器、热力图、exp-02 评判修复。
+- v0.6.0 已提交（2026-11-04，报告 `docs/_prev/v0.6.0.md`，评判器报告 `docs/reports/JUDGE.md`）：阶段 6 局部评判器、热力图、exp-02 评判修复。
 - 用户对 v0.6.0 的答复（2026-11-04）：局部修复改的东西意义不大，整体优化有用；权重表、被挡物件照算等其余都不变。阶段 6 视为完成，可以进入阶段 7。
-- v0.6.1 已提交（2026-11-04，报告 `docs/v0.6.1.md`，D45）：exp-02 = “整体修图”（只重新打包主街区，默认关，顶栏复选框），局部档删除，修了代码审查的问题。
+- v0.6.1 已提交（2026-11-04，报告 `docs/_prev/v0.6.1.md`，D45）：exp-02 = “整体修图”（只重新打包主街区，默认关，顶栏复选框），局部档删除，修了代码审查的问题。
 - 用户确认了阶段 7 的 spec（`docs/superpowers/specs/2026-11-04-stage7-learning-design.md`）。
-- **v0.7.0 已完成**（2026-11-04，分支 `stage7`，报告 `docs/v0.7.0.md`，D46–D50）：阶段 7 从选择中学习（局部 A/B、Bradley–Terry 偏好乘子）、创新度、实验转正 / 废弃的建议、“选择解决不了的问题”报告。**等用户**：核对乘子表（`docs/PREFS.md`）、做一些 A/B 题、选扩展方案（exp-03）、答复 `v0.7.0.md` 第 8 节的问题。
+- **v0.7.0 已完成**（2026-11-04，分支 `stage7`，报告 `docs/reports/v0.7.0.md`，D46–D50）：阶段 7 从选择中学习（局部 A/B、Bradley–Terry 偏好乘子）、创新度、实验转正 / 废弃的建议、“选择解决不了的问题”报告。**等用户**：核对乘子表（`docs/reports/PREFS.md`）、做一些 A/B 题、选扩展方案（exp-03）、答复 `v0.7.0.md` 第 8 节的问题。
   - 还没有任何 A/B 选择数据；乘子表只来自 16 条标注。
 - git：每个版本 commit 一次，并打 tag `v<版本>`。阶段 6 在分支 `stage6` 上做，阶段 7 在 `stage7`（从 `stage6` 分出）上做，确认后合并到 main。
-- 决策记录：`docs/NOTE.md`（D1–D52，D22 已删除）。实验功能登记：`docs/EXPERIMENTS.md`（exp-01、exp-03 已转正，exp-02 仍是实验）。
-- **v0.7.1**（2026-11-04，分支 `stage7`，报告 `docs/v0.7.1.md`，D51–D52）：exp-03 前后排拉开（后排楼的占地推到地块最北，楼上层可以伸出地块），用户看过后当天和 exp-01 一起转正，始终开启。179/200 个种子变化，C02 10 → 0，C18 56 → 3。
+- 决策记录：`docs/NOTE.md`（D1–D54，D22 已删除）。实验功能登记：`docs/EXPERIMENTS.md`（exp-01、exp-03、exp-04 已转正，exp-02 是实验）。
+- **v0.7.1**（2026-11-04，分支 `stage7`，报告 `docs/reports/v0.7.1.md`，D51–D52）：exp-03 前后排拉开（后排楼的占地推到地块最北，楼上层可以伸出地块），用户看过后当天和 exp-01 一起转正，始终开启。179/200 个种子变化，C02 10 → 0，C18 56 → 3。
   - 转正的实验带 `adoptedIn`；重新生成旧版本的标注时传 `asOf: <标注版本>`，转正之前的版本里它们按当时的开关运行（偏好学习因此还能复现 v0.5.1 的标注）。
   - v0.7.1 之前做的 A/B 选择（`references/choices/v0.7.0/`，17 个文件）用的是存下的场景，不受影响。
+- **v0.7.2**（2026-11-05，分支 `stage7`，报告 `docs/reports/v0.7.2.md`，D53–D54）：exp-04 拼接楼。多段联排模块楼、Condo_1/2 分段公寓、Terraced_House_Modular 联排住宅；紧挨的楼层模块楼自动换成链接条（`terrace.ts`，链接表 `data/links.json` 由 `tools/export_links.py` 生成）。关掉时 200/200 与 v0.7.1 相同；打开时 199/200 变化，约束和评判器基本不变。用户 2026-11-06 确认有效，**转正、始终开启**（D54），画面和转正前打开时 200/200 相同（`work/regress/v0.7.2`）。
+  - 顺手：`shots.ts` 窗口加宽到 1700（原来点不到导出按钮）；标注层给带实验标记的楼画框（以前楼的小组一律不画）。
+  - 扩展提议方案（`v0.7.0.md` 第 6 节）顺延为 exp-05。
 
 ## 怎么运行
 - 查看器：`cd app && npx vite`，然后打开 http://localhost:5173/?seed=7
@@ -42,10 +48,10 @@
   - `report <A> <B>`：画面变化、各约束违规与修复、标注测试；
   - `labels [--pd]`：只跑标注测试；
   - `explain`：检查解释覆盖率。
-  - 种子集在 `scripts/regression_seeds.json`（200 个，只增不改）。基线在 `work/regress/v0.3.0`、`v0.4.0`、`v0.5.0`、`v0.5.0-pd`、`v0.5.1`、`v0.6.0-off`（exp-02 关）、`v0.6.0`、`v0.6.0-global`、`v0.6.1b-off`、`v0.6.1b-on`（整体修图）、`v0.7.0`（默认）、`v0.7.0-n0`、`v0.7.0-n05`、`v0.7.0-n1`（创新度 0 / 0.5 / 1）、`v0.7.0-n0-l0`（创新度 0 + 偏好关）、`v0.7.1`（默认）（work/ 不进 git，丢了就从对应 tag 重建）。
+  - 种子集在 `scripts/regression_seeds.json`（200 个，只增不改）。基线在 `work/regress/v0.7.2`（默认，exp-04 已转正）、`exp04-on`、`exp04-off`（v0.7.2 开 / 关 exp-04）、`v0.3.0`、`v0.4.0`、`v0.5.0`、`v0.5.0-pd`、`v0.5.1`、`v0.6.0-off`（exp-02 关）、`v0.6.0`、`v0.6.0-global`、`v0.6.1b-off`、`v0.6.1b-on`（整体修图）、`v0.7.0`（默认）、`v0.7.0-n0`、`v0.7.0-n05`、`v0.7.0-n1`（创新度 0 / 0.5 / 1）、`v0.7.0-n0-l0`（创新度 0 + 偏好关）、`v0.7.1`（默认）（work/ 不进 git，丢了就从对应 tag 重建）。
   - `report` 的标注测试只跑 B 的模式。
-- 评判器：`cd app && npx tsx scripts/judge.ts train`（重训，写 `src/gen/data/judge.json`），`judge.ts eval`（写 `docs/JUDGE.md` 和热力图，要 `work/refworld`）。不同意的特征写进 `src/gen/judge/blacklist.json` 再重训。
-- 偏好（阶段 7）：`cd app && npx tsx scripts/prefs.ts train`（A/B 选择 + 标注 → `src/gen/data/prefs.json`），`prefs.ts eval`（写 `docs/PREFS.md`），`prefs.ts gaps`（选择解决不了的坏标注 → `work/gaps/gaps.md` 和截图）。不同意的条目写进 `src/gen/learn/blacklist.json`（`标签` 或 `标签|选项`）再重训。
+- 评判器：`cd app && npx tsx scripts/judge.ts train`（重训，写 `src/gen/data/judge.json`），`judge.ts eval`（写 `docs/reports/JUDGE.md` 和热力图，要 `work/refworld`）。不同意的特征写进 `src/gen/judge/blacklist.json` 再重训。
+- 偏好（阶段 7）：`cd app && npx tsx scripts/prefs.ts train`（A/B 选择 + 标注 → `src/gen/data/prefs.json`），`prefs.ts eval`（写 `docs/reports/PREFS.md`），`prefs.ts gaps`（选择解决不了的坏标注 → `work/gaps/gaps.md` 和截图）。不同意的条目写进 `src/gen/learn/blacklist.json`（`标签` 或 `标签|选项`）再重训。
 - A/B 出题检查：`npx tsx scripts/abcheck.ts 50`（每题的改动不溢出、不重叠；约 10 分钟）。
 - 实验证据：`npx tsx scripts/experiments.ts report`（写 `src/gen/data/experiments.json`，只给建议）。
 - 使用次数（创新度用）：`cd tools && uv run python export_usage.py`（参考图 + `references/holdout/` → `app/src/gen/data/usage.json`）。
@@ -56,7 +62,7 @@
 - Python 渲染：`cd tools && uv run python render_generated.py ../work/gen/scene_1.json --scale 1 [--ghost]`。注意：它会把 PNG 写在 json 旁边，可能覆盖同名文件。
 - 评估：`cd tools && uv run python eval_generated.py <scene.json ...> --out report.md`
 - Phaser 实拍：先启动 vite，再 `cd app && npx tsx scripts/shots.ts <outDir> [--anno] 2 3 5`（用系统自带的 Edge；--anno 额外截标注层）。
-- 素材元数据有变动时：`cd tools && uv run python export_manifest.py && uv run python export_opaque.py`，写入 `app/src/gen/data/`。
+- 素材元数据有变动时：`cd tools && uv run python export_manifest.py && uv run python export_opaque.py`，写入 `app/src/gen/data/`。链接条表（exp-04）：`uv run python export_links.py`。
 
 ## 代码结构（app/src/gen）
 - `rng.ts`：种子 RNG，`fork(label, ctx)` 派生独立的随机流；`choose / count / order / tex` 记录决策轨迹（D24）。
@@ -70,6 +76,7 @@
 - `vignettes.ts`：路缘段、通行带、红绿灯、路缘设施、店门、巷子、广场、小岛、公交站、车、井盖、行人。
 - `yard.ts`：内院逐块分配，包括停车场和车道、花园、楼前空地、过道、绿化带、杂物角。楼后的地面和别处一样（D38）。
 - `rooftop.ts`：exp-01，平顶屋顶上的空调外机。
+- `terrace.ts`：拼接楼（exp-04，已转正）（联排段、分段公寓、联排住宅）和相邻楼的链接（`linkBuildings`，在打包后、放置前调用）。
 - `signature.ts`：画面签名（回归对比和修复共用）。
 - `judge/`：阶段 6。`align.ts`（降到参考图的视力）、`features.ts`（窗口和特征）、`model.ts`（逻辑回归、打分）、`labelset.ts`（标注 → 窗口）、`repair.ts`（exp-02 整体修图：重新打包主街区）、`blacklist.json`。`generate()` = `generateBase()` + `judgeRepair()`。
 - `learn/`：阶段 7。`prefs.ts`（Bradley–Terry 训练和打分）、`adjust.ts`（偏好乘子和创新度系数挂到 `choose` 上）、`novelty.ts`（稀有度、`novel` 标记）、`ab.ts`（局部 A/B 出题和验证）、`diff.ts`（两张图的差异框）、`data.ts`（选择和标注 → 比较）、`expreport.ts`（实验证据）、`blacklist.json`。`rng.ts` 的 `opts.force` 是强制决策。
@@ -86,13 +93,14 @@
 
 ## 下一步
 - 等用户：
+  - 回答 `docs/reports/v0.7.2.md` 第 5 节的问题（拼接楼的量、音乐店色系、其余模块化素材）；
   - 做一些 A/B 题（B 键），然后 `prefs.ts train` + `eval`，看留出准确率（目标 ≥ 0.65）和乘子表；
-  - 核对 `docs/PREFS.md` 的乘子表；
-  - 从 `v0.7.0.md` 第 6 节选一个扩展提议空间的方案作为 exp-04（exp-03 已被“前后排拉开”占用，D51）；
+  - 核对 `docs/reports/PREFS.md` 的乘子表；
+  - 从 `v0.7.0.md` 第 6 节选一个扩展提议空间的方案作为 exp-05（exp-03、exp-04 已被占用，D51、D53）；
   - 是否要限制楼上层伸进北边马路（v0.7.1 报告第 3 节）；
   - 默认创新度 0.10 要不要保留（exp-01 已转正）。
 - `stage6`、`stage7` 分支都还没合并到 main。
-- 阶段 7 的计划和执行记录：`docs/superpowers/plans/2026-11-04-stage7-learning.md`；`.superpowers/sdd/2026-11-04-stage7-learning/progress.md`（git 忽略，含所有 Ruling）。阶段 6 的：`docs/superpowers/plans/2026-11-03-stage6-judge.md`。
+- 阶段 7 的计划和执行记录：`docs/_prev/superpowers/plans/2026-11-04-stage7-learning.md`；`.superpowers/sdd/2026-11-04-stage7-learning/progress.md`（git 忽略，含所有 Ruling）。阶段 6 的：`docs/_prev/superpowers/plans/2026-11-03-stage6-judge.md`。
 
 ## 已知问题
 - 空椅子从来没放成过：椅子的占地和桌子重叠（v0.5.0 报告 5.1）。用户决定不修（D39）。

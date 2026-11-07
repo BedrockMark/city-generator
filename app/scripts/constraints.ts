@@ -2,7 +2,7 @@
 //   npx tsx scripts/constraints.ts gen [n]      violations per constraint on the first n regression seeds (default all),
 //                                               and what the draft repairs would prune (preview)
 //   npx tsx scripts/constraints.ts refs         the same constraints on work/refworld/*.json (tools/export_refworld.py)
-//   npx tsx scripts/constraints.ts doc [n]      both, written to docs/CONSTRAINTS.md (the list the user confirms)
+//   npx tsx scripts/constraints.ts doc [n]      both, written to docs/reports/CONSTRAINTS.md (the list the user confirms)
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -111,8 +111,8 @@ function doc(n: number) {
   }
   L.push('## 草案修复预览', '',
     `把全部草案当作生效时（\`pruneDraft\`），${g.n} 个种子共删除 ${g.prunedObjs} 个物件（占全部物件的 ${(100 * g.prunedObjs / g.objs).toFixed(2)}%），降级 ${g.downgraded} 块区域。按约束：${Object.entries(g.pr).sort().map(([k, v]) => `${k} ${v}`).join('，') || '无'}。`, '');
-  writeFileSync(join(ROOT, 'docs', 'CONSTRAINTS.md'), L.join('\n'));
-  console.log(`docs/CONSTRAINTS.md written (${g.n} seeds, ${g.ms.toFixed(0)} ms/scene, ${r.n} refs)`);
+  writeFileSync(join(ROOT, 'docs', 'reports', 'CONSTRAINTS.md'), L.join('\n'));
+  console.log(`docs/reports/CONSTRAINTS.md written (${g.n} seeds, ${g.ms.toFixed(0)} ms/scene, ${r.n} refs)`);
 }
 
 const [cmd, a] = process.argv.slice(2);

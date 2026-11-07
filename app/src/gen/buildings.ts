@@ -10,7 +10,7 @@ export interface BuildingPlan {
   w: number; h: number;                    // cells (full sprite rect)
   /** footprint depth in cells (bottom rows of the sprite rect); the rows above are ground hidden behind the building */
   foot: number;
-  parts: { key: string; dx: number; dy: number; sub: number; role: 'roof' | 'mid' | 'ground' | 'whole' }[];   // px offsets from top-left
+  parts: { key: string; dx: number; dy: number; sub: number; role: 'roof' | 'mid' | 'ground' | 'whole' | 'link' }[];   // px offsets from top-left
   doors: number[];                         // door centre x offsets (px) on the bottom edge
   front: FrontKind;
   tall: boolean;
@@ -33,7 +33,7 @@ const GF_FAMILIES: { fam: string; front: FrontKind; door: number; w: number }[] 
 let nextId = 0;
 
 /** roof + n middle floors + ground floor, one colourway; ground-floor sign may overhang the floor above */
-export function modularStack(r: Rng, opts: { floors?: number; front?: FrontKind; colour?: 'red' | 'blue' | 'grey'; avoidFamily?: string } = {}): BuildingPlan {
+export function modularStack(r: Rng, opts: { floors?: number; front?: FrontKind; colour?: 'red' | 'blue' | 'grey'; avoidFamily?: string; roof?: string; id?: string } = {}): BuildingPlan {
   const colour = opts.colour ?? r.choose('bld.colour', {}, ['red', 'blue', 'grey'] as const);
   const famPool = GF_FAMILIES.filter(f => (!opts.front || f.front === opts.front || (opts.front === 'closed' && f.front === 'retail')) && !(opts.avoidFamily && f.fam.endsWith(opts.avoidFamily)));
   const fam = r.choose('bld.groundFloor', { front: opts.front ?? 'any' }, { weights: (famPool.length ? famPool : GF_FAMILIES).map(f => [f, f.w] as const) });
@@ -46,7 +46,8 @@ export function modularStack(r: Rng, opts: { floors?: number; front?: FrontKind;
   const mids = Array.from({ length: floors }, () => r.choose('bld.middleFloor', { colour }, pieces('Middle_Floor', colour)));
   // repeat the same middle floor most of the time (as in the refs), sometimes mix
   if (floors > 1 && r.choose('bld.sameMiddle', { floors }, { p: 0.6 })) mids.fill(mids[0]);
-  const roof = r.choose('bld.roof', {}, pieces('Roof'));
+  // a given roof (the next section of a terrace keeps the roof so it can merge) takes no draw
+  const roof = opts.roof ? pieces('Roof').find(p => p.key === opts.roof)! : r.choose('bld.roof', {}, pieces('Roof'));
   const roofH = spr(roof.key).h / TILE;
   const parts: BuildingPlan['parts'] = [];
   let y = 0, sub = 0;
@@ -59,7 +60,7 @@ export function modularStack(r: Rng, opts: { floors?: number; front?: FrontKind;
   // footprint = roof size: in this 3/4 view the roof is the building's plan
   // condo ground floors: odd variants have the door at 5 cells, even ones at 3.5 (measured; user label 684358 L2)
   const door = fam.front === 'condo' && gf.v % 2 === 1 ? 5 : fam.door;
-  return { id: `b${nextId++}`, w: 7, h: y / TILE, foot: Math.min(roofH, y / TILE), parts, doors: [door * TILE], front, tall: floors >= 2,
+  return { id: opts.id ?? `b${nextId++}`, w: 7, h: y / TILE, foot: Math.min(roofH, y / TILE), parts, doors: [door * TILE], front, tall: floors >= 2,
     label: `${fam.fam.replace('Ground_Floor_', '')}/${colour}/${floors}f` };
 }
 
@@ -103,4 +104,8 @@ export function pickBuilding(r: Rng, maxW: number, minH: number, maxH: number, m
   return null;
 }
 
-export function resetIds() { nextId = 0; }
+/** composite buildings (exp-04, adopted) number apart ("e<n>"): ids are stream labels (D23), so they must not shift the others */
+let nextExpId = 0;
+export const expId = () => `e${nextExpId++}`;
+
+export function resetIds() { nextId = 0; nextExpId = 0; }

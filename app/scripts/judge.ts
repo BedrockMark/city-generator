@@ -1,6 +1,6 @@
 // Stage 6 judge: training and evaluation (docs/superpowers/specs/2026-11-03-stage6-judge-design.md 2.4, 2.5).
 //   npx tsx scripts/judge.ts train   -> src/gen/data/judge.json
-//   npx tsx scripts/judge.ts eval    -> docs/JUDGE.md, docs/v0.6.0/heat_*.png (via tools/heatmap.py)
+//   npx tsx scripts/judge.ts eval    -> docs/reports/JUDGE.md, docs/reports/judge/heat_*.png (via tools/heatmap.py)
 // Data: every window of the analysed references (work/refworld, label 0), a sample of windows of the first 100
 // regression seeds (label 1, 3x the reference windows), and the user's labels from v0.5.1 on (bad = 1, good = 0,
 // weight 5). Classes are balanced by weight. The L1 strength is chosen by leave-one-group-out cross-validation over
@@ -214,7 +214,7 @@ function evaluate() {
   P();
   P('红色越深越怪（每个像素取覆盖它的窗口里的最高分），黄框 = 超过阈值的窗口。');
   P();
-  const out = join(ROOT, 'docs', 'v0.6.0'), tmp = join(ROOT, 'work', 'judge');
+  const out = join(ROOT, 'docs', 'reports', 'judge'), tmp = join(ROOT, 'work', 'judge');
   mkdirSync(out, { recursive: true }); mkdirSync(tmp, { recursive: true });
   const heat = (name: string, h: object) => {
     const hj = join(tmp, `${name}.heat.json`), png = join(out, `heat_${name}.png`);
@@ -229,14 +229,14 @@ function evaluate() {
     const r = scoreWorld(alignScene(sc), m);
     const f = heat(`seed${s}`, { src: 'gen', scene: scenePath, threshold: m.threshold, windows: r.windows });
     P(`- 生成图 seed${s}（修复前）：平均 ${r.mean.toFixed(3)}，最高 ${r.max.toFixed(3)}`);
-    P(`  ![](v0.6.0/${f})`);
+    P(`  ![](judge/${f})`);
   }
   for (const name of ['market_on_street', 'suburb_neighborhood_1']) {
     const ref = refs.find(r => r.name === name); if (!ref) continue;
     const r = scoreWorld(ref.w, m);
     const f = heat(name, { src: 'ref', ref: name, threshold: m.threshold, windows: r.windows });
     P(`- 参考图 ${name}：平均 ${r.mean.toFixed(3)}，最高 ${r.max.toFixed(3)}`);
-    P(`  ![](v0.6.0/${f})`);
+    P(`  ![](judge/${f})`);
   }
   P();
   P('## 5. 各参考图的整图平均分');
@@ -244,7 +244,7 @@ function evaluate() {
   P('| 参考图 | 平均 | 最高 | 超阈值窗口 |');
   P('|---|---|---|---|');
   for (const r of refs) { const s = scoreWorld(r.w, m); P(`| ${r.name} | ${s.mean.toFixed(3)} | ${s.max.toFixed(3)} | ${s.windows.filter(w => w.score > m.threshold).length} / ${s.windows.length} |`); }
-  writeFileSync(join(ROOT, 'docs', 'JUDGE.md'), lines.join('\n') + '\n');
+  writeFileSync(join(ROOT, 'docs', 'reports', 'JUDGE.md'), lines.join('\n') + '\n');
   console.log(`JUDGE.md: CV AUC ${cvAuc.toFixed(3)}, validation AUC ${valAuc.toFixed(3)}, label pairs max ${pl.acc.toFixed(3)} / mean ${plm.acc.toFixed(3)} (in-sample ${pi.acc.toFixed(3)} / ${pim.acc.toFixed(3)})`);
 }
 

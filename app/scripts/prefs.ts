@@ -1,6 +1,6 @@
 // Stage 7 learned preferences (spec 4.3, 7): train the Bradley–Terry table, report on it, find what choices cannot fix.
 //   npx tsx scripts/prefs.ts train   A/B choices + label comparisons (blacklist removed) -> app/src/gen/data/prefs.json
-//   npx tsx scripts/prefs.ts eval    docs/PREFS.md (generated, do not edit): data counts, held-out accuracy by batch
+//   npx tsx scripts/prefs.ts eval    docs/reports/PREFS.md (generated, do not edit): data counts, held-out accuracy by batch
 //                                    (5 folds over choice files; leave-one-batch-out below 5 files), multiplier table
 //   npx tsx scripts/prefs.ts gaps    every bad label vs a model trained without its seed's labels: an alternative scoring
 //                                    >= 0.05 above the pick = "选择能改善", else "选择解决不了"; work/gaps/gaps.{md,json}
@@ -18,7 +18,7 @@ import { loadChoiceComparisons, attributeLabels, labelComparisons } from '../src
 import { SEEDS } from './seeds';
 
 const here = dirname(fileURLToPath(import.meta.url)), ROOT = join(here, '..', '..');
-const PREFS_JSON = join(here, '..', 'src', 'gen', 'data', 'prefs.json'), PREFS_MD = join(ROOT, 'docs', 'PREFS.md'), GAPS = join(ROOT, 'work', 'gaps');
+const PREFS_JSON = join(here, '..', 'src', 'gen', 'data', 'prefs.json'), PREFS_MD = join(ROOT, 'docs', 'reports', 'PREFS.md'), GAPS = join(ROOT, 'work', 'gaps');
 const BL = JSON.parse(readFileSync(join(here, '..', 'src', 'gen', 'learn', 'blacklist.json'), 'utf8')) as Blacklist;
 const GAP = 0.05;
 
