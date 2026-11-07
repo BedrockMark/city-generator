@@ -45,6 +45,11 @@ export const EXPERIMENTS: Experiment[] = [
   // Condo_3 / Condo_4 / Condo_7 / office / hotel; not hospital, school corridor, greenhouse, hangar). kits.ts
   // no `fire`, like exp-04: each building the packer picks gives way to a kit building with kitChance(novelty)
   { id: 'exp-05', title: '其余拼接楼：Condo_3 / Condo_4 / Condo_7、办公楼、酒店', status: 'experimental', default: false, addedIn: '0.7.3' },
+  // 2026-11-07, user (seed 716771, novelty 0.7 + exp-05): one yard space cut into two touching rectangles became two
+  // gardens with paths a row apart. Gardens touching or up to 2 cells apart become one garden, their paths linked
+  // (yard.ts joinGardens); the same day the user: gardens a column apart too (161781)
+  // no `fire`: a fix, it runs whenever two gardens are neighbours
+  { id: 'exp-06', title: '相邻的花园合成一个：小路连通', status: 'experimental', default: false, addedIn: '0.7.4' },
 ];
 
 /** exp-04 (adopted): chance per occasion (a floor-modular building that may grow into a terrace, a condo / house that may be

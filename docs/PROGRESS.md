@@ -1,6 +1,6 @@
 # 进度
 
-## 当前状态（2026-11-06）
+## 当前状态（2026-11-07）
 - 阶段 1（分析，`docs/reports/ANALYSIS.md`）和阶段 2（原型，v0.2.0）已完成。
 - 现在是迭代阶段，按版本号汇报。
   - 用户反馈是查看器里的好 / 坏标注（`references/labels/v<版本>/`）。文字评价 remarks 和反面案例 anti_references 已不再使用（D37）。
@@ -22,7 +22,7 @@
 - **v0.7.0 已完成**（2026-11-04，分支 `stage7`，报告 `docs/reports/v0.7.0.md`，D46–D50）：阶段 7 从选择中学习（局部 A/B、Bradley–Terry 偏好乘子）、创新度、实验转正 / 废弃的建议、“选择解决不了的问题”报告。**等用户**：核对乘子表（`docs/reports/PREFS.md`）、做一些 A/B 题、选扩展方案（exp-03）、答复 `v0.7.0.md` 第 8 节的问题。
   - 还没有任何 A/B 选择数据；乘子表只来自 16 条标注。
 - git：每个版本 commit 一次，并打 tag `v<版本>`。阶段 6 在分支 `stage6` 上做，阶段 7 在 `stage7`（从 `stage6` 分出）上做，确认后合并到 main。
-- 决策记录：`docs/NOTE.md`（D1–D55，D22 已删除）。实验功能登记：`docs/EXPERIMENTS.md`（exp-01、exp-03、exp-04 已转正，exp-02、exp-05 是实验）。
+- 决策记录：`docs/NOTE.md`（D1–D57，D22 已删除）。实验功能登记：`docs/EXPERIMENTS.md`（exp-01、exp-03、exp-04 已转正，exp-02、exp-05、exp-06 是实验）。
 - **v0.7.1**（2026-11-04，分支 `stage7`，报告 `docs/reports/v0.7.1.md`，D51–D52）：exp-03 前后排拉开（后排楼的占地推到地块最北，楼上层可以伸出地块），用户看过后当天和 exp-01 一起转正，始终开启。179/200 个种子变化，C02 10 → 0，C18 56 → 3。
   - 转正的实验带 `adoptedIn`；重新生成旧版本的标注时传 `asOf: <标注版本>`，转正之前的版本里它们按当时的开关运行（偏好学习因此还能复现 v0.5.1 的标注）。
   - v0.7.1 之前做的 A/B 选择（`references/choices/v0.7.0/`，17 个文件）用的是存下的场景，不受影响。
@@ -30,7 +30,9 @@
   - 顺手：`shots.ts` 窗口加宽到 1700（原来点不到导出按钮）；标注层给带实验标记的楼画框（以前楼的小组一律不画）。
   - 用户对 v0.7.2 的答复（2026-11-06）：拼接楼的量合适；音乐店色系不修；其余可拼接楼做成 exp-05。
 - **v0.7.3**（2026-11-06，分支 `stage7`，报告 `docs/reports/v0.7.3.md`，D55）：exp-05 其余拼接楼（默认关）。Condo_3、Condo_4（公寓 + 塔楼）、Condo_7、办公楼、酒店五套，按样楼的拼法拼（`kits.ts`），打包器抽到楼时在流 `exp/exp-05` 上按 `kitChance` 换成同类门面的拼接楼（`pack.ts` 的 `kitSwap`）；新门面 `office`、`hotel`。关掉时 200/200 与 v0.7.2 相同（`work/regress/exp05-off`）；打开时 193/200 变化，163/200 至少一栋（`exp05-on`）。
-  - 扩展提议方案（`v0.7.0.md` 第 6 节）还没有编号，用户选定时取下一个编号（exp-06）。
+  - 扩展提议方案（`v0.7.0.md` 第 6 节）还没有编号，用户选定时取下一个编号（exp-07；exp-06 已被占用）。
+- **v0.7.4**（2026-11-07，分支 `stage7`，报告 `docs/reports/v0.7.4.md`，D56–D57）：exp-06 相邻的花园合成一个（默认关）：相邻或相隔 ≤2 格的两个花园各自保留小路，用连接段连通，会被 C20 删掉时不合并（`yard.ts` 的 `joinGardens`）；打开时 51/200 合并，C19 123 → 112（`work/regress/exp06-on`）。修复：广场必须整块在街区里（425033 L1，广场铺到了马路上），默认画面只有 seed 47 变（`work/regress/v0.7.4`）。C20 删路时只删锚点在这条路上的物件。
+  - 用户 2026-11-07 答复：隔一列的花园也要合并（已做）；连接段被楼上层挡住没关系。
 
 ## 怎么运行
 - 查看器：`cd app && npx vite`，然后打开 http://localhost:5173/?seed=7
@@ -50,7 +52,7 @@
   - `report <A> <B>`：画面变化、各约束违规与修复、标注测试；
   - `labels [--pd]`：只跑标注测试；
   - `explain`：检查解释覆盖率。
-  - 种子集在 `scripts/regression_seeds.json`（200 个，只增不改）。基线在 `work/regress/v0.7.2`（默认，exp-04 已转正；v0.7.3 默认画面与它相同）、`exp05-off` / `exp05-on`（v0.7.3 关 / 开 exp-05）、`exp04-on`、`exp04-off`（v0.7.2 开 / 关 exp-04）、`v0.3.0`、`v0.4.0`、`v0.5.0`、`v0.5.0-pd`、`v0.5.1`、`v0.6.0-off`（exp-02 关）、`v0.6.0`、`v0.6.0-global`、`v0.6.1b-off`、`v0.6.1b-on`（整体修图）、`v0.7.0`（默认）、`v0.7.0-n0`、`v0.7.0-n05`、`v0.7.0-n1`（创新度 0 / 0.5 / 1）、`v0.7.0-n0-l0`（创新度 0 + 偏好关）、`v0.7.1`（默认）（work/ 不进 git，丢了就从对应 tag 重建）。
+  - 种子集在 `scripts/regression_seeds.json`（200 个，只增不改）。基线在 `work/regress/v0.7.4`（默认；和 v0.7.2 只差 seed 47）、`exp06-on`（v0.7.4 开 exp-06）、`v0.7.2`（v0.7.3 默认画面与它相同）、`exp05-off` / `exp05-on`（v0.7.3 关 / 开 exp-05）、`exp04-on`、`exp04-off`（v0.7.2 开 / 关 exp-04）、`v0.3.0`、`v0.4.0`、`v0.5.0`、`v0.5.0-pd`、`v0.5.1`、`v0.6.0-off`（exp-02 关）、`v0.6.0`、`v0.6.0-global`、`v0.6.1b-off`、`v0.6.1b-on`（整体修图）、`v0.7.0`（默认）、`v0.7.0-n0`、`v0.7.0-n05`、`v0.7.0-n1`（创新度 0 / 0.5 / 1）、`v0.7.0-n0-l0`（创新度 0 + 偏好关）、`v0.7.1`（默认）（work/ 不进 git，丢了就从对应 tag 重建）。
   - `report` 的标注测试只跑 B 的模式。
 - 评判器：`cd app && npx tsx scripts/judge.ts train`（重训，写 `src/gen/data/judge.json`），`judge.ts eval`（写 `docs/reports/JUDGE.md` 和热力图，要 `work/refworld`）。不同意的特征写进 `src/gen/judge/blacklist.json` 再重训。
 - 偏好（阶段 7）：`cd app && npx tsx scripts/prefs.ts train`（A/B 选择 + 标注 → `src/gen/data/prefs.json`），`prefs.ts eval`（写 `docs/reports/PREFS.md`），`prefs.ts gaps`（选择解决不了的坏标注 → `work/gaps/gaps.md` 和截图）。不同意的条目写进 `src/gen/learn/blacklist.json`（`标签` 或 `标签|选项`）再重训。
@@ -76,7 +78,7 @@
 - `block.ts`：主街区规划。
 - `neighbours.ts`：邻近街区。
 - `vignettes.ts`：路缘段、通行带、红绿灯、路缘设施、店门、巷子、广场、小岛、公交站、车、井盖、行人。
-- `yard.ts`：内院逐块分配，包括停车场和车道、花园、楼前空地、过道、绿化带、杂物角。楼后的地面和别处一样（D38）。
+- `yard.ts`：内院逐块分配，包括停车场和车道、花园、楼前空地、过道、绿化带、杂物角。楼后的地面和别处一样（D38）。`joinGardens` 是 exp-06（相邻的花园合成一个）。
 - `rooftop.ts`：exp-01，平顶屋顶上的空调外机。
 - `kits.ts`：exp-05 其余拼接楼（Condo_3 / Condo_4 / Condo_7 / 办公楼 / 酒店的拼法），由 `pack.ts` 的 `kitSwap` 调用。
 - `terrace.ts`：拼接楼（exp-04，已转正）（联排段、分段公寓、联排住宅）和相邻楼的链接（`linkBuildings`，在打包后、放置前调用）。
@@ -96,10 +98,11 @@
 
 ## 下一步
 - 等用户：
+  - 看 v0.7.4（`docs/reports/v0.7.4.md`）：425033 的广场修复、exp-06 合并隔开的花园；在查看器里打开 exp-06 标好 / 坏；
   - 看 exp-05（`docs/reports/v0.7.3.md`），回答第 4 节的问题；在查看器里打开 exp-05 标好 / 坏；
   - 做一些 A/B 题（B 键），然后 `prefs.ts train` + `eval`，看留出准确率（目标 ≥ 0.65）和乘子表；
   - 核对 `docs/reports/PREFS.md` 的乘子表；
-  - 从 `v0.7.0.md` 第 6 节选一个扩展提议空间的方案（编号取下一个，exp-06；exp-03、exp-04、exp-05 已被占用）；
+  - 从 `v0.7.0.md` 第 6 节选一个扩展提议空间的方案（编号取下一个，exp-07；exp-03–exp-06 已被占用）；
   - 是否要限制楼上层伸进北边马路（v0.7.1 报告第 3 节）；
   - 默认创新度 0.10 要不要保留（exp-01 已转正）。
 - `stage6`、`stage7` 分支都还没合并到 main。

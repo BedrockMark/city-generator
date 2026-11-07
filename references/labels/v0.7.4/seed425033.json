@@ -1,0 +1,45 @@
+{
+ "version": "0.7.4",
+ "seed": "425033",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-07T16:06:29.134Z",
+   "version": "0.7.4",
+   "seed": "425033",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {
+     "exp-06": true,
+     "exp-05": true
+    },
+    "prune": true,
+    "pruneDraft": false,
+    "prefs": true
+   },
+   "scene": "seed425033_exp-051_exp-061.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "挡路"
+   ],
+   "text": "公园挡车道了",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 528,
+     "y0": 448,
+     "x1": 544,
+     "y1": 464
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "z6",
+     "z49"
+    ]
+   }
+  }
+ ]
+}

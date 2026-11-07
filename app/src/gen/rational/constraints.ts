@@ -441,9 +441,10 @@ export function evaluate(c: Constraint, cx: Ctx): Violation[] {
           if (!near) all = false;
         }
         if (!all) continue;
-        const garden = w.zones.find(q => q.layer === 'yard' && q.gid === z.gid);
+        // exp-06: one garden may have several paths (its halves'): the half under this path, the users of this path
+        const garden = w.zones.find(q => q.layer === 'yard' && q.gid === z.gid && rectsOverlap(q.rect, z.rect));
         const lawnR = garden ? { x0: Math.max(garden.rect.x0, Math.floor(z.rect.x0 / T) * T), y0: Math.max(garden.rect.y0, Math.floor(z.rect.y0 / T) * T), x1: Math.min(garden.rect.x1, Math.ceil(z.rect.x1 / T) * T), y1: Math.min(garden.rect.y1, Math.ceil(z.rect.y1 / T) * T) } : z.rect;
-        const users = w.objs.filter(o => o.anchor?.ref === `${z.gid}/path`);
+        const users = w.objs.filter(o => o.anchor?.ref === `${z.gid}/path` && inRect(grow(z.rect, 2), o.anchor.x, o.anchor.y));
         out.push({ c: c.id, target: z.id, objs: users.map(o => o.id), rect: z.rect, toLawn: [lawnR], dropZones: [z.id],
           msg: `花园小路（${z.gid}）和人行道平行、相距不到 ${r.within}px：多余的路，改成草坪${users.length ? `（连同面朝它的 ${users.map(o => o.key.split('/').pop()).join('、')}）` : ''}` });
       }

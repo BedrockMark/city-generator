@@ -47,9 +47,20 @@ export function planMainBlock(L: Layout, r0: Rng, spread = true, composite?: { r
     carve({ kind: 'alley', x0: x, y0, x1: x + w, y1, why: `穿过南侧临街面的巷子（本街区抽到 ${nAlley} 条）：通往内院，打断连续立面` });
   }
   if (r.choose('block.plaza', {}, { p: 0.45 })) {
-    const w = r.int(5, 8), x = xs[r.int(0, Math.max(0, W - w))];
-    const y1 = (yb.get(x) ?? L.by1 - 1) + 1;
-    if (!zones.some(z => z.x0 < x + w + 1 && x - 1 < z.x1)) carve({ kind: 'plaza', x0: x, y0: y1 - r.int(4, 6), x1: x + w, y1, why: '临街小广场（45% 的街区有）：立面后退形成的公共空间' });
+    const w0 = r.int(5, 8), x0 = xs[r.int(0, Math.max(0, W - w0))];
+    const y1 = (yb.get(x0) ?? L.by1 - 1) + 1;
+    if (!zones.some(z => z.x0 < x0 + w0 + 1 && x0 - 1 < z.x1)) {
+      const y0 = y1 - r.int(4, 6);
+      // the plaza stays on the block: the run of columns around x0 that are block for all its rows (a road notch ends
+      // it; 425033 L1: the plaza was paved over the road). Shifted back inside; too narrow: no plaza
+      const inside = (c: number) => { for (let y = y0; y < y1; y++) if (!L.inP[y]?.[c]) return false; return true; };
+      let a = x0, b = x0;
+      while (inside(a - 1) && a - 1 >= x0 - w0) a--;
+      while (inside(b) && b < x0 + w0) b++;
+      const w = Math.min(w0, b - a), x = Math.max(a, Math.min(x0, b - w));
+      if (w >= 5 && !zones.some(z => z.x0 < x + w + 1 && x - 1 < z.x1))
+        carve({ kind: 'plaza', x0: x, y0, x1: x + w, y1, why: '临街小广场（45% 的街区有）：立面后退形成的公共空间' });
+    }
   }
   // ---- pack buildings: south frontage first, then rows behind, side streets, north edge ----
   const mix = r.choose('block.mix', {}, { weights: [[{ modular: 3, single: 2 }, 2], [{ modular: 1, single: 2 }, 1], [{ modular: 3, single: 1 }, 1]] as const });

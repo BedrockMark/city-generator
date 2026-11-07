@@ -43,7 +43,7 @@ export function bestRect(cells: [number, number][], ok: (x: number, y: number) =
 
 const cellsOf = (rc: CellRect) => { const o: [number, number][] = []; for (let y = rc.y; y < rc.y + rc.h; y++) for (let x = rc.x; x < rc.x + rc.w; x++) o.push([x, y]); return o; };
 
-export function yardSpaces(L: Layout, plan: BlockPlan, sb: SceneBuilder, r: Rng) {
+export function yardSpaces(L: Layout, plan: BlockPlan, sb: SceneBuilder, r: Rng, e06: Rng | null = null) {
   const yardStyle = r.choose('yard.paving', {}, ['sidewalk_brown', 'sidewalk_grey', 'sidewalk_beige', 'sidewalk_lightgrey'].filter(s => s !== L.mainStyle));
   const free = plan.yard.map(row => [...row]);
   for (let y = 0; y < L.rows; y++) for (let x = 0; x < L.cols; x++) if (free[y][x]) L.base[y][x] = slab(yardStyle, x, y);
@@ -82,19 +82,38 @@ export function yardSpaces(L: Layout, plan: BlockPlan, sb: SceneBuilder, r: Rng)
     else { kind = 'paved'; why = `零碎空地（${size}）：太小或同类已满，朴素铺地（宁删勿补）`; }
     rects.push({ rc, kind, b: fronted, side: street[0], why });
   }
-  for (const { rc, kind, b, side, why } of rects) {
-    const rr = sb.enter(r.fork(`${kind}${rc.x},${rc.y}`, { kind, w: rc.w, h: rc.h, street: side ?? '' }));
-    const px = rect(rc.x * T, rc.y * T, (rc.x + rc.w) * T, (rc.y + rc.h) * T);
-    const gid = sb.group(kind, why, kind === 'forecourt' ? { id: b!.plan.id, anchor: { kind: 'door', ref: `${b!.plan.id}.door`, x: b!.cx * T + (b!.plan.doors[0] ?? b!.plan.w * T / 2), y: (b!.cy + b!.plan.h) * T } }
-      : { anchor: { kind: 'yard', ref: `${kind}@${rc.x},${rc.y}`, x: px.x0 + (px.x1 - px.x0) / 2, y: px.y0 + (px.y1 - px.y0) / 2 } });
-    sb.zone('yard', kind, px, why, gid);
-    if (kind === 'garden') garden(L, sb, rr, rc, side, plan, gid);
-    else if (kind === 'forecourt') forecourt(L, sb, rr, rc, b!, gid);
-    else if (kind === 'passage') passage(sb, rr, rc, gid);
-    else if (kind === 'strip') strip(L, sb, rr, rc, side, plan, gid);
-    else if (kind === 'service') service(sb, rr, rc, gid);
-    else if (kind === 'paved' && rc.w * rc.h >= 2 && rr.choose('paved.pot', {}, { p: 0.5 })) sb.putFoot(rr.choose('paved.potModel', {}, variants('17_Garden/Bush_Potted')), (rc.x + 0.5) * T, (rc.y + 1) * T - 2, 'plant', { gid, why: '零碎空地上的一盆盆栽' });
+  // exp-06: the cut may split one space into neighbouring gardens; they become one garden, their paths linked
+  const blocked = rects.filter(q => q.kind === 'parking' || q.kind === 'passage' || q.kind === 'forecourt').map(q => q.rc);
+  const gapOk = (x: number, y: number) => plan.yard[y]?.[x] === true && !blocked.some(q => x >= q.x && x < q.x + q.w && y >= q.y && y < q.y + q.h);
+  const join = e06 ? joinGardens(L, rects.filter(q => q.kind === 'garden'), (rc, side) => ownPath(rc, side, r.fork(`garden${rc.x},${rc.y}`)), e06, gapOk) : null;
+  let mergedGid: string | undefined;
+  if (join) {
+    const ra = rects.find(q => q.rc === join.a)!, c = { x: (join.a.x + join.a.w / 2) * T, y: (join.a.y + join.a.h / 2) * T };
+    mergedGid = sb.withExp(EXP06, () => sb.group('garden', `${ra.why}；与相邻的花园合成一个，小路连通（exp-06）`, { anchor: { kind: 'yard', ref: `garden@${join.a.x},${join.a.y}`, x: c.x, y: c.y } }));
+    // the link is kept clear before anything in the yard is placed (the gap may be a green strip)
+    const k = join.link;
+    if (k) sb.withExp(EXP06, () => sb.clear(k.w === 1 ? rect(k.x * T + 2, k.y * T, (k.x + 1) * T - 2, (k.y + k.h) * T) : rect(k.x * T, k.y * T + 2, (k.x + k.w) * T, (k.y + 1) * T - 2),
+      'path', '花园小路的连接段：把相邻两半边花园的小路接起来（exp-06）', mergedGid));
   }
+  for (const { rc, kind, b, side, why } of rects) {
+    const shared = join && (rc === join.a || rc === join.b) ? join : undefined;
+    const emit = () => {
+      const rr = sb.enter(r.fork(`${kind}${rc.x},${rc.y}`, { kind, w: rc.w, h: rc.h, street: side ?? '' }));
+      const px = rect(rc.x * T, rc.y * T, (rc.x + rc.w) * T, (rc.y + rc.h) * T);
+      const gid = shared ? mergedGid! : sb.group(kind, why, kind === 'forecourt' ? { id: b!.plan.id, anchor: { kind: 'door', ref: `${b!.plan.id}.door`, x: b!.cx * T + (b!.plan.doors[0] ?? b!.plan.w * T / 2), y: (b!.cy + b!.plan.h) * T } }
+        : { anchor: { kind: 'yard', ref: `${kind}@${rc.x},${rc.y}`, x: px.x0 + (px.x1 - px.x0) / 2, y: px.y0 + (px.y1 - px.y0) / 2 } });
+      sb.zone('yard', kind, px, shared ? `${why}；和相邻的花园是同一个花园，小路连通（exp-06）` : why, gid);
+      if (kind === 'garden') garden(L, sb, rr, rc, side, plan, gid, shared);
+      else if (kind === 'forecourt') forecourt(L, sb, rr, rc, b!, gid);
+      else if (kind === 'passage') passage(sb, rr, rc, gid);
+      else if (kind === 'strip') strip(L, sb, rr, rc, side, plan, gid);
+      else if (kind === 'service') service(sb, rr, rc, gid);
+      else if (kind === 'paved' && rc.w * rc.h >= 2 && rr.choose('paved.pot', {}, { p: 0.5 })) sb.putFoot(rr.choose('paved.potModel', {}, variants('17_Garden/Bush_Potted')), (rc.x + 0.5) * T, (rc.y + 1) * T - 2, 'plant', { gid, why: '零碎空地上的一盆盆栽' });
+    };
+    if (shared) sb.withExp(EXP06, emit); else emit();
+  }
+  // exp-06: the link is paved last, in the paving of the bigger garden's path (strips in the gap may have planted it)
+  if (join?.link) for (const [x, y] of cellsOf(join.link)) { GRASS[y][x] = false; L.base[y][x] = slab(join.style!, x, y); }
   paintGrass(L);
 }
 
@@ -195,17 +214,92 @@ function paintGrass(L: Layout) {
   }
 }
 
+export const EXP06 = 'exp-06';
+type Side = 'N' | 'S' | 'E' | 'W';
+type PathLine = { vertical: boolean; at: number };
+/** exp-06: how two neighbouring gardens become one. Each keeps its own path, except that a path crossing the side
+ *  facing the other garden is lined up with the link; the link runs along one line from one path to the other, through
+ *  the gap between them if there is one (T junctions where it meets a path running the other way) */
+export type Join = { a: CellRect; b: CellRect; pa: PathLine; pb: PathLine; link?: CellRect; style?: string };
+
+/** the path a garden draws for itself (one draw: its stream keeps its numbers whatever is done with it) */
+function ownPath(rc: CellRect, side: Side | undefined, rr: Rng): PathLine {
+  const vertical = side ? side === 'N' || side === 'S' : rc.h > rc.w;
+  const len = vertical ? rc.w : rc.h;
+  return { vertical, at: (vertical ? rc.x : rc.y) + Math.max(1, Math.min(len - 2, Math.floor(len / 2) + rr.int(-1, 1))) };
+}
+
+/** C20 would call this stretch of path redundant: every point of it has sidewalk within 40px to one side */
+function besideWalk(L: Layout, vertical: boolean, at: number, from: number, to: number): boolean {
+  const mid = at * T + T / 2;
+  for (let a = from * T + 8; a < to * T; a += 16) {
+    let near = false;
+    for (let d = 8; d <= 40 && !near; d += 4) for (const sgn of [-1, 1]) {
+      const [px, py] = vertical ? [mid + sgn * d, a] : [a, mid + sgn * d];
+      const c = L.cls[Math.floor(py / T)]?.[Math.floor(px / T)];
+      if (c === 'walk' || c === 'nwalk') { near = true; break; }
+    }
+    if (!near) return false;
+  }
+  return true;
+}
+
+/** exp-06: the first two gardens at most 2 cells apart, facing each other along a stretch with room for a path,
+ *  the gap between them free yard (`gapOk`); null = left apart */
+export function joinGardens(L: Layout, gs: { rc: CellRect; side?: Side }[], own: (rc: CellRect, side?: Side) => PathLine, e06: Rng,
+  gapOk: (x: number, y: number) => boolean = () => true): Join | null {
+  for (let i = 0; i < gs.length; i++) for (let j = i + 1; j < gs.length; j++) {
+    const a = gs[i].rc, b = gs[j].rc;
+    // cross: the link is a vertical line (one garden above the other); u = across the line, v = along it
+    for (const cross of [true, false]) {
+      const [au, aw, bu, bw] = cross ? [a.x, a.w, b.x, b.w] : [a.y, a.h, b.y, b.h];
+      const [av, ah, bv, bh] = cross ? [a.y, a.h, b.y, b.h] : [a.x, a.w, b.x, b.w];
+      const first = av < bv ? 'a' : 'b';
+      const gap = first === 'a' ? bv - (av + ah) : av - (bv + bh);
+      if (gap < 0 || gap > 2) continue;
+      // a line inside both, one cell in from their edges (as a garden keeps its path)
+      const lo = Math.max(au, bu) + 1, hi = Math.min(au + aw, bu + bw) - 2;
+      if (hi < lo) continue;
+      const oa = own(a, gs[i].side), ob = own(b, gs[j].side);
+      const clamp = (n: number) => Math.max(lo, Math.min(hi, n));
+      // the bigger garden's path sets the line when it crosses toward the other; then the other's; else drawn
+      const at = oa.vertical === cross ? clamp(oa.at) : ob.vertical === cross ? clamp(ob.at)
+        : e06.choose('garden.joinAt', { cross }, Array.from({ length: hi - lo + 1 }, (_, k) => lo + k));
+      const pa = oa.vertical === cross ? { vertical: cross, at } : oa, pb = ob.vertical === cross ? { vertical: cross, at } : ob;
+      // the link, along v: from the upper / left garden's path (its far edge if that path runs along the line) to the other's
+      const [p, q] = first === 'a' ? [{ rc: a, v: av, h: ah, path: pa }, { rc: b, v: bv, h: bh, path: pb }] : [{ rc: b, v: bv, h: bh, path: pb }, { rc: a, v: av, h: ah, path: pa }];
+      const v0 = p.path.vertical === cross ? p.v + p.h : p.path.at + 1;
+      const v1 = q.path.vertical === cross ? q.v : q.path.at;
+      const link = v1 > v0 ? (cross ? { x: at, y: v0, w: 1, h: v1 - v0 } : { x: v0, y: at, w: v1 - v0, h: 1 }) : undefined;
+      // the gap is crossed only over free yard
+      const gapCells = Array.from({ length: gap }, (_, k) => (first === 'a' ? av + ah : bv + bh) + k);
+      if (!gapCells.every(g => (cross ? gapOk(at, g) : gapOk(g, at)))) continue;
+      // C20 would turn a path or the link back into lawn and cut the garden in two again: leave these apart
+      const span = (rc: CellRect, v: boolean) => (v ? [rc.y, rc.y + rc.h] : [rc.x, rc.x + rc.w]) as [number, number];
+      // (an unmoved path too: the link would lead to a path C20 removes, 64)
+      if (besideWalk(L, pa.vertical, pa.at, ...span(a, pa.vertical))) continue;
+      if (besideWalk(L, pb.vertical, pb.at, ...span(b, pb.vertical))) continue;
+      if (link && besideWalk(L, cross, at, ...span(link, cross))) continue;
+      return { a, b, pa, pb, link };
+    }
+  }
+  return null;
+}
+
 const SMALL_TREES = [C + 'Tree_1', C + 'Tree_2', C + 'Tree_3', C + 'Tree_4', C + 'Tree_8'];
 
 /** a little park: grass split by a path from the street gate, benches facing the path, trees on the grass */
-function garden(L: Layout, sb: SceneBuilder, rr: Rng, rc: CellRect, side: 'N' | 'S' | 'E' | 'W' | undefined, plan: BlockPlan, gid: string) {
-  const vertical = side ? side === 'N' || side === 'S' : rc.h > rc.w;
-  const len = vertical ? rc.w : rc.h;
-  const pathAt = (vertical ? rc.x : rc.y) + Math.max(1, Math.min(len - 2, Math.floor(len / 2) + rr.int(-1, 1)));
+function garden(L: Layout, sb: SceneBuilder, rr: Rng, rc: CellRect, side: Side | undefined, plan: BlockPlan, gid: string, join?: Join) {
+  // exp-06: a garden joined to its neighbour may have its path lined up with the link; its own draws still happen
+  const own = ownPath(rc, side, rr);
+  const { vertical, at: pathAt } = join ? (rc === join.a ? join.pa : join.pb) : own;
   const halves: CellRect[] = vertical
     ? [{ x: rc.x, y: rc.y, w: pathAt - rc.x, h: rc.h }, { x: pathAt + 1, y: rc.y, w: rc.x + rc.w - pathAt - 1, h: rc.h }]
     : [{ x: rc.x, y: rc.y, w: rc.w, h: pathAt - rc.y }, { x: rc.x, y: pathAt + 1, w: rc.w, h: rc.y + rc.h - pathAt - 1 }];
-  const pathStyle = rr.choose('garden.pathPaving', {}, ['sidewalk_beige', 'sidewalk_lightbeige', 'sidewalk_brown']);
+  const ownStyle = rr.choose('garden.pathPaving', {}, ['sidewalk_beige', 'sidewalk_lightbeige', 'sidewalk_brown']);
+  // the bigger garden is laid first; the other one continues in its paving
+  const pathStyle = join?.style ?? ownStyle;
+  if (join && rc === join.a) join.style = ownStyle;
   if (vertical) for (let y = rc.y; y < rc.y + rc.h; y++) L.base[y][pathAt] = slab(pathStyle, pathAt, y);
   else for (let x = rc.x; x < rc.x + rc.w; x++) L.base[pathAt][x] = slab(pathStyle, x, pathAt);
   for (const h of halves) if (h.w > 0 && h.h > 0) grass(L, h);

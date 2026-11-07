@@ -8,10 +8,13 @@ const regs = loadLabelRegions();
 const find = (seed: string, id: string) => regs.find(r => r.seed === seed && r.id === id)!;
 const size = (r: { x0: number; y0: number; x1: number; y1: number }) => [r.x1 - r.x0, r.y1 - r.y0];
 
-test('loads only v0.5.1 labels', () => {
-  assert.equal(regs.length, 16);
-  assert.equal(regs.filter(r => r.verdict === 'good').length, 4);
-  assert.equal(regs.filter(r => r.verdict === 'bad').length, 12);
+test('loads labels from v0.5.1 on', () => {
+  // later versions add labels (v0.7.4: 425033 L1); the v0.5.1 set stays as it was
+  const v051 = regs.filter(r => r.file.startsWith('v0.5.1'));
+  assert.equal(v051.length, 16);
+  assert.equal(v051.filter(r => r.verdict === 'good').length, 4);
+  assert.equal(v051.filter(r => r.verdict === 'bad').length, 12);
+  assert.ok(regs.every(r => !/v0\.[34]\.|v0\.5\.0/.test(r.file)), 'nothing older than v0.5.1');
 });
 
 test('click label resolves to its zone', () => {

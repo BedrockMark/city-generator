@@ -1,0 +1,155 @@
+{
+ "version": "0.7.4",
+ "seed": "271666",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-07T16:44:19.168Z",
+   "version": "0.7.4",
+   "seed": "271666",
+   "novelty": 0.9,
+   "options": {
+    "novelty": 0.9,
+    "experiments": true,
+    "exp": {
+     "exp-06": true,
+     "exp-05": true
+    },
+    "prune": true,
+    "pruneDraft": false,
+    "prefs": true
+   },
+   "scene": "seed271666_n0.90_exp-051_exp-061.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "挡路"
+   ],
+   "text": "",
+   "target": {
+    "kind": "object",
+    "rect": {
+     "x0": 513,
+     "y0": 409,
+     "x1": 527,
+     "y1": 426
+    },
+    "objects": [
+     {
+      "id": "o119",
+      "key": "3_City_Props/Trashbin_11",
+      "cls": "trash",
+      "gid": "alley#0",
+      "x": 512,
+      "y": 395
+     }
+    ],
+    "gids": [
+     "alley#0"
+    ],
+    "zones": [
+     "z7"
+    ]
+   }
+  },
+  {
+   "id": "L2",
+   "created": "2026-11-07T16:44:30.111Z",
+   "version": "0.7.4",
+   "seed": "271666",
+   "novelty": 0.9,
+   "options": {
+    "novelty": 0.9,
+    "experiments": true,
+    "exp": {
+     "exp-06": true,
+     "exp-05": true
+    },
+    "prune": true,
+    "pruneDraft": false,
+    "prefs": true
+   },
+   "scene": "seed271666_n0.90_exp-051_exp-061.scene.json",
+   "verdict": "good",
+   "tags": [
+    "热闹不空"
+   ],
+   "text": "",
+   "target": {
+    "kind": "object",
+    "rect": {
+     "x0": 316,
+     "y0": 445,
+     "x1": 346,
+     "y1": 472
+    },
+    "objects": [
+     {
+      "id": "o94",
+      "key": "17_Garden/Bush_18",
+      "cls": "plant",
+      "gid": "strip#0",
+      "x": 315,
+      "y": 440
+     }
+    ],
+    "gids": [
+     "strip#0"
+    ],
+    "zones": [
+     "z2",
+     "z21"
+    ]
+   }
+  },
+  {
+   "id": "L3",
+   "created": "2026-11-07T16:44:33.761Z",
+   "version": "0.7.4",
+   "seed": "271666",
+   "novelty": 0.9,
+   "options": {
+    "novelty": 0.9,
+    "experiments": true,
+    "exp": {
+     "exp-06": true,
+     "exp-05": true
+    },
+    "prune": true,
+    "pruneDraft": false,
+    "prefs": true
+   },
+   "scene": "seed271666_n0.90_exp-051_exp-061.scene.json",
+   "verdict": "good",
+   "tags": [
+    "热闹不空"
+   ],
+   "text": "",
+   "target": {
+    "kind": "object",
+    "rect": {
+     "x0": 447,
+     "y0": 428,
+     "x1": 479,
+     "y1": 471
+    },
+    "objects": [
+     {
+      "id": "o76",
+      "key": "3_City_Props/Tree_1",
+      "cls": "tree",
+      "gid": "garden#0",
+      "x": 447,
+      "y": 424
+     }
+    ],
+    "gids": [
+     "garden#0"
+    ],
+    "zones": [
+     "z0",
+     "z2"
+    ]
+   }
+  }
+ ]
+}

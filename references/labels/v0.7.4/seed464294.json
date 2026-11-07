@@ -1,0 +1,45 @@
+{
+ "version": "0.7.4",
+ "seed": "464294",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-07T16:43:25.505Z",
+   "version": "0.7.4",
+   "seed": "464294",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "experiments": true,
+    "exp": {
+     "exp-06": true,
+     "exp-05": true
+    },
+    "prune": true,
+    "pruneDraft": false,
+    "prefs": true
+   },
+   "scene": "seed464294_exp-051_exp-061.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "不通向任何地方"
+   ],
+   "text": "如果一条路不同向任何地方，则应该删除",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 464,
+     "y0": 352,
+     "x1": 480,
+     "y1": 368
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "k19",
+     "z1"
+    ]
+   }
+  }
+ ]
+}

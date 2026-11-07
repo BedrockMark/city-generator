@@ -21,7 +21,7 @@ import { makeAdjust } from './learn/adjust';
 import { PREFS } from './learn/prefs';
 import { markNovel } from './learn/novelty';
 
-export const VERSION = '0.7.3';
+export const VERSION = '0.7.4';
 
 export function generate(seed: string, options: Partial<GenOptions> = {}, onProgress?: (n: number, N: number) => void): Scene {
   const opts = withDefaults(options);
@@ -64,7 +64,9 @@ export function generateBase(seed: string, opts: GenOptions): Scene {
   // yard spaces first: parking driveways cut the curb, which changes the curb runs
   // each subsystem runs on its own stream; sb records which stream placed what (stage 6 judge repair)
   const on = (label: string, fn: (r: Rng) => void) => { const r = rng.fork(label); sb.inStream(r.stream, () => fn(r)); };
-  on('yard', r => yardSpaces(L, main, sb, r));
+  // exp-06: touching gardens share one path (decided on its own stream)
+  const e06 = expFires(opts, 'exp-06', rng);
+  on('yard', r => yardSpaces(L, main, sb, r, e06));
   const runs = curbRuns(L);
   reserveWalkways(sb, runs);
   // order = priority: things with a strong reason claim their space first
