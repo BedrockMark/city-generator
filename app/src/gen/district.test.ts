@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { generate } from './generate';
-import { DISTRICT_KINDS, EXP08, type DistrictKind } from './district';
+import { DISTRICT_KINDS, type DistrictKind } from './district';
 import { overlaps } from './place';
 
 /** what each district must have besides its landmark (user 2026-11-07) */
@@ -30,9 +30,10 @@ test('exp-08: the landmark footprint is on the lot north edge, the block is its 
     const others = sc.buildings!.filter(b => b.block === 'main' && b.front !== 'landmark');
     assert.ok(others.length <= (d === 'hospital' ? 1 : 0), `${at}: ordinary buildings ${others.map(b => b.label)}`);
     for (const b of others) assert.ok(!overlaps(b.solid, main!.solid), `${at}: ${b.id} stands clear of the landmark`);
-    const keys = sc.objects.filter(o => o.exp === EXP08).map(o => o.key);
+    // the campus: the landmark's sprites, the campus groups and its roof units (untagged since exp-08 was adopted, 0.7.8)
+    const keys = sc.objects.filter(o => o.gid === main!.gid || /^landmark|^rooftop/.test(o.gid ?? '')).map(o => o.key);
     assert.ok(MUST[d](keys), `${at}: campus features (${[...new Set(keys.map(k => k.split('/')[1]))].join(', ')})`);
-    assert.ok(sc.objects.filter(o => o.gid === main!.gid).every(o => o.exp === EXP08), `${at}: landmark sprite tagged`);
+    assert.ok(!sc.objects.some(o => o.exp === 'exp-08'), `${at}: nothing tagged exp-08 (adopted)`);
     // the fire engine waits beside the station, not in front of its garages and door (user 2026-11-07)
     const truck = sc.objects.find(o => o.key.includes('Fire_Truck'));
     if (truck) assert.ok(truck.fp!.x1 <= main!.rect.x0 || truck.fp!.x0 >= main!.rect.x1, `${at}: fire engine clear of the station front`);
@@ -51,14 +52,18 @@ test('v0.7.8: courts have hoops / goals, the gas station has its driveways', () 
     if (school.zones!.some(z => z.kind === 'playground')) playgrounds++;
     if (generate(seed, { district: 'police' }).objects.some(o => o.key.includes('Parking_Booth'))) booths++;
     const gas = generate(seed, { district: 'gas' });
-    assert.equal(gas.zones!.filter(z => z.kind === 'driveway' && z.exp === EXP08).length, 2, `gas ${seed}: entry and exit driveways`);
+    assert.equal(gas.zones!.filter(z => z.kind === 'driveway' && /^landmark/.test(z.gid ?? '')).length, 2, `gas ${seed}: entry and exit driveways`);
   }
   assert.ok(booths >= 3, `police booths ${booths}/8`);
   assert.ok(playgrounds >= 1, `school playgrounds ${playgrounds}/8`);
 });
 
-test('exp-08: 普通街区 (no district) has no landmark', () => {
-  const sc = generate('1');
-  assert.equal(sc.params.district, undefined);
-  assert.ok(!sc.buildings!.some(b => b.front === 'landmark'));
+test('exp-08 adopted: 普通街区 is now and then a special district, otherwise no landmark', () => {
+  let mixed = 0;
+  for (let i = 1; i <= 60; i++) {
+    const sc = generate(String(i));
+    if (sc.params.district) { mixed++; assert.ok(sc.buildings!.some(b => b.front === 'landmark'), `seed ${i}: ${sc.params.district} has its landmark`); }
+    else assert.ok(!sc.buildings!.some(b => b.front === 'landmark'), `seed ${i}: no landmark`);
+  }
+  assert.ok(mixed >= 4 && mixed <= 24, `special districts ${mixed}/60 (chance 0.2)`);
 });

@@ -1,5 +1,5 @@
 // Generator options, and what is left of the experiments (docs/EXPERIMENTS.md keeps their history).
-// exp-01, exp-03 - exp-07 are adopted: normal generator logic, always on, untagged. Since 0.7.6 there are no switches,
+// exp-01, exp-03 - exp-08 are adopted: normal generator logic, always on, untagged. Since 0.7.6 there are no switches,
 // no registry and no regenerating as an older version (asOf); exp-02 (整体修图) was removed with the judge (NOTE D62).
 // The adopted experiments that draw random numbers still draw from the streams they had (`exp/<id>`): a stream's
 // name seeds it, so renaming one would change every picture.
@@ -21,6 +21,9 @@ export const compositeChance = fireByNovelty(0.35);
 /** exp-05 (adopted): chance that a picked residential building becomes a kit building (a shop: half of it), see pack.ts
  *  kitSwap. Twice the experiment's fireByNovelty(0.2), capped at 1 (user, 0.7.5: 出现概率翻倍) */
 export const kitChance = (n: number) => Math.min(1, 2 * fireByNovelty(0.2)(n));
+
+/** exp-08 (adopted 0.7.8): chance that a 普通街区 seed is a special district instead (district.ts mixedDistrict) */
+export const districtChance = 0.2;
 
 export const DEFAULT_OPTIONS: GenOptions = { novelty: 0.1, prune: true, pruneDraft: false, prefs: true };
 

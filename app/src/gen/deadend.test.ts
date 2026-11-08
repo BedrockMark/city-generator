@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { generate } from './generate';
+import { generate as gen } from './generate';
+
+// the labelled seeds were 普通街区 when labelled (before special districts were mixed in, 0.7.8)
+const generate = (seed: string) => gen(seed, { district: 'none' });
 import { rationalize } from './rational/rationalize';
 import { withDefaults } from './exp';
 import { readFileSync } from 'node:fs';

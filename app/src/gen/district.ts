@@ -1,4 +1,4 @@
-// exp-08 特色街区 (special districts): the main block is the campus of one large special building from the packs
+// exp-08 特色街区 (special districts; adopted in 0.7.8, untagged): the main block is the campus of one large special building from the packs
 // (school, hospital, police station, fire station, mall, hotel). The landmark's footprint sits on the lot's north edge
 // (as exp-03: its upper floors may hang over the north street); everything south of / beside it belongs to it: the school's
 // playground, the hospital's helipad, ambulance bay and convenience store, the police car park, the fire engine apron, the
@@ -8,7 +8,8 @@
 // v0.7.8: the gas station (加油站, ref gas_station): the station sprite is a shop with a canopy over a pump island (and a car
 // wash), not a building with a forecourt; its grounds are a walkway to the shop door and an asphalt forecourt with
 // driveways in and out.
-// Chosen in the viewer's menu (option `district`, URL d=); absent = 普通街区, the generator as before.
+// Chosen in the viewer's menu (option `district`, URL d=); absent = 普通街区: the generator as before, except that one seed in
+// five (districtChance) becomes a special district of a random kind (mixedDistrict).
 // Sizes, doors and props were read off the sprites and the reference maps school / hostpital_HQ / police_station_HQ /
 // shopping_centre_* / hotel (docs/reports/v0.7.7.md).
 import { Rng } from './rng';
@@ -19,13 +20,13 @@ import type { PlacedBuilding } from './block';
 import { SceneBuilder, rect } from './place';
 import { person } from './vignettes';
 import { TILE } from './types';
+import { districtChance } from './exp';
 
 const T = TILE;
 const C = '3_City_Props/';
 const V = '10_Vehicles/';
 const SC = '13_School/';
 const PS = '15_Police_Station/';
-export const EXP08 = 'exp-08';
 
 export type DistrictKind = 'school' | 'hospital' | 'police' | 'fire' | 'mall' | 'hotel' | 'gas';
 
@@ -49,13 +50,20 @@ export const DISTRICTS: Record<DistrictKind, Spec> = {
 export const DISTRICT_KINDS = Object.keys(DISTRICTS) as DistrictKind[];
 export const isDistrict = (d: unknown): d is DistrictKind => typeof d === 'string' && d in DISTRICTS;
 
+/** 普通街区 (no district asked for): now and then a special district anyway, every kind alike (exp-08 adopted in 0.7.8,
+ *  user: 合并转正). Its own stream: the other seeds keep their pictures */
+export function mixedDistrict(rng: Rng): DistrictKind | undefined {
+  const r = rng.fork('district/mixed');
+  return r.choose('district.mixed', {}, { p: districtChance }) ? r.choose('district.mixedKind', {}, DISTRICT_KINDS) : undefined;
+}
+
 let nextId = 0;
 export const resetDistrictIds = () => { nextId = 0; };
 
 function plan(key: string, doors: number[], label: string): BuildingPlan {
   const sp = spr(key), h = sp.h / T;
   return { id: `L${nextId++}`, w: sp.w / T, h, foot: Math.max(3, Math.round(h * 0.5)), parts: [{ key, dx: 0, dy: 0, sub: 0, role: 'whole' }],
-    doors, front: 'landmark', tall: true, label, exp: EXP08 };
+    doors, front: 'landmark', tall: true, label };
 }
 
 /** a purposeful area of the campus (cells, half-open; block-local while planning, map cells once placed) */
@@ -241,9 +249,9 @@ export function placeCampus(L: Layout, c: Campus): Landmark {
 // ------------------------------------------------------------------------------------------------
 // the campus grounds
 
-/** paving and the props of every campus area; everything tagged exp-08 */
+/** paving and the props of every campus area */
 export function districtVignettes(L: Layout, lm: Landmark, sb: SceneBuilder, r: Rng) {
-  sb.withExp(EXP08, () => grounds(L, lm, sb, r));
+  grounds(L, lm, sb, r);
 }
 
 function grounds(L: Layout, lm: Landmark, sb: SceneBuilder, r0: Rng) {
