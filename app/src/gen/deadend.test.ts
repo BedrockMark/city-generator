@@ -2,42 +2,40 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { generate } from './generate';
 import { rationalize } from './rational/rationalize';
-import { expEnabled, withDefaults } from './exp';
+import { withDefaults } from './exp';
+import { readFileSync } from 'node:fs';
+import type { Scene } from './types';
 
-// exp-07 (C25) on the pictures the user labelled (v0.7.4, exp-05 + exp-06 on): the audit re-run with exp-07 on
-const labelled = (seed: string, novelty: number) => {
-  const o = { novelty, asOf: '0.7.4', exp: { 'exp-05': true, 'exp-06': true } };
-  const sc = generate(seed, o as never);
-  sc.audit = rationalize(sc, withDefaults({ ...o, asOf: undefined }));
+// C25 (exp-07, adopted) on the pictures the user labelled (v0.7.4, exp-05 + exp-06 on): the scene saved with the label,
+// its audit re-run with today's constraints (the generator can no longer make the 0.7.4 picture)
+const labelled = (file: string, novelty: number) => {
+  const sc = JSON.parse(readFileSync(new URL(`../../../references/labels/v0.7.4/${file}`, import.meta.url), 'utf8')) as Scene;
+  sc.audit = rationalize(sc, withDefaults({ novelty }));
   return sc;
 };
 
 test('464294 L1: the garden path from wall to wall is continued at both ends (north sidewalk, south paving)', () => {
-  const sc = labelled('464294', 0.1);
+  const sc = labelled('seed464294_exp-051_exp-061.scene.json', 0.1);
   const links = sc.zones!.filter(z => z.kind === 'link' && z.gid === 'garden#1');
-  assert.ok(links.length >= 2 && links.every(z => z.exp === 'exp-07'));
+  assert.ok(links.length >= 2 && links.every(z => !z.exp));
   const path = sc.zones!.find(z => z.kind === 'path' && z.gid === 'garden#1')!;
   assert.ok(path.rect.x1 <= 480, 'the stretch under the red building is gone');
   assert.equal(sc.audit!.counts.C25, 0);
   assert.ok(!sc.audit!.violations.some(v => v.c === 'C19' && v.msg.includes('garden#1')));
-  assert.ok(sc.audit!.regrounded.some(g => g.c === 'C25' && g.what === 'pave' && g.exp === 'exp-07'));
+  assert.ok(sc.audit!.regrounded.some(g => g.c === 'C25' && g.what === 'pave'));
 });
 
 test('271666 L1: the bin in the way of the alley goes (it meets a passage under the building to the east sidewalk)', () => {
-  const sc = labelled('271666', 0.9);
-  assert.ok(sc.audit!.pruned.some(p => p.c === 'C25' && /Trashbin/.test(p.key) && p.exp === 'exp-07'));
+  const sc = labelled('seed271666_n0.90_exp-051_exp-061.scene.json', 0.9);
+  assert.ok(sc.audit!.pruned.some(p => p.c === 'C25' && /Trashbin/.test(p.key)));
   assert.ok(!sc.objects.some(o => o.gid === 'alley#0' && /Trashbin/.test(o.key)));
   assert.equal(sc.audit!.counts.C25, 0);
 });
 
-test('exp-07 is an experiment, on by default: off (or before 0.7.5) the constraint is not judged and nothing carries its tag', () => {
-  assert.equal(expEnabled(withDefaults({}), 'exp-07'), true);
-  assert.equal(expEnabled(withDefaults({ asOf: '0.7.4' }), 'exp-07'), false);
-  const off = generate('6', { exp: { 'exp-07': false } });
-  assert.equal(off.audit!.counts.C25, undefined);
-  assert.ok(!off.zones!.some(z => z.exp === 'exp-07'));
-  const on = generate('6');
-  assert.ok(on.audit!.regrounded.some(g => g.c === 'C25'));
+test('exp-07 is adopted (0.7.6): C25 always runs, its repairs untagged', () => {
+  const sc = generate('6');
+  assert.ok(sc.audit!.regrounded.some(g => g.c === 'C25'));
+  assert.ok(!sc.zones!.some(z => z.exp) && !sc.objects.some(o => o.exp));
 });
 
 // v0.7.5 labels (default options): paths that run on under upper floors to a sidewalk are passages, not dead ends

@@ -1,9 +1,8 @@
 // Stage 7 training data (spec 4.2): the user's A/B choices and good / bad labels as Bradley–Terry comparisons. Node only.
 // - choice files references/choices/v<version>/seed<seed>_<time>.json (spec 3.4): one comparison per answered change,
 //   weight 1, batch = the file; no regeneration needed;
-// - labels (v0.5.1 on): from 0.7.0 the saved scene (objects carry `stream`); before, the scene is regenerated with the
-//   current generator (novelty 0, no preferences; novelty had no effect then) and used when its picture equals the saved
-//   one, else the saved scene when its objects carry `stream` (v0.6.0 on), else skipped. Attribution: the streams that
+// - labels (v0.5.1 on): the saved scene when its objects carry `stream` (v0.6.0 on), else skipped (until 0.7.5 the
+//   older ones were regenerated as their version made them, options.asOf; since 0.7.6 that is gone). Attribution: the streams that
 //   placed the labelled objects (key + position ±2px) or the objects whose foot lies in the labelled region; their
 //   judgeable decisions (rng.ts judgeable: ≥ 2 alternatives, no JSON-shown geometry option such as pack.run "[11,40]";
 //   choice comparisons with such an option are skipped too). Bad: each pick loses against each alternative; good: wins;
@@ -11,11 +10,9 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { generate } from '../generate';
-import { signature } from '../signature';
 import { alternatives, judgeable, isGeometryOption, type Decision } from '../rng';
-import { objBox } from '../judge/align';
-import { LABEL_DIR, labelRegion, verGE } from '../judge/labelset';
+import { objBox } from '../boxes';
+import { LABEL_DIR, labelRegion, verGE } from './labels';
 import type { Label } from '../../viewer/labels';
 import type { GenOptions, Placed, PxRect, Scene } from '../types';
 import type { Comparison } from './prefs';
@@ -51,7 +48,7 @@ export function loadChoiceComparisons(dir = CHOICE_DIR): { cs: Comparison[]; fil
   return { cs, files: fs.length, skipped };
 }
 
-export interface LabelAttribution { label: Label; file: string; scene: Scene; decisions: Decision[]; region: PxRect; regenerated: boolean }
+export interface LabelAttribution { label: Label; file: string; scene: Scene; decisions: Decision[]; region: PxRect }
 
 const near = (o: Placed, s: { key: string; x: number; y: number }) => o.key === s.key && Math.abs(o.x - s.x) <= 2 && Math.abs(o.y - s.y) <= 2;
 const footIn = (o: Placed, r: PxRect) => { const b = objBox(o), fx = (b.x0 + b.x1) / 2, fy = b.y1; return fx >= r.x0 && fx < r.x1 && fy >= r.y0 && fy < r.y1; };
@@ -63,7 +60,6 @@ export interface SkippedLabel { file: string; id: string; why: string; label: La
 export function attributeLabels(minVersion = '0.5.1'): { items: LabelAttribution[]; skipped: SkippedLabel[] } {
   const items: LabelAttribution[] = [], skipped: SkippedLabel[] = [];
   if (!existsSync(LABEL_DIR)) return { items, skipped };
-  const gens = new Map<string, Scene>();
   for (const v of readdirSync(LABEL_DIR).filter(d => /^v\d/.test(d) && verGE(d, minVersion)).sort()) {
     const d = join(LABEL_DIR, v);
     for (const f of readdirSync(d).filter(f => /^seed.*\.json$/.test(f) && !f.endsWith('.scene.json')).sort()) {
@@ -72,24 +68,16 @@ export function attributeLabels(minVersion = '0.5.1'): { items: LabelAttribution
         if (!saved.has(l.scene)) saved.set(l.scene, JSON.parse(readFileSync(join(d, l.scene), 'utf8')) as Scene);
         const old = saved.get(l.scene)!, region = labelRegion(l, old), hasStream = old.objects.some(p => p.stream);
         const skip = (why: string) => skipped.push({ file, id: l.id, why, label: l, scene: old, region });
-        // from 0.7.0 the saved scene (with streams) is used as is; older ones are regenerated (novelty had no effect)
-        let sc: Scene | null = null, same = false;
-        if (verGE(l.version, '0.7.0')) sc = hasStream ? old : null;
-        else {
-          const o: Partial<GenOptions> = { ...l.options, novelty: 0, prefs: false, force: undefined, asOf: l.version }, key = JSON.stringify([l.seed, o]);
-          if (!gens.has(key)) gens.set(key, generate(l.seed, o));
-          const now = gens.get(key)!;
-          same = JSON.stringify(signature(now)) === JSON.stringify(signature(old));
-          sc = same ? now : hasStream ? old : null;
-        }
-        if (!sc) { skip(verGE(l.version, '0.7.0') ? '存下的场景物件没有 stream' : '签名不同（重新生成的画面和存下的不一样），存下的场景物件没有 stream'); continue; }
+        // the saved scene, as it was labelled (objects carry their stream from 0.6.0 on)
+        const sc = hasStream ? old : null;
+        if (!sc) { skip('存下的场景物件没有 stream（0.6.0 之前的标注）'); continue; }
         const t = l.target;
         const objs = t.objects.length && t.kind !== 'region' ? sc.objects.filter(p => t.objects.some(s => near(p, s))) : sc.objects.filter(p => footIn(p, region));
         if (t.objects.length && t.kind !== 'region' && !objs.length) { skip(NO_DECISIONS[0]); continue; }
         const streams = new Set(objs.map(p => p.stream).filter((s): s is string => !!s));
         const decisions = ((sc.trace?.decisions ?? []) as Decision[]).filter(x => streams.has(x.s) && judgeable(x));
         if (!decisions.length) { skip(NO_DECISIONS[streams.size ? 1 : 2]); continue; }
-        items.push({ label: l, file, scene: sc, decisions, region, regenerated: same });
+        items.push({ label: l, file, scene: sc, decisions, region });
       }
     }
   }

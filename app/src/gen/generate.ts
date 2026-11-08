@@ -9,63 +9,47 @@ import { explainGround } from './explain';
 import { curbRuns, reserveWalkways, crossingVignettes, curbStrips, frontVignettes, zoneVignettes, islandSquares, busStop, cars, roadDetails, walkers } from './vignettes';
 import { yardSpaces } from './yard';
 import { SHEETS, TILE, type Scene, type GenOptions } from './types';
-import { withDefaults, expFires, expEnabled, compositeChance, kitChance } from './exp';
+import { withDefaults, expStream, compositeChance, kitChance } from './exp';
 import { linkBuildings, EXP04 } from './terrace';
 import { EXP05, resetKitIds } from './kits';
 import { rooftopAC } from './rooftop';
 import { rationalize } from './rational/rationalize';
-import { alignScene } from './judge/align';
-import { scoreWorld } from './judge/model';
-import { judgeRepair, build, tagGlobal, EXP_ID } from './judge/repair';
 import { makeAdjust } from './learn/adjust';
 import { PREFS } from './learn/prefs';
 import { markNovel } from './learn/novelty';
 
-export const VERSION = '0.7.5';
+export const VERSION = '0.7.6';
 
-export function generate(seed: string, options: Partial<GenOptions> = {}, onProgress?: (n: number, N: number) => void): Scene {
-  const opts = withDefaults(options);
-  // stage 6: a recorded judge repair (exported scene) is rebuilt as is
-  if (opts.judgeFixed) {
-    const sc = build(seed, opts, opts.reseed ?? {});
-    if (opts.judgeFixed.global) tagGlobal(sc);
-    return sc;
-  }
-  const scene = generateBase(seed, opts);
-  // oddness of every window (read-only: the picture does not change)
-  scene.judge = scoreWorld(alignScene(scene), undefined, opts.novelty);
-  // exp-02: repair the oddest windows
-  if (opts.judgeRepair !== false && expEnabled(opts, EXP_ID)) return judgeRepair(seed, opts, scene, onProgress);
-  return scene;
+export function generate(seed: string, options: Partial<GenOptions> = {}): Scene {
+  return generateBase(seed, withDefaults(options));
 }
 
-/** the generator proper, constraint repairs included (stage 5); the judge and its repair come on top (stage 6) */
+/** the generator proper, constraint repairs included (stage 5) */
 export function generateBase(seed: string, opts: GenOptions): Scene {
   resetIds();
   resetKitIds();
   // stage 7: learned preferences (and novelty) reweight decisions; undefined = every draw is the old one
-  const trace = new Trace(seed, opts.reseed ?? {}, opts.force ?? {}, makeAdjust(opts, PREFS));
+  const trace = new Trace(seed, makeAdjust(opts, PREFS));
   const rng = new Rng(seed, trace);
   const L = makeLayout(rng);
   const sb = new SceneBuilder(L.cols, L.rows, L.cls);
-  // exp-04: composite buildings on its own stream; touching neighbours switch to their linked state (no random numbers)
-  const e04 = expFires(opts, EXP04, rng);
-  const composite = e04 ? { r: e04, p: compositeChance(opts.novelty) } : undefined;
-  // exp-05 (adopted 0.7.5): the packs' other building kits in place of a picked building, on its own stream
-  const e05 = expFires(opts, EXP05, rng);
-  const kits = e05 ? { r: e05, p: kitChance(opts.novelty, opts) } : undefined;
-  const main = planMainBlock(L, rng, expEnabled(opts, 'exp-03'), composite, kits);
+  // exp-04 (adopted): composite buildings on its own stream; touching neighbours switch to their linked state (no random numbers)
+  const composite = { r: expStream(rng, EXP04, opts.novelty), p: compositeChance(opts.novelty) };
+  // exp-05 (adopted): the packs' other building kits in place of a picked building, on its own stream
+  const kits = { r: expStream(rng, EXP05, opts.novelty), p: kitChance(opts.novelty) };
+  const main = planMainBlock(L, rng, composite, kits);
   const neigh = planNeighbours(L, rng, composite, kits);
-  if (e04) linkBuildings([main, neigh]);
+  linkBuildings([main, neigh]);
   sb.inStream('block', () => emitBuildings(L, main, sb, 'main'));
   sb.inStream('neigh', () => emitBuildings(L, neigh, sb, 'neigh'));
-  const e01 = expFires(opts, 'exp-01', rng);
-  if (e01) sb.inStream(e01.stream, () => rooftopAC([main, neigh], sb, e01));
+  // exp-01 (adopted): AC units on flat roofs
+  const e01 = expStream(rng, 'exp-01', opts.novelty);
+  sb.inStream(e01.stream, () => rooftopAC([main, neigh], sb, e01));
   // yard spaces first: parking driveways cut the curb, which changes the curb runs
-  // each subsystem runs on its own stream; sb records which stream placed what (stage 6 judge repair)
+  // each subsystem runs on its own stream; sb records which stream placed what (label attribution, stage 7)
   const on = (label: string, fn: (r: Rng) => void) => { const r = rng.fork(label); sb.inStream(r.stream, () => fn(r)); };
-  // exp-06 (adopted 0.7.5): touching gardens share one path (decided on its own stream)
-  const e06 = expFires(opts, 'exp-06', rng);
+  // exp-06 (adopted): touching gardens share one path (decided on its own stream)
+  const e06 = expStream(rng, 'exp-06', opts.novelty);
   on('yard', r => yardSpaces(L, main, sb, r, e06));
   const runs = curbRuns(L);
   reserveWalkways(sb, runs);
@@ -92,7 +76,8 @@ export function generateBase(seed: string, opts: GenOptions): Scene {
   };
   // stage 7: objects drawn from a never-used sprite (novelty); before the audit, which may delete some of them
   markNovel(scene, trace.novel);
-  // stage 5: constraint audit; repairs by deletion with the confirmed constraints (no random numbers used)
+  // stage 5: constraint audit; repairs by deletion with the confirmed constraints, dead ends continued or removed
+  // (C25, exp-07 adopted); no random numbers used
   scene.audit = rationalize(scene, opts);
   return scene;
 }

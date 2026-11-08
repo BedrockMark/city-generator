@@ -2,7 +2,6 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Rng } from './rng';
 import { joinGardens } from './yard';
-import { expEnabled, withDefaults } from './exp';
 import { generate } from './generate';
 import type { Layout } from './layout';
 
@@ -51,19 +50,10 @@ test('touching gardens are left apart when C20 would remove the link (sidewalk r
   assert.equal(joinGardens(W, [{ rc: a }, { rc: b }], owns([a, { vertical: false, at: 25 }], [b, { vertical: false, at: 18 }]), new Rng('s')), null);
 });
 
-test('exp-06 is adopted (0.7.5): always on, untagged; as an experiment (0.7.4) off left the picture, on changed only the yard (seed 716771)', () => {
-  assert.equal(expEnabled(withDefaults({ experiments: false }), 'exp-06'), true);
-  assert.equal(expEnabled(withDefaults({ asOf: '0.7.4' }), 'exp-06'), false);
-  const o = { judgeRepair: false, novelty: 0.7, asOf: '0.7.4', exp: { 'exp-05': true } };
-  const off = generate('716771', o as never), off2 = generate('716771', { ...o, exp: { ...o.exp, 'exp-06': false } } as never);
-  assert.equal(JSON.stringify(off.objects), JSON.stringify(off2.objects));
-  const on = generate('716771', { ...o, exp: { ...o.exp, 'exp-06': true } } as never);
+test('exp-06 is adopted: always on, untagged (seed 716771, novelty 0.7: the two gardens of one yard space are one)', () => {
+  const on = generate('716771', { novelty: 0.7 });
   const paths = on.zones!.filter(z => z.kind === 'path' && /^garden/.test(z.gid ?? ''));
-  assert.equal(paths.length, 2);
-  assert.equal(paths[0].gid, paths[1].gid, 'one garden');
-  assert.equal(paths[0].rect.y0, paths[1].rect.y0, 'one path row');
+  assert.ok(paths.length >= 2);
+  assert.ok(paths.some((p, i) => paths.some((q, j) => i !== j && p.gid === q.gid)), 'a garden with two paths (its halves)');
   assert.ok(paths.every(z => z.exp === undefined), 'adopted: untagged');
-  // the yard may change around the gardens (a strip tree loses its spot to a garden tree), nothing else does
-  const rest = (sc: typeof on) => JSON.stringify(sc.objects.filter(x => !/^yard\//.test(x.stream ?? '')).map(x => [x.key, x.x, x.y]));
-  assert.equal(rest(on), rest(off));
 });

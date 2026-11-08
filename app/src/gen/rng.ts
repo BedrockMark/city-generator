@@ -10,8 +10,7 @@
 // Continuous draws (positions, spacing, jitter via int / range / jitter) are geometry, not decisions.
 //
 // Stage 7: a decision's identity is (stream, label, k), k = how many times this label was called on this stream
-// (rejected proposals included). Trace.force pins decisions by that key (one draw is still consumed, so the rest of
-// the stream keeps its draws); Trace.adjust multiplies option weights (learned preferences, novelty). With neither,
+// (rejected proposals included). Trace.adjust multiplies option weights (learned preferences, novelty). Without it,
 // every draw is exactly the old one.
 
 function cyrb128(str: string): [number, number, number, number] {
@@ -48,10 +47,7 @@ export interface Decision {
   w?: number[];
   p?: number;
   pick: string;
-  /** pinned by Trace.force */
-  forced?: true;
-  /** preference multipliers that differ from 1 (from Trace.adjust; novelty factors are not recorded; never on forced
-   *  decisions: the pick did not come from the weights) */
+  /** preference multipliers that differ from 1 (from Trace.adjust; novelty factors are not recorded) */
   m?: Record<string, number>;
 }
 
@@ -60,7 +56,6 @@ export interface Decision {
  *  option is recorded only when the novelty changed the pick (w0 with the same random number picks another option).
  *  null = leave the decision alone (original code path) */
 export type Adjust = (label: string, ctx: Ctx, opts: string[], stream: string) => { w: number[]; w0?: number[]; m?: Record<string, number>; novel?: string[] } | null;
-export const forceKey = (stream: string, label: string, k: number) => `${stream}|${label}|${k}`;
 
 /** the options a recorded decision could have taken (string form); [] = not enumerable (order, too many options) */
 export function alternatives(d: Decision): string[] {
@@ -95,12 +90,8 @@ export class Trace {
   rejected: Record<string, number> = {};
   /** discrete draws that did not go through choose() */
   unlabelled = 0;
-  /** stage 6 judge repair: logical stream path -> salt. A salted stream (and everything forked from it) draws from
-   *  `<seed>/.../<label>#<salt>`; every other stream is untouched */
-  /** stage 7: forceKey -> option (string form); adjust: weight hook (see Adjust) */
-  constructor(readonly root: string, readonly reseed: Record<string, number> = {}, readonly force: Record<string, string> = {}, readonly adjust?: Adjust) {}
-  /** forced keys whose option was not among the current options (not applied) */
-  forceMissed: string[] = [];
+  /** stage 7: adjust = weight hook (see Adjust) */
+  constructor(readonly root: string, readonly adjust?: Adjust) {}
   /** picked options the adjust hook marked novel: "<stream>|<option>"; novelAt: index of the decision each came from
    *  (reject() drops the entries of a rejected proposal with its decisions) */
   novel: string[] = [];
@@ -108,15 +99,15 @@ export class Trace {
   private counter = new Map<string, number>();
   /** next k for (stream, label) */
   tick(s: string, label: string): number { const key = `${s}|${label}`, k = this.counter.get(key) ?? 0; this.counter.set(key, k + 1); return k; }
-  toJSON() { return { decisions: this.decisions, streams: this.streams, textures: this.textures, rejected: this.rejected, unlabelled: this.unlabelled, ...(this.forceMissed.length ? { forceMissed: this.forceMissed } : {}) }; }
+  toJSON() { return { decisions: this.decisions, streams: this.streams, textures: this.textures, rejected: this.rejected, unlabelled: this.unlabelled }; }
 }
 
 export type Choice<T> = readonly T[] | { weights: readonly (readonly [T, number])[] };
 
 export class Rng {
   private a: number; private b: number; private c: number; private d: number;
-  /** seed: the string the generator is seeded with (carries salts); path: logical stream path below the root
-   *  ('' for the root), what the trace, the placements and `reseed` refer to */
+  /** seed: the string the generator is seeded with; path: logical stream path below the root ('' for the root),
+   *  what the trace and the placements refer to */
   constructor(readonly seed: string, readonly trace?: Trace, readonly path?: string) {
     [this.a, this.b, this.c, this.d] = cyrb128(seed);
     for (let i = 0; i < 12; i++) this.next();
@@ -135,32 +126,25 @@ export class Rng {
   /** independent stream; ctx describes what the stream decides about (recorded once in the trace) */
   fork(label: string, ctx?: Ctx): Rng {
     const path = this.stream ? `${this.stream}/${label}` : label;
-    const salt = this.trace?.reseed[path];
-    const r = new Rng(`${this.seed}/${label}${salt !== undefined ? `#${salt}` : ''}`, this.trace, path);
+    const r = new Rng(`${this.seed}/${label}`, this.trace, path);
     if (ctx && this.trace) this.trace.streams[r.stream] = ctx;
     return r;
   }
   get stream(): string { return this.path ?? (this.trace ? this.seed.slice(this.trace.root.length + 1) : this.seed); }
-  /** identity, force and adjust of one decision with n options (str(j): option j in string form). draw(w, u) makes the
+  /** identity and adjust of one decision with n options (str(j): option j in string form). draw(w, u) makes the
    *  ordinary draw from the uniform u (w: multipliers from the hook, null = original code) and returns the option index */
   private decide(label: string, ctx: Ctx, n: number, str: (j: number) => string, draw: (w: number[] | null, u: number) => number) {
     const t = this.trace;
     if (!t) return { j: draw(null, this.next()), x: { i: 0 } };
-    const s = this.stream, k = t.tick(s, label), key = forceKey(s, label, k), f = t.force[key];
+    const s = this.stream, k = t.tick(s, label);
     let opts: string[] | null = null;
-    if (t.adjust || f !== undefined) { opts = new Array<string>(n); for (let j = 0; j < n; j++) opts[j] = str(j); }
+    if (t.adjust) { opts = new Array<string>(n); for (let j = 0; j < n; j++) opts[j] = str(j); }
     const a = t.adjust ? t.adjust(label, ctx, opts!, s) : null;
-    let j = f !== undefined ? opts!.indexOf(f) : -1;   // first option with that string form
-    const forced = j >= 0;
-    if (forced) this.next();   // still one draw: the rest of the stream keeps its numbers
-    else {
-      if (f !== undefined) t.forceMissed.push(key);
-      const u = this.next();
-      j = draw(a ? a.w : null, u);
-      // novel only when the novelty changed the pick: without it the same u picks another option
-      if (a?.novel?.includes(opts![j]) && draw(a.w0 ?? null, u) !== j) { t.novel.push(`${s}|${opts![j]}`); t.novelAt.push(t.decisions.length); }
-    }
-    return { j, x: { i: k, ...(forced ? { forced: true as const } : {}), ...(a?.m && !forced ? { m: a.m } : {}) } };
+    const u = this.next();
+    const j = draw(a ? a.w : null, u);
+    // novel only when the novelty changed the pick: without it the same u picks another option
+    if (a?.novel?.includes(opts![j]) && draw(a.w0 ?? null, u) !== j) { t.novel.push(`${s}|${opts![j]}`); t.novelAt.push(t.decisions.length); }
+    return { j, x: { i: k, ...(a?.m ? { m: a.m } : {}) } };
   }
   private rec(d: Omit<Decision, 's'>) { this.trace?.decisions.push({ s: this.stream, ...d, ...(d.ctx && !Object.keys(d.ctx).length ? { ctx: undefined } : {}) }); }
 
@@ -219,7 +203,7 @@ export class Rng {
   }
   /** labelled shuffle (in place); records the resulting order */
   order<T>(label: string, ctx: Ctx, arr: T[]): T[] {
-    const i = this.trace ? this.trace.tick(this.stream, label) : 0;   // counted, never forced
+    const i = this.trace ? this.trace.tick(this.stream, label) : 0;   // counted
     this.shuffle_(arr);
     this.rec({ label, i, kind: 'order', ctx, n: arr.length, pick: arr.map(show).join(',').slice(0, 80) });
     return arr;

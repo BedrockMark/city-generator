@@ -55,8 +55,6 @@ export interface Constraint {
   rule: Rule;
   /** zone downgrade style */
   downgrade?: 'lawn' | 'clear';
-  /** belongs to an experimental feature: judged and repaired only while that experiment is on, its repairs carry the tag */
-  exp?: string;
 }
 
 const BINS = 'Trashbin|Dumpster';
@@ -105,8 +103,8 @@ export const CONSTRAINTS: Constraint[] = [
     severity: 'soft', fix: 'remove', status: 'active', rule: { kind: 'path-redundant', within: 40 } },
   { id: 'C19', title: '花园小路不断头', why: '标注 838592 L1、607718 L3（坏）、161781 L1（好）：小路一头撞上楼的墙（底层占地）= 不通向任何地方。楼后的地面是普通内院，小路可以照常穿过（D38）。只报告：阶段 6 换子种子重生成',
     severity: 'soft', fix: 'report', status: 'active', rule: { kind: 'path-ends' } },
-  { id: 'C25', title: '断头路先接上，接不上就删', why: '标注 464294 L1（坏）：“如果一条路不通向任何地方，则应该删除”；用户：很多只要往后去一点就能到停车场 / 街另一边。花园小路或巷子能看见的一头撞墙、钻进楼的高层底下或停在草坪上，就是断头路。先接：每个断头往前找一条 ≤6 格的路，接到人行道、别的小路或连着街的铺地（不穿楼、不钻到楼的高层底下、不碰树干、不挪长椅；挡路的盆栽、垃圾袋和行人删掉）。接上要有用：不接到另一条断头路上；原来就能走到的地方（这条路已经通的一头，或两头都断时另一条接线的去处）不算新去处，绕现有的路走过去要超过经这条路走的 1.5 倍才算；接上后，路上伸进楼底下看不见的一段改成草坪。接不上：整条小路改成草坪（连同面朝它的长椅和路上的行人），巷子降级为草坪（连同垃圾桶）。exp-07',
-    severity: 'soft', fix: 'downgrade', downgrade: 'lawn', status: 'active', exp: 'exp-07', rule: { kind: 'dead-end', reach: 6 } },
+  { id: 'C25', title: '断头路先接上，接不上就删', why: '标注 464294 L1（坏）：“如果一条路不通向任何地方，则应该删除”；用户：很多只要往后去一点就能到停车场 / 街另一边。花园小路或巷子能看见的一头撞墙、钻进楼的高层底下或停在草坪上，就是断头路。先接：每个断头往前找一条 ≤6 格的路，接到人行道、别的小路或连着街的铺地（不穿楼、不钻到楼的高层底下、不碰树干、不挪长椅；挡路的盆栽、垃圾袋和行人删掉）。接上要有用：不接到另一条断头路上；原来就能走到的地方（这条路已经通的一头，或两头都断时另一条接线的去处）不算新去处，绕现有的路走过去要超过经这条路走的 1.5 倍才算；接上后，路上伸进楼底下看不见的一段改成草坪。接不上：整条小路改成草坪（连同面朝它的长椅和路上的行人），巷子降级为草坪（连同垃圾桶）。来自 exp-07（0.7.6 转正）',
+    severity: 'soft', fix: 'downgrade', downgrade: 'lawn', status: 'active', rule: { kind: 'dead-end', reach: 6 } },
   { id: 'C21', title: '行道树不挤在广场前和门前', why: '标注 359866 L2、994257 L2：小广场前面、店门前面再种行道树就太挤（广场本身有中心树）',
     severity: 'soft', fix: 'remove', status: 'active', rule: { kind: 'not-near', who: { group: ['curb-trees'] }, to: [{ zone: ['plaza'], below: 64 }, 'door-front'], within: 0 } },
   { id: 'C22', title: '道路施工不占横道', why: '标注 941983 L1：施工的坑挖在人行横道上，没有理由。修复：整组施工删除',
@@ -140,7 +138,7 @@ export interface Violation {
 }
 
 export interface Ctx { w: World; g: Graph; byId: Map<string, WObj>;
-  /** exp-07 on: door walks (C18) keep out from under upper floors where they can */
+  /** door walks (C18) keep out from under upper floors where they can (exp-07, adopted; off for references) */
   seenWalks?: boolean }
 
 export function makeCtx(w: World, o: { seenWalks?: boolean } = {}): Ctx { return { w, g: buildGraph(w), byId: new Map(w.objs.map(o => [o.id, o])), seenWalks: o.seenWalks }; }
@@ -523,7 +521,7 @@ export function appliesToRefs(c: Constraint): boolean {
 }
 
 // ------------------------------------------------------------------------------------------------
-// C25 (exp-07): dead-end paths and alleys, continued where a few cells reach somewhere walkable, else cut back to a
+// C25 (exp-07, adopted 0.7.6): dead-end paths and alleys, continued where a few cells reach somewhere walkable, else cut back to a
 // junction, else turned into lawn
 
 type Cell = [number, number];
@@ -855,7 +853,7 @@ function deadEnds(c: Constraint, cx: Ctx, reach: number): Violation[] {
         for (const q of rt.cells) pave.push({ cell: q, src: rt.from });
         for (const q of rt.wide) pave.push({ cell: q, src: s.vert ? [q[0], rt.from[1]] : [rt.from[0], q[1]] });
         if (rt.wide.length) addZones.push({ layer: 'keepclear', kind: 'link', rect: union(rt.wide.map(cellRect)),
-          reason: `断头路接上（exp-07）：${what}的接线和巷子一样宽`, gid: s.z.gid, exp: c.exp });
+          reason: `断头路接上：${what}的接线和巷子一样宽`, gid: s.z.gid });
         const name = placeName(...rt.goal);
         where.push(`往前接 ${rt.cells.length} 格到${name}`);
         // one keep-clear zone per straight stretch, from the alley's inner cells (if any) on
@@ -867,7 +865,7 @@ function deadEnds(c: Constraint, cx: Ctx, reach: number): Violation[] {
           while (j < line.length && (hz ? line[j][1] === line[i][1] : line[j][0] === line[i][0])) j++;
           const seg = union(line.slice(i, j).map(cellRect));
           addZones.push({ layer: 'keepclear', kind: 'link', rect: hz ? { ...seg, y0: seg.y0 + 2, y1: seg.y1 - 2 } : { ...seg, x0: seg.x0 + 2, x1: seg.x1 - 2 },
-            reason: `断头路接上（exp-07）：${what}的一头不通向任何地方，往前接 ${rt.cells.length} 格到${name}`, gid: s.z.gid, exp: c.exp });
+            reason: `断头路接上：${what}的一头不通向任何地方，往前接 ${rt.cells.length} 格到${name}`, gid: s.z.gid });
           i = j;
         }
       }
@@ -887,7 +885,7 @@ function deadEnds(c: Constraint, cx: Ctx, reach: number): Violation[] {
         v.toLawn = gone.map(cellRect);
         v.dropZones = [s.z.id];
         addZones.unshift({ layer: s.z.layer, kind: s.z.kind, rect: s.horiz ? { ...r0, y0: s.z.rect.y0, y1: s.z.rect.y1 } : { ...r0, x0: s.z.rect.x0, x1: s.z.rect.x1 },
-          reason: `${s.z.reason}（${cut > 0 ? '接不上的一头剪掉' : '伸进楼的高层底下、通不到哪里的一段改成草坪'}，exp-07）`, gid: s.z.gid, exp: s.z.exp, stream: s.z.stream });
+          reason: `${s.z.reason}（${cut > 0 ? '接不上的一头剪掉' : '伸进楼的高层底下、通不到哪里的一段改成草坪'}）`, gid: s.z.gid, exp: s.z.exp, stream: s.z.stream });
         // the benches facing the stretch that goes, the people walking on it
         for (const o of pathUsers(s)) if (goneSet.has(ck(...nearestCell(s, o)))) objs.add(o.id);
       }

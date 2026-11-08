@@ -23,8 +23,8 @@ export interface BlockPlan {
   yb: Map<number, number>; yt: Map<number, number>;
 }
 
-/** spread: the rows behind slide north (exp-03, adopted; off only when regenerating an older version) */
-export function planMainBlock(L: Layout, r0: Rng, spread = true, composite?: { r: Rng; p: number }, kits?: { r: Rng; p: number }): BlockPlan {
+/** the rows behind slide north (pack.ts spread, exp-03 adopted) */
+export function planMainBlock(L: Layout, r0: Rng, composite?: { r: Rng; p: number }, kits?: { r: Rng; p: number }): BlockPlan {
   const r = r0.fork('block');
   const yb = new Map<number, number>(), yt = new Map<number, number>();
   for (let x = L.bx0; x < L.bx1; x++) {
@@ -66,7 +66,7 @@ export function planMainBlock(L: Layout, r0: Rng, spread = true, composite?: { r
   const mix = r.choose('block.mix', {}, { weights: [[{ modular: 3, single: 2 }, 2], [{ modular: 1, single: 2 }, 1], [{ modular: 3, single: 1 }, 1]] as const });
   const { placed, yard } = pack({
     cols: L.cols, rows: L.rows, buildable: (x, y) => L.inP[y][x] && !carved[y][x], canopy: (x, y) => L.inP[y][x], mix, minH: 8,
-    gapAfter: [[0, 6], [1, 2], [2, 1]], pairChance: 0.4, spread, composite: composite && { r: composite.r.fork('main'), p: composite.p },
+    gapAfter: [[0, 6], [1, 2], [2, 1]], pairChance: 0.4, spread: true, composite: composite && { r: composite.r.fork('main'), p: composite.p },
     kits: kits && { r: kits.r.fork('main'), p: kits.p },
     // only buildings that face the street (sidewalk right below the facade) may be shops
     frontFilter: (x0, w, bottom) => {

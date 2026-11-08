@@ -1,8 +1,7 @@
 // Regression seed set: snapshot the visual output of every seed, and compare two snapshots.
 //   npx tsx scripts/regress.ts snapshot <outDir> [--pd]  writes <outDir>/<seed>.json (visual signature) and
 //                                                        <seed>.audit.json (constraint audit); --pd = draft repairs on
-//        snapshot flags: --on <exp-id> / --off <exp-id> (that experiment on / off; 整体修图 = --on exp-02),
-//                        --nov <x> (novelty, default the generator's), --noprefs (learned preferences off),
+//        snapshot flags: --nov <x> (novelty, default the generator's), --noprefs (learned preferences off),
 //                        --shard k/n (only the seeds i with i % n = k; used by snapshot-par)
 //   npx tsx scripts/regress.ts snapshot-par <outDir> [flags] [--jobs 8]   the same in n parallel processes
 //   npx tsx scripts/regress.ts compare <dirA> <dirB>     reports seeds whose picture changed
@@ -30,23 +29,20 @@ const args = process.argv.slice(2);
 const flag = (f: string) => args.includes(f);
 const value = (f: string) => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : undefined; };
 const pd = flag('--pd');
-const on = value('--on'), off = value('--off'), shard = value('--shard'), jobs = Number(value('--jobs') ?? 8), nov = value('--nov');
-const valued = new Set(['--on', '--off', '--shard', '--jobs', '--nov']);
-type Mode = { pruneDraft?: boolean; on?: string; off?: string; novelty?: number; prefs?: boolean };
+const shard = value('--shard'), jobs = Number(value('--jobs') ?? 8), nov = value('--nov');
+const valued = new Set(['--shard', '--jobs', '--nov']);
+type Mode = { pruneDraft?: boolean; novelty?: number; prefs?: boolean };
 /** generator options of a snapshot mode (also replayed by the label tests of `report`) */
-const modeOpts = (m: Mode) => ({ pruneDraft: !!m.pruneDraft, exp: { ...(m.on ? { [m.on]: true } : {}), ...(m.off ? { [m.off]: false } : {}) },
+const modeOpts = (m: Mode) => ({ pruneDraft: !!m.pruneDraft,
   ...(m.novelty !== undefined ? { novelty: m.novelty } : {}), ...(m.prefs === false ? { prefs: false } : {}) });
-const mode: Mode = { pruneDraft: pd, on, off, ...(nov !== undefined ? { novelty: Number(nov) } : {}), ...(flag('--noprefs') ? { prefs: false } : {}) };
+const mode: Mode = { pruneDraft: pd, ...(nov !== undefined ? { novelty: Number(nov) } : {}), ...(flag('--noprefs') ? { prefs: false } : {}) };
 const [cmd, a, b] = args.filter((x, i) => !x.startsWith('--') && !valued.has(args[i - 1]));
 const here = dirname(fileURLToPath(import.meta.url));
 
-/** what the judge and its repair did to one seed (stage 6) */
-interface JudgeSnap { mean: number; max: number; meanBefore: number; global: boolean; ms: number; gens: number; reportOnly: Record<string, number>; exp02: number }
-const readJudge = (dir: string, s: string): JudgeSnap | null => existsSync(join(dir, `${s}.judge.json`)) ? JSON.parse(readFileSync(join(dir, `${s}.judge.json`), 'utf8')) : null;
-const snapIndex = () => { const g = generate('1', { judgeRepair: false });
+const snapIndex = () => { const g = generate('1');
   return { version: g.version, seeds: SEEDS.length, ...mode, novelty: mode.novelty ?? g.options?.novelty, prefs: mode.prefs !== false, created: new Date().toISOString() }; };
-/** stage 7: what novelty / the learned preferences did to one seed */
-interface LearnSnap { novel: number; adjusted: number; forced: number; novelty: number; prefs: boolean }
+/** stage 7: what novelty / the learned preferences did to one seed; ms: generation time */
+interface LearnSnap { novel: number; adjusted: number; novelty: number; prefs: boolean; ms?: number }
 const readLearn = (dir: string, s: string): LearnSnap | null => existsSync(join(dir, `${s}.learn.json`)) ? JSON.parse(readFileSync(join(dir, `${s}.learn.json`), 'utf8')) : null;
 
 type AuditSnap = { counts: Record<string, number>; before: Record<string, number>; pruned: { c: string; key: string; gid?: string }[]; downgraded: { c: string; kind: string }[] };
@@ -58,21 +54,17 @@ if (cmd === 'snapshot' && a) {
   for (const s of SEEDS.filter((_, i) => i % n === k)) {
     const t0 = Date.now();
     const sc = generate(s, modeOpts(mode));
-    const jr = sc.judgeRepair, j = sc.judge!;
-    const js: JudgeSnap = { mean: j.mean, max: j.max, meanBefore: jr?.meanBefore ?? j.mean,
-      global: jr?.globalAdopted !== undefined, ms: Date.now() - t0, gens: jr?.gens ?? 0,
-      reportOnly: Object.fromEntries(['C19', 'C23', 'C24'].map(c => [c, sc.audit!.counts[c] ?? 0])), exp02: sc.objects.filter(o => o.exp === 'exp-02').length };
-    writeFileSync(join(a, `${s}.judge.json`), JSON.stringify(js));
+    const ms = Date.now() - t0;
     writeFileSync(join(a, `${s}.json`), JSON.stringify(signature(sc)));
-    const ds = (sc.trace?.decisions ?? []) as { m?: unknown; forced?: boolean }[];
-    const ls: LearnSnap = { novel: sc.objects.filter(o => o.novel).length, adjusted: ds.filter(d => d.m).length, forced: ds.filter(d => d.forced).length,
-      novelty: sc.options?.novelty ?? 0, prefs: sc.options?.prefs !== false };
+    const ds = (sc.trace?.decisions ?? []) as { m?: unknown }[];
+    const ls: LearnSnap = { novel: sc.objects.filter(o => o.novel).length, adjusted: ds.filter(d => d.m).length,
+      novelty: sc.options?.novelty ?? 0, prefs: sc.options?.prefs !== false, ms };
     writeFileSync(join(a, `${s}.learn.json`), JSON.stringify(ls));
     const au = sc.audit!;
     writeFileSync(join(a, `${s}.audit.json`), JSON.stringify({ counts: au.counts, before: au.before, pruned: au.pruned.map(p => ({ c: p.c, key: p.key, gid: p.gid })), downgraded: au.downgraded.map(d => ({ c: d.c, kind: d.kind })) }));
   }
   if (!shard) writeFileSync(join(a, 'index.json'), JSON.stringify(snapIndex()));
-  console.log(`snapshot${shard ? ` shard ${shard}` : ''}: -> ${a}${pd ? ' (draft repairs on)' : ''}${on ? ` (${on} on)` : ''}${off ? ` (${off} off)` : ''}`);
+  console.log(`snapshot${shard ? ` shard ${shard}` : ''}: -> ${a}${pd ? ' (draft repairs on)' : ''}`);
 } else if (cmd === 'snapshot-par' && a) {
   mkdirSync(a, { recursive: true });
   const tsx = createRequire(import.meta.url).resolve('tsx/cli');
@@ -108,33 +100,17 @@ if (cmd === 'snapshot' && a) {
   console.log('约束违规（修复后剩余，合计 / 涉及种子）    A → B      剪掉的物件 A → B');
   for (const c of CONSTRAINTS) console.log(`  ${c.id} ${c.title.padEnd(18, '　')} ${String(A.counts[c.id] ?? '-').padStart(4)} / ${String(A.seeds[c.id] ?? 0).padStart(3)} → ${String(B.counts[c.id] ?? '-').padStart(4)} / ${String(B.seeds[c.id] ?? 0).padStart(3)}     ${A.pruned[c.id] ?? 0} → ${B.pruned[c.id] ?? 0}`);
   console.log(`降级区域：${A.down} → ${B.down}`);
-  // stage 6: judge scores and the repair
-  const js = (dir: string) => SEEDS.map(s => readJudge(dir, s)).filter((x): x is JudgeSnap => !!x);
-  const JA = js(a), JB = js(b);
-  if (JA.length && JB.length) {
-    const avg = (xs: number[]) => xs.reduce((p, q) => p + q, 0) / Math.max(1, xs.length);
-    const med = (xs: number[]) => { const s = [...xs].sort((p, q) => p - q); return s[Math.floor(s.length / 2)] ?? 0; };
-    const f = (x: number) => x.toFixed(3);
-    const tot = (J: JudgeSnap[], k: 'exp02') => J.reduce((p, j) => p + j[k], 0);
-    console.log(`评判器（${JA.length} / ${JB.length} 个种子）                A → B`);
-    console.log(`  整图平均怪异分（平均 / 中位数）     ${f(avg(JA.map(j => j.mean)))} / ${f(med(JA.map(j => j.mean)))} → ${f(avg(JB.map(j => j.mean)))} / ${f(med(JB.map(j => j.mean)))}`);
-    console.log(`  最怪窗口的得分（平均）              ${f(avg(JA.map(j => j.max)))} → ${f(avg(JB.map(j => j.max)))}`);
-    console.log(`  B 修复前 → 修复后的整图平均分       ${f(avg(JB.map(j => j.meanBefore)))} → ${f(avg(JB.map(j => j.mean)))}；平均分下降的种子 ${JB.filter(j => j.mean < j.meanBefore - 1e-9).length}，上升 ${JB.filter(j => j.mean > j.meanBefore + 1e-9).length}`);
-    console.log(`  整体修图采用（种子数）              ${JA.filter(j => j.global).length} → ${JB.filter(j => j.global).length}`);
-    console.log(`  带 exp-02 标记的物件（合计）        ${tot(JA, 'exp02')} → ${tot(JB, 'exp02')}`);
-    for (const c of ['C19', 'C23', 'C24']) console.log(`  只报告约束 ${c}（合计 / 涉及种子）     ${JA.reduce((p, j) => p + j.reportOnly[c], 0)} / ${JA.filter(j => j.reportOnly[c]).length} → ${JB.reduce((p, j) => p + j.reportOnly[c], 0)} / ${JB.filter(j => j.reportOnly[c]).length}`);
-    console.log(`  每张图耗时（平均 / 最长，秒）       ${(avg(JA.map(j => j.ms)) / 1000).toFixed(1)} / ${(Math.max(...JA.map(j => j.ms)) / 1000).toFixed(1)} → ${(avg(JB.map(j => j.ms)) / 1000).toFixed(1)} / ${(Math.max(...JB.map(j => j.ms)) / 1000).toFixed(1)}；B 平均生成次数 ${avg(JB.map(j => j.gens)).toFixed(1)}`);
-  } else console.log('评判器：快照里没有评判记录（v0.6.0 之前的快照）');
   // stage 7: novelty and learned preferences
   const lr = (dir: string) => SEEDS.map(s => readLearn(dir, s)).filter((x): x is LearnSnap => !!x);
   const LA = lr(a), LB = lr(b);
-  const lsum = (L: LearnSnap[], k: 'novel' | 'adjusted' | 'forced') => L.reduce((p, l) => p + l[k], 0);
+  const lsum = (L: LearnSnap[], k: 'novel' | 'adjusted') => L.reduce((p, l) => p + l[k], 0);
   const lcell = (L: LearnSnap[], k: 'novel' | 'adjusted') => L.length ? `${lsum(L, k)} / ${L.filter(l => l[k]).length} 个种子（平均每张 ${(lsum(L, k) / L.length).toFixed(1)}）` : '（旧快照，无记录）';
   console.log('学习与创新度                                          A → B');
   console.log(`  创新度 / 偏好                      ${LA.length ? `${LA[0].novelty} / ${LA[0].prefs ? '开' : '关'}` : '（旧快照，无记录）'} → ${LB.length ? `${LB[0].novelty} / ${LB[0].prefs ? '开' : '关'}` : '（旧快照，无记录）'}`);
   console.log(`  novel 物件（合计 / 涉及种子）      ${lcell(LA, 'novel')} → ${lcell(LB, 'novel')}`);
   console.log(`  被乘子改动的决策数（合计 / 涉及种子）${lcell(LA, 'adjusted')} → ${lcell(LB, 'adjusted')}`);
-  if (LA.length || LB.length) console.log(`  被强制的决策数（合计）             ${LA.length ? lsum(LA, 'forced') : '-'} → ${LB.length ? lsum(LB, 'forced') : '-'}`);
+  const ms = (L: LearnSnap[]) => { const t = L.map(l => l.ms).filter((x): x is number => x !== undefined); return t.length ? `${(t.reduce((p, q) => p + q, 0) / t.length / 1000).toFixed(2)} / ${(Math.max(...t) / 1000).toFixed(2)}` : '-'; };
+  console.log(`  每张图耗时（平均 / 最长，秒）       ${ms(LA)} → ${ms(LB)}`);
   // labels are replayed in B's mode (draft repairs on when B was snapshotted with --pd)
   const bIdx = existsSync(join(b, 'index.json')) ? JSON.parse(readFileSync(join(b, 'index.json'), 'utf8')) : {};
   for (const l of formatLabelTests(runLabelTests(modeOpts(bIdx)))) console.log(l);

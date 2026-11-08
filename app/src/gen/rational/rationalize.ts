@@ -9,11 +9,10 @@
 import { CONSTRAINTS, evaluate, makeCtx, union, type Constraint, type Violation } from './constraints';
 import { worldFromScene, isGrassTile } from './world';
 import { rooted } from './graph';
-import { expEnabled } from '../exp';
 import type { Scene, PxRect, TileRef, GenOptions } from '../types';
 import { TILE as T } from '../types';
 
-export interface Pruned { id: string; key: string; cls: string; gid?: string; x: number; y: number; w: number; h: number; c: string; msg: string; exp?: string }
+export interface Pruned { id: string; key: string; cls: string; gid?: string; x: number; y: number; w: number; h: number; c: string; msg: string }
 export interface Audit {
   /** constraint id -> remaining violations after repair */
   counts: Record<string, number>;
@@ -21,9 +20,9 @@ export interface Audit {
   before: Record<string, number>;
   violations: Violation[];
   pruned: Pruned[];
-  downgraded: { zone: string; kind: string; c: string; style: string; rect: PxRect; msg: string; exp?: string }[];
+  downgraded: { zone: string; kind: string; c: string; style: string; rect: PxRect; msg: string }[];
   /** ground repairs: lawn lifted to show the paving (unlawn), path laid on (pave), path turned into lawn */
-  regrounded: { c: string; rect: PxRect; what: 'unlawn' | 'pave' | 'lawn'; msg: string; exp?: string }[];
+  regrounded: { c: string; rect: PxRect; what: 'unlawn' | 'pave' | 'lawn'; msg: string }[];
   /** constraints that repaired in this run */
   applied: string[];
   graph: { comps: number; rooted: number; places: number; links: number; doors: number; doorsBlocked: number; doorsCutOff: number };
@@ -32,8 +31,7 @@ export interface Audit {
 }
 
 export function rationalize(sc: Scene, o: GenOptions): Audit {
-  // a constraint of an experimental feature (exp-07) is judged only while the feature is on
-  const live = CONSTRAINTS.filter(c => c.status !== 'off' && (!c.exp || expEnabled(o, c.exp)));
+  const live = CONSTRAINTS.filter(c => c.status !== 'off');
   const repairing = live.filter(c => c.fix !== 'report' && (c.status === 'active' ? o.prune : c.status === 'draft' && o.pruneDraft));
   const pruned: Pruned[] = [];
   const downgraded: Audit['downgraded'] = [];
@@ -42,7 +40,7 @@ export function rationalize(sc: Scene, o: GenOptions): Audit {
   const groundDone = new Set<string>();
   let first = true;
   for (let iter = 0; iter < 40; iter++) {
-    const cx = makeCtx(worldFromScene(sc), { seenWalks: expEnabled(o, 'exp-07') });
+    const cx = makeCtx(worldFromScene(sc), { seenWalks: true });
     if (first) { for (const c of live) before[c.id] = evaluate(c, cx).length; first = false; }
     if (!repairing.length) break;
     // one constraint at a time (list order), re-judged after every change, so repairs never act on a stale map
@@ -61,11 +59,11 @@ export function rationalize(sc: Scene, o: GenOptions): Audit {
         if (v.dropZones?.length) sc.zones = sc.zones!.filter(z => !v.dropZones!.includes(z.id));
         for (const z of v.addZones ?? []) sc.zones!.push({ id: `k${nextKeep(sc)}`, ...z });
         const rs = [...(v.toLawn ?? []), ...(v.clearLawn ?? [])];
-        if (rs.length) regrounded.push({ c: v.c, rect: union(rs), what: v.pave?.length ? 'pave' : v.toLawn?.length ? 'lawn' : 'unlawn', msg: v.msg, ...(c.exp ? { exp: c.exp } : {}) });
+        if (rs.length) regrounded.push({ c: v.c, rect: union(rs), what: v.pave?.length ? 'pave' : v.toLawn?.length ? 'lawn' : 'unlawn', msg: v.msg });
       }
       if (c.fix === 'downgrade' && v.zone && !downgraded.some(d => d.zone === v.zone)) {
         const z = sc.zones!.find(z => z.id === v.zone)!;
-        downgraded.push({ zone: z.id, kind: z.kind, c: c.id, style: c.downgrade ?? 'clear', rect: z.rect, msg: v.msg, ...(c.exp ? { exp: c.exp } : {}) }); reground = true;
+        downgraded.push({ zone: z.id, kind: z.kind, c: c.id, style: c.downgrade ?? 'clear', rect: z.rect, msg: v.msg }); reground = true;
         z.reason += `（阶段 5 降级：${c.id} ${c.title} → ${c.downgrade === 'lawn' ? '草坪' : '只留植物'}）`;
         if (c.downgrade === 'lawn') lawn(sc, z.rect);
         // the zone's own keep-clear areas lose their reason with it
@@ -77,8 +75,7 @@ export function rationalize(sc: Scene, o: GenOptions): Audit {
     const keep = sc.objects.filter(p => !remove.has(p.id!));
     for (const p of sc.objects) {
       const v = remove.get(p.id!); if (!v) continue;
-      const ce = CONSTRAINTS.find(k => k.id === v.c)?.exp;
-      pruned.push({ id: p.id!, key: p.key, cls: p.cls, gid: p.gid, x: p.x, y: p.y, w: p.w, h: p.h, c: v.c, msg: v.msg, ...(ce ? { exp: ce } : {}) });
+      pruned.push({ id: p.id!, key: p.key, cls: p.cls, gid: p.gid, x: p.x, y: p.y, w: p.w, h: p.h, c: v.c, msg: v.msg });
     }
     sc.objects = keep;
   }
@@ -87,7 +84,7 @@ export function rationalize(sc: Scene, o: GenOptions): Audit {
     const gone = new Set(pruned.map(p => p.id));
     for (const g of sc.groups ?? []) g.members = g.members.filter(m => !gone.has(m));
   }
-  const cx = makeCtx(worldFromScene(sc), { seenWalks: expEnabled(o, 'exp-07') });
+  const cx = makeCtx(worldFromScene(sc), { seenWalks: true });
   // a downgraded zone has been dealt with (it is no longer a passage / a used space)
   const done = new Set(downgraded.map(d => d.zone));
   const violations = live.flatMap(c => evaluate(c, cx)).filter(v => !(v.zone && done.has(v.zone)));

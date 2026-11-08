@@ -4,7 +4,6 @@ import { Rng } from './rng';
 import { modularStack, resetIds, type BuildingPlan } from './buildings';
 import { linkBuildings, condoBays, terracedRow } from './terrace';
 import { generate } from './generate';
-import { expEnabled, withDefaults } from './exp';
 import { spr } from './assets';
 import type { BlockPlan } from './block';
 import { TILE } from './types';
@@ -62,13 +61,8 @@ test('condo bays and terraced rows have the asked width and fit', () => {
   for (const p of t.parts) assert.equal(p.dy + spr(p.key).h, t.h * TILE);
 });
 
-test('exp-04 is adopted: always on, untagged; older versions run without it', () => {
-  // seed 1: since exp-05 took twice the buildings (0.7.5), seed 7 has no linked neighbours left; exp-07 is the one
-  // experiment on by default, so the master switch changes the picture by it
-  const on = generate('1', { exp: { 'exp-07': false } }), x0 = generate('1', { experiments: false, exp: { 'exp-04': false } });
+test('exp-04 is adopted: always on, untagged', () => {
+  const on = generate('1');
   assert.ok(!on.objects.some(o => o.exp === 'exp-04') && !(on.groups ?? []).some(g => g.exp === 'exp-04'));
   assert.ok(on.objects.some(o => o.reason?.includes('链接条')));
-  assert.deepEqual(x0.objects.map(o => [o.key, o.x, o.y]), on.objects.map(o => [o.key, o.x, o.y]));
-  assert.equal(expEnabled(withDefaults({ asOf: '0.7.1' }), 'exp-04'), false);
-  assert.equal(expEnabled(withDefaults({ experiments: false }), 'exp-04'), true);
 });

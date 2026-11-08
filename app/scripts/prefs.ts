@@ -120,7 +120,7 @@ function evalReport(ch: ReturnType<typeof knownChoices>, att: ReturnType<typeof 
 }
 
 interface Gap { file: string; id: string; seed: string; version: string; tags: string[]; text: string; decisions: number; cls: '选择能改善' | '选择解决不了';
-  better: { stream: string; label: string; pick: string; alt: string; gain: number }[]; rect: { x0: number; y0: number; x1: number; y1: number }; shot: string | null; regenerated: boolean; skipped?: string }
+  better: { stream: string; label: string; pick: string; alt: string; gain: number }[]; rect: { x0: number; y0: number; x1: number; y1: number }; shot: string | null; skipped?: string }
 
 function gaps() {
   const ch = knownChoices(), att = attributeLabels();
@@ -147,20 +147,20 @@ function gaps() {
     }
     const l = it.label;
     out.push({ file: it.file, id: l.id, seed: l.seed, version: l.version, tags: l.tags, text: l.text, decisions: it.decisions.length,
-      cls: better.length ? '选择能改善' : '选择解决不了', better, rect: it.region, shot: crop(l.seed, l.id, it.scene, it.region), regenerated: it.regenerated });
+      cls: better.length ? '选择能改善' : '选择解决不了', better, rect: it.region, shot: crop(l.seed, l.id, it.scene, it.region) });
   }
   // labels with nothing to attribute (or no usable scene): nothing a choice could change
   for (const s of att.skipped.filter(s => s.label.verdict === 'bad')) {
     const l = s.label;
     out.push({ file: s.file, id: l.id, seed: l.seed, version: l.version, tags: l.tags, text: l.text, decisions: 0, cls: '选择解决不了', better: [], rect: s.region,
-      shot: crop(l.seed, l.id, s.scene, s.region), regenerated: false, skipped: s.why });
+      shot: crop(l.seed, l.id, s.scene, s.region), skipped: s.why });
   }
   writeFileSync(join(GAPS, 'gaps.json'), JSON.stringify({ version: VERSION, created: new Date().toISOString(), choices: ch.cs.length, skipped: att.skipped.map(({ file, id, why }) => ({ file, id, why })), gaps: out }, null, 2));
   const n = (c: Gap['cls']) => out.filter(g => g.cls === c).length;
   const L = ['# 选择解决不了的问题（gaps）', '', `由 \`npx tsx scripts/prefs.ts gaps\` 生成（v${VERSION}）。每条坏标注用“去掉这条标注所在种子的全部标注”训练的模型（A/B 选择 ${ch.cs.length} 条）判断：`,
     `归因到的决策里有备选项得分比已选项高 ≥ ${GAP} → 选择能改善；否则 → 选择解决不了。`, '',
     `坏标注 ${out.length} 条：选择能改善 ${n('选择能改善')}，选择解决不了 ${n('选择解决不了')}（其中无法归因 ${out.filter(g => g.skipped).length} 条）；跳过的标注 ${att.skipped.length} 条。`, ''];
-  const entry = (g: Gap) => [`- 种子 ${g.seed}（v${g.version}，${g.file}#${g.id}${g.regenerated || g.skipped ? '' : '，用存下的场景'}）：${g.tags.join('、') || '（无标签）'} — ${g.text || '（无备注）'}`,
+  const entry = (g: Gap) => [`- 种子 ${g.seed}（v${g.version}，${g.file}#${g.id}）：${g.tags.join('、') || '（无标签）'} — ${g.text || '（无备注）'}`,
     `  - ${g.skipped ? `无法归因（${g.skipped}）` : `归因到的决策 ${g.decisions} 个`}；${g.cls}${g.better.length ? '：' + g.better.map(b => `\`${b.label}\` ${b.pick} → ${b.alt}（+${b.gain}）`).join('、') : ''}`,
     `  - 区域 (${g.rect.x0},${g.rect.y0})–(${g.rect.x1},${g.rect.y1})，截图 ${g.shot ?? '（生成失败）'}`];
   L.push('## 选择解决不了（按标签归类）', '');

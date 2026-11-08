@@ -44,13 +44,13 @@ export interface Placed {
   reason?: string;
   /** what it is attached to (door, crossing, curb run, table ...) */
   anchor?: Anchor;
-  /** id of the experimental feature that produced it (exp-03), if any */
+  /** id of the experimental feature that produced it, if any (shown in the experiment style) */
   exp?: string;
   /** sprite chosen because it is rarely / never used (novelty, stage 7) */
   novel?: boolean;
   /** ground footprint (px) the placement occupied; absent for things that do not stand on the ground */
   fp?: PxRect;
-  /** random stream (logical fork path) it was drawn from; write-only (stage 6 judge repair) */
+  /** random stream (logical fork path) it was drawn from (stage 7: label attribution, preference details) */
   stream?: string;
 }
 
@@ -118,36 +118,17 @@ export interface Scene {
   zones?: ZoneRec[];
   /** stage 5: constraint audit and rationalising repairs (rational/rationalize.ts Audit) */
   audit?: import('./rational/rationalize').Audit;
-  /** stage 6: oddness score of every window (judge/model.ts) */
-  judge?: import('./judge/model').JudgeResult;
-  /** stage 6 judge repair record (exp-02, judge/repair.ts) */
-  judgeRepair?: import('./judge/repair').JudgeRepair;
   /** random decision trace (rng.ts Trace) */
-  trace?: { decisions: unknown[]; streams: Record<string, unknown>; textures: Record<string, Record<string, number>>; unlabelled: number; forceMissed?: string[] };
+  trace?: { decisions: unknown[]; streams: Record<string, unknown>; textures: Record<string, Record<string, number>>; unlabelled: number };
 }
 
 export interface GenOptions {
   /** 0..1, 0 = fully conservative (stage 7; recorded with every export) */
   novelty: number;
-  /** master switch for experimental features */
-  experiments: boolean;
-  /** per-feature switches (missing = registry default) */
-  exp: Record<string, boolean>;
   /** stage 5: repair with the confirmed (active) constraints */
   prune: boolean;
   /** stage 5 preview: also repair with the draft constraints */
   pruneDraft: boolean;
-  /** stage 6: logical stream path -> salt (rng.ts); the judge repair writes the salts it adopted here */
-  reseed?: Record<string, number>;
-  /** stage 6: the judge repair's result (salts in `reseed`, plus these downgraded windows): regenerate it as is,
-   *  without searching (an exported scene reproduces) */
-  judgeFixed?: { global?: boolean };
-  /** stage 7: forced decisions, rng.ts forceKey ("<stream>|<label>|<k>") -> option (string form); kept in the export */
-  force?: Record<string, string>;
   /** stage 7: apply the learned preferences (default true) */
   prefs?: boolean;
-  /** regenerate as version `asOf` did (old labels): experiments adopted later behave as they did then (exp.ts) */
-  asOf?: string;
-  /** internal: false = no judge repair (its own candidates) */
-  judgeRepair?: boolean;
 }

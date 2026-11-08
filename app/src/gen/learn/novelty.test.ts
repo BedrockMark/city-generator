@@ -5,9 +5,6 @@ import { signature } from '../signature';
 import { noveltyFactors, markNovel } from './novelty';
 import type { Placed, Scene } from '../types';
 import { MODULAR } from '../assets';
-import { featureMatrix, windows, activeFeatures } from '../judge/features';
-import { scoreWorld, MODEL } from '../judge/model';
-import { alignScene, type JGround, type JObj, type JWorld } from '../judge/align';
 import usageRaw from '../data/usage.json';
 import spritesRaw from '../data/sprites.json';
 
@@ -52,30 +49,11 @@ test('each novel pick marks one object', () => {
 
 test('few objects are novel at the default novelty', () => {
   // was 43% of all objects when every count-0 pick was marked; now only picks the novelty changed
-  let nv = 0, all = 0, jn = 0, jall = 0;
+  let nv = 0, all = 0;
   for (let s = 1; s <= 20; s++) {
-    const sc = generate(String(s), { novelty: 0.1 }), w = alignScene(sc);
+    const sc = generate(String(s), { novelty: 0.1 });
     nv += sc.objects.filter(o => o.novel).length; all += sc.objects.length;
-    jn += w.objs.filter(o => o.novel).length; jall += w.objs.length;
   }
-  console.log(`novel at 0.1, seeds 1-20: all ${nv} / ${all} = ${(100 * nv / all).toFixed(1)}%, judge objects ${jn} / ${jall} = ${(100 * jn / jall).toFixed(1)}%`);
+  console.log(`novel at 0.1, seeds 1-20: ${nv} / ${all} = ${(100 * nv / all).toFixed(1)}%`);
   assert.ok(nv / all < 0.05, `all ${nv} / ${all}`);
-  assert.ok(jn / jall < 0.05, `judge ${jn} / ${jall}`);   // what d.* / p.* leave out
-});
-
-test('judge ignores novel objects in density', () => {
-  const ground = Array.from({ length: 8 }, () => Array.from({ length: 8 }, (): JGround => 'paved'));
-  const obj = (fx: number, fy: number, novel?: boolean): JObj => ({ key: 'k', cls: 'tree', fx, fy, bb: { x0: fx - 4, y0: fy - 12, x1: fx + 4, y1: fy }, ...(novel ? { novel } : {}) });
-  const mk = (objs: JObj[]): JWorld => ({ name: 't', src: 'gen', cols: 8, rows: 8, ox: 0, oy: 0, ground, objs });
-  const a = mk([obj(20, 30)]), b = mk([obj(20, 30), obj(100, 100, true)]);
-  const feats = activeFeatures([]), row = (w: JWorld) => featureMatrix(w, windows(w), feats)[0];
-  const ra = row(a), rb = row(b), at = (r: number[], id: string) => r[feats.findIndex(f => f.id === id)];
-  for (const f of feats) if (f.id.startsWith('d.') || f.id.startsWith('p.')) assert.equal(at(rb, f.id), at(ra, f.id), f.id);
-  assert.notEqual(at(rb, 'e.far'), at(ra, 'e.far'), 'e.* still sees the novel object');
-});
-
-test('threshold relaxes with novelty', () => {
-  const w: JWorld = { name: 't', src: 'gen', cols: 0, rows: 0, ox: 0, oy: 0, ground: [], objs: [] };
-  assert.equal(scoreWorld(w, MODEL, 0.5).threshold, MODEL.threshold + 0.1);
-  assert.equal(scoreWorld(w, MODEL).threshold, MODEL.threshold);
 });

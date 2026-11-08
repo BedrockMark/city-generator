@@ -1,6 +1,6 @@
 // Stage 5: the user's good / bad labels as regression tests.
 // Every label (references/labels/v*/seed*.json) is replayed against the current generator with the label's own
-// options (seed, novelty, experiments; current pruning switches):
+// options (seed, novelty, preferences; current pruning switches):
 //   bad label  -> passes when the labelled thing is gone or changed (objects matched by sprite + position, regions
 //                 by what stands in them); still there = failing test, listed with the constraints that see it
 //   good label -> passes when the labelled thing is unchanged; changed = warning (did we break something liked?)
@@ -14,7 +14,7 @@ import type { Placed, PxRect, Scene, GenOptions } from '../src/gen/types';
 const here = dirname(fileURLToPath(import.meta.url));
 export const LABEL_DIR = join(here, '..', '..', 'references', 'labels');
 
-export interface LabelResult { label: Label; file: string; status: 'pass' | 'fail' | 'warn'; detail: string; constraints: string[]; exp02?: boolean }
+export interface LabelResult { label: Label; file: string; status: 'pass' | 'fail' | 'warn'; detail: string; constraints: string[] }
 
 export function loadLabels(): { file: string; label: Label }[] {
   if (!existsSync(LABEL_DIR)) return [];
@@ -42,7 +42,8 @@ export function runLabelTests(opts: Partial<GenOptions> = {}): LabelResult[] {
   const cache = new Map<string, Scene>();
   const out: LabelResult[] = [];
   for (const { file, label: l } of loadLabels()) {
-    const o = { ...l.options, prune: true, pruneDraft: false, ...opts, exp: { ...(l.options?.exp ?? {}), ...(opts.exp ?? {}) } };
+    // the options that still exist (older labels also recorded experiment switches, asOf ...: gone since 0.7.6)
+    const o: Partial<GenOptions> = { novelty: l.options?.novelty ?? l.novelty, prefs: l.options?.prefs, prune: true, pruneDraft: false, ...opts };
     const k = JSON.stringify([l.seed, o]);
     if (!cache.has(k)) cache.set(k, generate(l.seed, o));
     const sc = cache.get(k)!;
@@ -68,9 +69,7 @@ export function runLabelTests(opts: Partial<GenOptions> = {}): LabelResult[] {
     const ov = (r: PxRect) => r.x0 < t.rect.x1 && t.rect.x0 < r.x1 && r.y0 < t.rect.y1 && t.rect.y0 < r.y1;
     const constraints = [...new Set((sc.audit?.violations ?? []).filter(v => ov(v.rect)).map(v => v.c))];
     const status = l.verdict === 'bad' ? (present ? 'fail' : 'pass') : (present ? 'pass' : 'warn');
-    // stage 6: did the judge repair (exp-02) touch the labelled thing?
-    const exp02 = sc.objects.some(p => p.exp === 'exp-02' && ov({ x0: p.x, y0: p.y, x1: p.x + p.w, y1: p.y + p.h }));
-    out.push({ label: l, file, status, detail, constraints, exp02 });
+    out.push({ label: l, file, status, detail, constraints });
   }
   return out;
 }
@@ -84,9 +83,6 @@ export function formatLabelTests(rs: LabelResult[]): string[] {
     return `  ${what} ${r.file} ${l.id}（${l.tags.join('、') || '无标签'}${l.text ? `：${l.text}` : ''}）— ${r.detail}${r.constraints.length ? `；覆盖它的约束：${r.constraints.join(', ')}` : '；没有约束看到它'}`;
   };
   for (const r of rs) if (r.status === 'fail') lines.push(line(r, '✗ 坏标注仍存在'));
-  for (const r of rs) if (r.status === 'warn' && !r.exp02) lines.push(line(r, '! 好标注被改动'));
-  const byExp = rs.filter(r => r.status === 'warn' && r.exp02);
-  lines.push(`被 exp-02（整体修图）改动的好标注：${byExp.length} 条`);
-  for (const r of byExp) lines.push(line(r, '! exp-02 改动了好标注'));
+  for (const r of rs) if (r.status === 'warn') lines.push(line(r, '! 好标注被改动'));
   return lines;
 }

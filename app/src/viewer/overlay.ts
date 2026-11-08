@@ -3,7 +3,7 @@
 import { spr, hasSprite } from '../gen/assets';
 import type { Scene, Placed, PxRect, ZoneRec, GroupRec, BuildingRec } from '../gen/types';
 import type { Label } from './labels';
-import { objBox, hiddenObjects } from '../gen/judge/align';
+import { objBox, hiddenObjects } from '../gen/boxes';
 export { objBox, hiddenObjects };
 
 export interface View { s: number; ox: number; oy: number }
@@ -154,17 +154,14 @@ export function drawOverlay(ctx: CanvasRenderingContext2D, sc: Scene, v: View, s
   // ---- stage 5: constraint audit ----
   const au = sc.audit;
   if (st.layers.audit && au) {
-    // repairs made by an experiment's constraint (exp-07: C25) in the experiment style
     for (const d of au.downgraded) {
-      const col = d.exp ? EXP_COLOR : AUDIT_DOWN;
-      box(d.rect, col, d.exp ? 3 : 2.5, d.exp ? [8, 4] : [6, 3]);
-      ctx.globalAlpha = 0.15; ctx.fillStyle = col; ctx.fillRect(...R(d.rect)); ctx.globalAlpha = 1;
-      tag(`降级 ${d.c}${d.exp ? ` · 实验 ${d.exp}` : ''}`, X(d.rect.x0), Y(d.rect.y0), col, '#fff');
+      box(d.rect, AUDIT_DOWN, 2.5, [6, 3]);
+      ctx.globalAlpha = 0.15; ctx.fillStyle = AUDIT_DOWN; ctx.fillRect(...R(d.rect)); ctx.globalAlpha = 1;
+      tag(`降级 ${d.c}`, X(d.rect.x0), Y(d.rect.y0), AUDIT_DOWN, '#fff');
     }
     for (const g of au.regrounded ?? []) {
-      const col = g.exp ? EXP_COLOR : '#26a69a';
-      box(g.rect, col, g.exp ? 3 : 2, g.exp ? [8, 4] : [5, 3]);
-      tag(`${g.what === 'lawn' ? '改草坪' : g.what === 'pave' ? '补路' : '揭草坪'} ${g.c}${g.exp ? ` · 实验 ${g.exp}` : ''}`, X(g.rect.x0), Y(g.rect.y1) + font + 2, col, '#fff');
+      box(g.rect, '#26a69a', 2, [5, 3]);
+      tag(`${g.what === 'lawn' ? '改草坪' : g.what === 'pave' ? '补路' : '揭草坪'} ${g.c}`, X(g.rect.x0), Y(g.rect.y1) + font + 2, '#26a69a', '#fff');
     }
     for (const p of au.pruned) {
       const b = { x0: p.x, y0: p.y, x1: p.x + p.w, y1: p.y + p.h };

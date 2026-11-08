@@ -43,7 +43,7 @@ export function bestRect(cells: [number, number][], ok: (x: number, y: number) =
 
 const cellsOf = (rc: CellRect) => { const o: [number, number][] = []; for (let y = rc.y; y < rc.y + rc.h; y++) for (let x = rc.x; x < rc.x + rc.w; x++) o.push([x, y]); return o; };
 
-export function yardSpaces(L: Layout, plan: BlockPlan, sb: SceneBuilder, r: Rng, e06: Rng | null = null) {
+export function yardSpaces(L: Layout, plan: BlockPlan, sb: SceneBuilder, r: Rng, e06: Rng) {
   const yardStyle = r.choose('yard.paving', {}, ['sidewalk_brown', 'sidewalk_grey', 'sidewalk_beige', 'sidewalk_lightgrey'].filter(s => s !== L.mainStyle));
   const free = plan.yard.map(row => [...row]);
   for (let y = 0; y < L.rows; y++) for (let x = 0; x < L.cols; x++) if (free[y][x]) L.base[y][x] = slab(yardStyle, x, y);
@@ -85,7 +85,7 @@ export function yardSpaces(L: Layout, plan: BlockPlan, sb: SceneBuilder, r: Rng,
   // exp-06 (adopted 0.7.5): the cut may split one space into neighbouring gardens; they become one garden, their paths linked
   const blocked = rects.filter(q => q.kind === 'parking' || q.kind === 'passage' || q.kind === 'forecourt').map(q => q.rc);
   const gapOk = (x: number, y: number) => plan.yard[y]?.[x] === true && !blocked.some(q => x >= q.x && x < q.x + q.w && y >= q.y && y < q.y + q.h);
-  const join = e06 ? joinGardens(L, rects.filter(q => q.kind === 'garden'), (rc, side) => ownPath(rc, side, r.fork(`garden${rc.x},${rc.y}`)), e06, gapOk) : null;
+  const join = joinGardens(L, rects.filter(q => q.kind === 'garden'), (rc, side) => ownPath(rc, side, r.fork(`garden${rc.x},${rc.y}`)), e06, gapOk);
   let mergedGid: string | undefined;
   if (join) {
     const ra = rects.find(q => q.rc === join.a)!, c = { x: (join.a.x + join.a.w / 2) * T, y: (join.a.y + join.a.h / 2) * T };

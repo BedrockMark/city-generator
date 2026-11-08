@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Rng } from './rng';
 import { condo3, condo4Row, condo4Tower, condo7Row, office, hotel } from './kits';
-import { expEnabled, kitChance, fireByNovelty, withDefaults } from './exp';
+import { kitChance, fireByNovelty } from './exp';
 import { generate } from './generate';
 import { spr } from './assets';
 import type { BuildingPlan } from './buildings';
@@ -45,21 +45,13 @@ test('the body pieces of a kit stack without gaps (Condo_4, hotel, office)', () 
   assert.ok(rows(office(new Rng('c'), 2, 3), /Roof_(Left|Middle_Modular|Stairs)|Building_\d_(Left|Middle_Modular|Right)$/));
 });
 
-test('exp-05 is adopted (0.7.5): always on, untagged, twice the chance; 0.7.4 runs it as an experiment, off by default', () => {
+test('exp-05 is adopted: always on, untagged, twice the experiment chance', () => {
   for (const seed of ['1', '4']) {
-    const on = generate(seed, { judgeRepair: false } as never);
+    const on = generate(seed);
     const kits = on.buildings!.filter(b => /^k\d+$/.test(b.id));
     assert.ok(kits.length > 0, `seed ${seed} has kit buildings`);
     for (const k of kits) assert.equal(on.groups!.find(g => g.gid === k.gid)?.exp, undefined);
-    const old = generate(seed, { judgeRepair: false, asOf: '0.7.4' } as never);
-    assert.ok(!old.buildings!.some(b => /^k\d+$/.test(b.id)));
   }
-  assert.equal(expEnabled(withDefaults({ experiments: false }), 'exp-05'), true);
-  assert.equal(expEnabled(withDefaults({ asOf: '0.7.4' }), 'exp-05'), false);
-  assert.equal(expEnabled(withDefaults({ asOf: '0.7.4', exp: { 'exp-05': true } }), 'exp-05'), true);
-  for (const n of [0, 0.1, 0.3]) {
-    assert.equal(kitChance(n, withDefaults({})), 2 * fireByNovelty(0.2)(n));
-    assert.equal(kitChance(n, withDefaults({ asOf: '0.7.4' })), fireByNovelty(0.2)(n));
-  }
-  assert.equal(kitChance(0.9, withDefaults({})), 1);
+  for (const n of [0, 0.1, 0.3]) assert.equal(kitChance(n), 2 * fireByNovelty(0.2)(n));
+  assert.equal(kitChance(0.9), 1);
 });
