@@ -1,11 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { generate } from './generate';
-import { DISTRICT_KINDS, type DistrictKind } from './district';
+import { DISTRICTS, DISTRICT_KINDS, type DistrictKind } from './district';
 import { overlaps } from './place';
 
 /** what each district must have besides its landmark (user 2026-11-07) */
-const MUST: Record<DistrictKind, (keys: string[]) => boolean> = {
+const MUST: Record<Exclude<DistrictKind, 'palace'>, (keys: string[]) => boolean> = {
   school: k => k.some(x => /Basketball_Court|Soccer_Court/.test(x)),
   hospital: k => k.some(x => x.includes('Helicopter_Landing_Pad')),
   police: k => k.filter(x => /Police_Car_[34]|Car_Down/.test(x)).length >= 3 && k.some(x => x.includes('Automatic_Barrier')),
@@ -16,7 +16,8 @@ const MUST: Record<DistrictKind, (keys: string[]) => boolean> = {
 };
 
 test('exp-08: the landmark footprint is on the lot north edge, the block is its campus, no ordinary buildings packed', () => {
-  for (const d of DISTRICT_KINDS) for (const seed of ['1', '2', '3']) {
+  // exp-09 (palace) has its garden behind it: palace.test.ts
+  for (const d of DISTRICT_KINDS.filter((k): k is keyof typeof MUST => !DISTRICTS[k].exp)) for (const seed of ['1', '2', '3']) {
     const sc = generate(seed, { district: d });
     const at = `${d} seed ${seed}`;
     assert.equal(sc.params.district, d, at);

@@ -82,12 +82,13 @@ export class SceneBuilder {
     return this.putAt(key, x, y, cls, o);
   }
 
-  putAt(key: string, x: number, y: number, cls: string, o: PutOpts & { foot?: number; sub?: number } = {}): Placed | null {
+  /** clip: only the px rect [x0, y0, x1, y1] of the sprite is drawn, its top-left at (x, y) */
+  putAt(key: string, x: number, y: number, cls: string, o: PutOpts & { foot?: number; sub?: number; clip?: [number, number, number, number] } = {}): Placed | null {
     const s = spr(key);
     const fp = SceneBuilder.footprint(key, x, y, o.depth ?? 10);
     if (!o.force && !this.free(fp, { ignoreClear: o.ignoreClear, pad: o.pad })) return null;
     if (o.walk && !this.onWalk(fp)) return null;
-    const p: Placed = { kind: 'sprite', key, file: s.file, x, y, w: s.w, h: s.h, foot: o.foot ?? (y + s.bb[3]), sub: o.sub ?? this.seq++, cls, ...this.explain(o) };
+    const p: Placed = { kind: 'sprite', key, file: s.file, x, y, w: o.clip ? o.clip[2] - o.clip[0] : s.w, h: o.clip ? o.clip[3] - o.clip[1] : s.h, foot: o.foot ?? (y + s.bb[3]), sub: o.sub ?? this.seq++, cls, ...(o.clip ? { clip: o.clip } : {}), ...this.explain(o) };
     if (o.occupy !== false) p.fp = { ...fp };
     this.objects.push(p);
     if (o.occupy !== false) this.feet.push({ r: fp, cls });

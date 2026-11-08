@@ -28,6 +28,7 @@ def render(sc, grid=False, ghost=False):
         if o['kind'] == 'sprite':
             im = img(o['file'])
             if o.get('flipX'): im = im.transpose(Image.FLIP_LEFT_RIGHT)
+            if o.get('clip'): im = im.crop(tuple(o['clip']))   # exp-09: a px rect of the sprite
             cut = max(0, min(im.height, o['solid'] - o['y'])) if ghost and 'solid' in o else 0
             if cut:   # ghost view: the part above the building footprint drawn translucent
                 top = im.crop((0, 0, im.width, cut)); a = top.getchannel('A').point(lambda v: int(v * 0.28)); top.putalpha(a)

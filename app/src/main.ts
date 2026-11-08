@@ -89,7 +89,7 @@ class CityView extends Phaser.Scene {
     const d = url.searchParams.get('d');
     if (isDistrict(d) || d === 'none') this.districtSel = d;
     const dSel = $<HTMLSelectElement>('district');
-    dSel.innerHTML = `<option value="">普通街区</option><option value="none">只要普通街区</option>` + DISTRICT_KINDS.map(k => `<option value="${k}">${DISTRICTS[k].name}</option>`).join('');
+    dSel.innerHTML = `<option value="">普通街区</option><option value="none">只要普通街区</option>` + DISTRICT_KINDS.map(k => `<option value="${k}">${DISTRICTS[k].exp ? '[exp] ' : ''}${DISTRICTS[k].name}</option>`).join('');
     dSel.value = this.districtSel;
     dSel.onchange = () => { this.districtSel = isDistrict(dSel.value) || dSel.value === 'none' ? dSel.value : ''; this.reload(); };
     const prefsBox = $<HTMLInputElement>('prefs');
@@ -279,6 +279,14 @@ class CityView extends Phaser.Scene {
   }
 
   /** sub-frame of an image texture (rows y0..y1), created on demand */
+  /** a px rect of a texture as a frame of its own (exp-09 clipped sprites) */
+  private region(file: string, x0: number, y0: number, x1: number, y1: number): string {
+    const tex = this.textures.get(file);
+    const name = `rect${x0}_${y0}_${x1}_${y1}`;
+    if (!tex.has(name)) tex.add(name, 0, x0, y0, x1 - x0, y1 - y0);
+    return name;
+  }
+
   private band(file: string, y0: number, y1: number): string {
     const tex = this.textures.get(file);
     const name = `band${y0}_${y1}`;
@@ -290,24 +298,28 @@ class CityView extends Phaser.Scene {
   private render(sc: GenScene, ghost: boolean): Phaser.GameObjects.RenderTexture {
     const W = sc.cols * 16, H = sc.rows * 16;
     const rt = this.add.renderTexture(0, 0, W, H).setOrigin(0, 0);
+    // one batch for the whole picture (0.7.9: a draw call per sprite took minutes on big maps in software WebGL)
+    rt.beginDraw();
     // ground layers, then objects sorted by foot (same rule as tools/render_generated.py)
     for (const layer of sc.ground) for (let y = 0; y < sc.rows; y++) for (let x = 0; x < sc.cols; x++) {
       const t = layer[y][x];
       if (!t) continue;
       const tex = sc.sheets[t[0]];
-      rt.drawFrame(tex, this.frameIndex(tex, t[1], t[2], 16), x * 16, y * 16);
+      rt.batchDrawFrame(tex, this.frameIndex(tex, t[1], t[2], 16), x * 16, y * 16);
     }
     const objs = [...sc.objects].sort((a, b) => a.foot - b.foot || (a.sub ?? 0) - (b.sub ?? 0));
     for (const o of objs) {
       if (o.kind === 'sprite') {
         const cut = o.solid === undefined ? 0 : Math.max(0, Math.min(o.h, o.solid - o.y));
-        if (!ghost || cut <= 0) rt.drawFrame(o.file, '__BASE', o.x, o.y);
+        if (o.clip) rt.batchDrawFrame(o.file, this.region(o.file, ...o.clip), o.x, o.y);   // exp-09: part of a sprite
+        else if (!ghost || cut <= 0) rt.batchDrawFrame(o.file, '__BASE', o.x, o.y);
         else {
-          rt.drawFrame(o.file, this.band(o.file, 0, cut), o.x, o.y, 0.28);
-          if (cut < o.h) rt.drawFrame(o.file, this.band(o.file, cut, o.h), o.x, o.y + cut);
+          rt.batchDrawFrame(o.file, this.band(o.file, 0, cut), o.x, o.y, 0.28);
+          if (cut < o.h) rt.batchDrawFrame(o.file, this.band(o.file, cut, o.h), o.x, o.y + cut);
         }
-      } else for (const l of o.layers ?? []) rt.drawFrame(l, this.frameIndex(l, o.frame![0], o.frame![1], 16), o.x, o.y);
+      } else for (const l of o.layers ?? []) rt.batchDrawFrame(l, this.frameIndex(l, o.frame![0], o.frame![1], 16), o.x, o.y);
     }
+    rt.endDraw();
     return rt;
   }
 

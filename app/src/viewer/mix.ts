@@ -3,7 +3,7 @@
 // seeds into special districts so they show up while browsing.
 // Same stream and draws as the generator's mix in 0.7.8.1 (`<seed>/district/mixed`): every seed keeps its 0.7.8.1 picture.
 import { Rng } from '../gen/rng';
-import { DISTRICT_KINDS, type DistrictKind } from '../gen/district';
+import { DISTRICTS, DISTRICT_KINDS, type DistrictKind } from '../gen/district';
 
 export interface DistrictMix {
   /** share of the seeds that become a special district */
@@ -13,7 +13,8 @@ export interface DistrictMix {
 }
 
 /** user 0.7.8.1: one seed in five, every kind alike */
-export const DEFAULT_MIX: DistrictMix = { chance: 0.2, weights: Object.fromEntries(DISTRICT_KINDS.map(k => [k, 1])) };
+// experiments (exp-09 palace) are menu-only: leaving them out keeps every seed's draw as in 0.7.8.1
+export const DEFAULT_MIX: DistrictMix = { chance: 0.2, weights: Object.fromEntries(DISTRICT_KINDS.filter(k => !DISTRICTS[k].exp).map(k => [k, 1])) };
 
 /** the district a seed gets under `mix` (undefined = 普通街区); deterministic in the seed */
 export function mixDistrict(seed: string, mix: DistrictMix = DEFAULT_MIX): DistrictKind | undefined {

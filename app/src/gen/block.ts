@@ -9,7 +9,7 @@ import { SceneBuilder, rect } from './place';
 import { TILE } from './types';
 import { placeCampus, type Campus, type Landmark } from './district';
 
-const PART_NAMES: Record<string, string> = { roof: '屋顶', mid: '中间层', ground: '底层', whole: '整体精灵', link: '链接条（盖住与邻楼相接的墙缝）' };
+const PART_NAMES: Record<string, string> = { roof: '屋顶', mid: '中间层', ground: '底层', whole: '整体精灵', link: '链接条（盖住与邻楼相接的墙缝）', entrance: '入口门廊（宫殿的模块化入口，exp-09）' };
 
 export interface PlacedBuilding { plan: BuildingPlan; cx: number; cy: number; side: 'S' | 'N'; /** why the packer put it here */ why: string }
 export interface Zone { kind: 'alley' | 'plaza' | 'pocket'; x0: number; y0: number; x1: number; y1: number; why: string }   // cells, half-open
@@ -108,7 +108,7 @@ function emitBuildingAs(L: Layout, pb: PlacedBuilding, sb: SceneBuilder, block: 
   sb.buildings.push({ gid, id: b.id, label: b.label, front: b.front, block, side: pb.side, rect: rect(x0, y0, x0 + b.w * TILE, bottom), solid: rect(x0, solid, x0 + b.w * TILE, bottom),
     doors: b.doors.map(d => ({ x: x0 + d, y: bottom })), reason: pb.why });
   for (const p of b.parts) {
-    const o = sb.putAt(p.key, x0 + p.dx, y0 + p.dy, 'building', { force: true, occupy: false, foot: bottom - 1, sub: p.sub, gid, why: `${b.label} 的${PART_NAMES[p.role]}` });
+    const o = sb.putAt(p.key, x0 + p.dx, y0 + p.dy, 'building', { force: true, occupy: false, foot: bottom - 1, sub: p.sub, clip: p.clip, gid, why: `${b.label} 的${PART_NAMES[p.role]}` });
     if (o) o.solid = solid;
   }
   sb.occupy(rect(x0, solid, x0 + b.w * TILE, bottom), 'building');

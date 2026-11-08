@@ -10,7 +10,9 @@ export interface BuildingPlan {
   w: number; h: number;                    // cells (full sprite rect)
   /** footprint depth in cells (bottom rows of the sprite rect); the rows above are ground hidden behind the building */
   foot: number;
-  parts: { key: string; dx: number; dy: number; sub: number; role: 'roof' | 'mid' | 'ground' | 'whole' | 'link' }[];   // px offsets from top-left
+  parts: { key: string; dx: number; dy: number; sub: number; role: 'roof' | 'mid' | 'ground' | 'whole' | 'link' | 'entrance';
+    /** only this px rect [x0, y0, x1, y1] of the sprite (exp-09: the palace's open doors are half of Palace_<n>_Entrance_Variant_4) */
+    clip?: [number, number, number, number] }[];   // px offsets from top-left
   doors: number[];                         // door centre x offsets (px) on the bottom edge
   front: FrontKind;
   tall: boolean;

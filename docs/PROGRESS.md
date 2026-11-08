@@ -1,6 +1,6 @@
 # 进度
 
-## 当前状态（2026-11-07）
+## 当前状态（2026-11-08）
 - 阶段 1（分析，`docs/reports/ANALYSIS.md`）和阶段 2（原型，v0.2.0）已完成。
 - 现在是迭代阶段，按版本号汇报。
   - 用户反馈是查看器里的好 / 坏标注（`references/labels/v<版本>/`）。文字评价 remarks 和反面案例 anti_references 已不再使用（D37）。
@@ -22,7 +22,7 @@
 - **v0.7.0 已完成**（2026-11-04，分支 `stage7`，报告 `docs/reports/v0.7.0.md`，D46–D50）：阶段 7 从选择中学习（局部 A/B、Bradley–Terry 偏好乘子）、创新度、实验转正 / 废弃的建议、“选择解决不了的问题”报告。**等用户**：核对乘子表（`docs/reports/PREFS.md`）、做一些 A/B 题、选扩展方案（exp-03）、答复 `v0.7.0.md` 第 8 节的问题。
   - 还没有任何 A/B 选择数据；乘子表只来自 16 条标注。
 - git：每个版本 commit 一次，并打 tag `v<版本>`。**从 v0.7.8 起直接在 `master` 上开发，不开分支**（用户 2026-11-07）。阶段 6 在分支 `stage6` 上做，阶段 7 在 `stage7`（从 `stage6` 分出）上做；2026-11-07 两个分支都快进合并到了主分支 `master`（v0.7.7）。
-- 决策记录：`docs/NOTE.md`（D1–D68，D22 已删除）。实验功能登记：`docs/EXPERIMENTS.md`（v0.7.8.1 起 exp-08 也已转正，没有在运行的实验；exp-01、exp-03–exp-07 已转正，exp-02 已删除；v0.7.7 起 exp-08 特色街区在运行，下一个编号 exp-09）。
+- 决策记录：`docs/NOTE.md`（D1–D71，D22 已删除）。实验功能登记：`docs/EXPERIMENTS.md`（exp-01、exp-03–exp-08 已转正，exp-02 已删除；v0.7.9 起 **exp-09 宫殿花园在运行**，下一个编号 exp-10）。
 - **v0.7.1**（2026-11-04，分支 `stage7`，报告 `docs/reports/v0.7.1.md`，D51–D52）：exp-03 前后排拉开（后排楼的占地推到地块最北，楼上层可以伸出地块），用户看过后当天和 exp-01 一起转正，始终开启。179/200 个种子变化，C02 10 → 0，C18 56 → 3。
   - 转正的实验带 `adoptedIn`；重新生成旧版本的标注时传 `asOf: <标注版本>`，转正之前的版本里它们按当时的开关运行（偏好学习因此还能复现 v0.5.1 的标注）。
   - v0.7.1 之前做的 A/B 选择（`references/choices/v0.7.0/`，17 个文件）用的是存下的场景，不受影响。
@@ -53,6 +53,11 @@
   - 用户 2026-11-07：“全都没有问题”，提交并打 tag `v0.7.8`；接着 exp-08 转正。
 - **v0.7.8.1**（2026-11-07，`master`，D67）：exp-08 **转正并混入随机生成**。“普通街区”的种子 20% 随机变成七种特色街区之一（`districtChance`，流 `district/mixed`），其余种子画面不变（200 个回归种子 166 个不变，`work/regress/v078-adopt`）；产物不带 `exp` 标记；菜单新增“只要普通街区”（`d=none`）。0.7.8 以前的标注按 `d=none` 重放，结果不变。现在没有在运行的实验。
 - **v0.7.8.2**（2026-11-07，`master`，D68）：随机混入**从生成器移到查看器**，为以后逐区块生成的大城市生成器做准备：生成器从不自己抽特色街区，`generate(seed, { district })` 由调用方明确传（不传 = 普通街区，不认识的值报错）。查看器的“普通街区”用 `src/viewer/mix.ts` 的 `mixDistrict(seed, { chance, weights })` 抽（默认 20%、七种一样），画面和 0.7.8.1 完全相同；生成器默认 200/200 回到 v0.7.8 普通街区（`work/regress/v0782`）。顺手修：`isDistrict('constructor')` 为真会崩溃；`sceneStem` 加 `_d<种类>`（同种子不同街区的标注场景会互相覆盖）。
+- **v0.7.9**（2026-11-08，`master`，报告 `docs/reports/v0.7.9.md`，D69–D70）：**exp-09 宫殿花园**（实验，菜单“[exp] 宫殿花园”，URL `d=palace`，只在菜单里，不进查看器的随机混入）。宫殿 `Palace_Example_1/2` 整栋立在地块上，模块化门廊（`Entrance_Variant_1–3`）和“大门敞开”（`Variant_4` 的半块，场景物件新增 `clip`）；花园在后面和两边一圈：高树篱花园墙 + 北边铁门、绕宫殿的步道、矮树篱小花园（五种，左右对称）、雕像壁龛、中轴庭院、温室和园丁小屋；台阶两侧花坛；下车处（台阶前的车道、一进一出两条车道、车、司机、客人、卫兵）；车道外是草坪或喷泉广场。代码 `app/src/gen/palace.ts`。
+  - 种子 1–40：修复没删园区的任何东西，剩余违规只有邻近街区的 1 条 C24；普通街区 200/200 和 v0.7.8.2 相同（`work/regress/v079`）；55 项测试通过。
+  - 顺手：查看器绘制改成一次合批（`beginDraw` / `batchDrawFrame`），宫殿图导出从 130 秒降到 0.7 秒，普通图导出逐像素不变。
+  - 第二轮（用户同日，D71）：不要每座都一样；2–3 个街区大；随机打破对称、更大的后花园；泳池 / 迷宫 / 游乐场 / 大温室每个种子选一个或几个；避免一格一格的规律；通道和下车处保持。改为：比例随机，花园递归切成挨着小路的块，功能区放进贴合的块（`14_Swimming_Pool` 加进素材清单；迷宫的 T 字用 `clip` 拼；大温室重复示例图的模块化列加宽）；`clip` 改成矩形。种子 1–40 每个至少一种功能区、没有空的块、修复没删东西；普通街区 200/200 不变；55 项测试通过。
+  - **等用户**：看 `v0.7.9.md` 第 7 节，用好 / 坏标注决定转正 / 废弃 / 修改。
 
 ## 怎么运行
 - 查看器：`cd app && npx vite`，然后打开 http://localhost:5173/?seed=7
@@ -60,7 +65,7 @@
   - 标注模式：单击选中，Shift+拖动框选，1 / 2 标好 / 坏，Ctrl+Enter 保存，Esc 取消。标注由开发服务器写到 `references/labels/v<版本>/`。
   - 生成在 Web Worker 里跑（约 0.3 秒一张）。
   - 顶栏“学到的偏好”复选框（URL `l=0` 关）；创新度滑块。标注层金色虚线框 = `novel`（新贴图），悬停显示偏好乘子。
-  - URL 参数：`d=school|hospital|police|fire|mall|hotel|gas|none`（特色街区，顶栏最左的下拉菜单；不传时查看器按 `src/viewer/mix.ts` 让 20% 的种子随机抽到一种，`none` = 只要普通街区；生成器本身从不随机抽，脚本里 `generate(seed)` 就是普通街区），`nov=0.3`（创新度），`l=0`（关掉学到的偏好），`p=0`（完全不剪枝）。可以把 scene JSON 拖进页面查看。脚本里的 `--pd`（草案约束也修复）还在。
+  - URL 参数：`d=school|hospital|police|fire|mall|hotel|gas|palace|none`（特色街区，顶栏最左的下拉菜单；`palace` 是实验 exp-09，菜单里标“[exp]”，不参加随机混入；不传时查看器按 `src/viewer/mix.ts` 让 20% 的种子随机抽到一种，`none` = 只要普通街区；生成器本身从不随机抽，脚本里 `generate(seed)` 就是普通街区），`nov=0.3`（创新度），`l=0`（关掉学到的偏好），`p=0`（完全不剪枝）。可以把 scene JSON 拖进页面查看。脚本里的 `--pd`（草案约束也修复）还在。
   - 标注层的“约束”图层：红框 = 违规，灰色叉框 = 已删除的物件，紫框 = 降级的区域，青框 = 改过的地面。
 - 测试：`cd app && npm test`（约 1 分钟）、`npx tsc --noEmit`。
 - 回归：`cd app && npx tsx scripts/regress.ts snapshot ../work/regress/<名> [--pd] [--nov <x>] [--noprefs]`；用 `snapshot-par <目录> [同样的参数] [--jobs 8]` 多进程跑（约 40 秒；14 个进程并不更快）。v0.7.6 起没有 `--on` / `--off`。然后：
@@ -68,7 +73,7 @@
   - `report <A> <B>`：画面变化、各约束违规与修复、标注测试；
   - `labels [--pd]`：只跑标注测试；
   - `explain`：检查解释覆盖率。
-  - 种子集在 `scripts/regression_seeds.json`（200 个，只增不改）。基线在 `work/regress/v0782`（v0.7.8.2 生成器默认 = 普通街区，和 `v078-normal` 相同）、`v078-adopt`（v0.7.8.1 默认，20% 是特色街区；= v0.7.8.2 查看器默认）、`v078-normal`（v0.7.8 普通街区，和 `v077-normal` 相同）、`post-cleanup`（v0.7.6 默认，和 `pre-cleanup` = v0.7.5 默认画面相同）、`v075`（v0.7.5 第一版）、`v074-base`、`v0.7.4`（v0.7.4 默认；和 v0.7.2 只差 seed 47）、`exp06-on`（v0.7.4 开 exp-06）、`v0.7.2`（v0.7.3 默认画面与它相同）、`exp05-off` / `exp05-on`（v0.7.3 关 / 开 exp-05）、`exp04-on`、`exp04-off`（v0.7.2 开 / 关 exp-04）、`v0.3.0`、`v0.4.0`、`v0.5.0`、`v0.5.0-pd`、`v0.5.1`、`v0.6.0-off`（exp-02 关）、`v0.6.0`、`v0.6.0-global`、`v0.6.1b-off`、`v0.6.1b-on`（整体修图）、`v0.7.0`（默认）、`v0.7.0-n0`、`v0.7.0-n05`、`v0.7.0-n1`（创新度 0 / 0.5 / 1）、`v0.7.0-n0-l0`（创新度 0 + 偏好关）、`v0.7.1`（默认）（work/ 不进 git，丢了就从对应 tag 重建）。
+  - 种子集在 `scripts/regression_seeds.json`（200 个，只增不改）。基线在 `work/regress/v079`（v0.7.9 生成器默认，和 `v0782` 相同）、`v0782`（v0.7.8.2 生成器默认 = 普通街区，和 `v078-normal` 相同）、`v078-adopt`（v0.7.8.1 默认，20% 是特色街区；= v0.7.8.2 查看器默认）、`v078-normal`（v0.7.8 普通街区，和 `v077-normal` 相同）、`post-cleanup`（v0.7.6 默认，和 `pre-cleanup` = v0.7.5 默认画面相同）、`v075`（v0.7.5 第一版）、`v074-base`、`v0.7.4`（v0.7.4 默认；和 v0.7.2 只差 seed 47）、`exp06-on`（v0.7.4 开 exp-06）、`v0.7.2`（v0.7.3 默认画面与它相同）、`exp05-off` / `exp05-on`（v0.7.3 关 / 开 exp-05）、`exp04-on`、`exp04-off`（v0.7.2 开 / 关 exp-04）、`v0.3.0`、`v0.4.0`、`v0.5.0`、`v0.5.0-pd`、`v0.5.1`、`v0.6.0-off`（exp-02 关）、`v0.6.0`、`v0.6.0-global`、`v0.6.1b-off`、`v0.6.1b-on`（整体修图）、`v0.7.0`（默认）、`v0.7.0-n0`、`v0.7.0-n05`、`v0.7.0-n1`（创新度 0 / 0.5 / 1）、`v0.7.0-n0-l0`（创新度 0 + 偏好关）、`v0.7.1`（默认）（work/ 不进 git，丢了就从对应 tag 重建）。
   - `report` 的标注测试只跑 B 的模式。
 - 偏好（阶段 7）：`cd app && npx tsx scripts/prefs.ts train`（A/B 选择 + 标注 → `src/gen/data/prefs.json`；A/B 已归档，选择只有 `references/choices/v0.7.0/` 的 17 个文件；0.6.0 以前的标注没有 stream，v0.7.6 起跳过），`prefs.ts eval`（写 `docs/reports/PREFS.md`），`prefs.ts gaps`（选择解决不了的坏标注 → `work/gaps/gaps.md` 和截图）。不同意的条目写进 `src/gen/learn/blacklist.json`（`标签` 或 `标签|选项`）再重训。
 - 使用次数（创新度用）：`cd tools && uv run python export_usage.py`（参考图 → `app/src/gen/data/usage.json`）。
@@ -91,6 +96,7 @@
 - `neighbours.ts`：邻近街区。
 - `vignettes.ts`：路缘段、通行带、红绿灯、路缘设施、店门、巷子、广场、小岛、公交站、车、井盖、行人。
 - `yard.ts`：内院逐块分配，包括停车场和车道、花园、楼前空地、过道、绿化带、杂物角。楼后的地面和别处一样（D38）。`joinGardens` 是 exp-06（相邻的花园合成一个，已转正）。
+- `palace.ts`：exp-09 宫殿花园（实验）。`palacePlan`（宫殿精灵 + 门廊 + 敞开的大门）、`palaceCampus`（比例和大小、下车道、车道外）、`palaceGrounds`（步道、`cut` 随机分块、功能区分配、花园墙和铁门，流 `district/palace`，切法的尝试在子流 `try<n>`）；`pool` / `maze` / `playground` / `service`（温室、小屋）/ `room` / `lawnTrees` / `strip` / `court_`；树篱自动拼接 `hedge`（编号和 T 字见 NOTE D69、D71）。由 `district.ts` 调用，在 `sb.withExp('exp-09')` 里放置。
 - `district.ts`：exp-08 特色街区。`planCampus`（地标和园区布局，在布局之前）、`placeCampus`、`districtVignettes`（园区物件、车道；v0.7.8 补充的东西在 `more()` 里，流 `district/<种类>/more`）；加油站 `gasForecourt` / `gasSide` / `gasWalk`。`layout.ts` 的 `makeLayout(rng, need)` 让街区正好是园区大小；`block.ts` 的 `planMainBlock(…, campus)` 有园区时不打包普通楼。
 - `rooftop.ts`：exp-01，平顶屋顶上的空调外机。
 - `kits.ts`：exp-05 其余拼接楼（已转正）（Condo_3 / Condo_4 / Condo_7 / 办公楼 / 酒店的拼法），由 `pack.ts` 的 `kitSwap` 调用。
@@ -110,11 +116,11 @@
 - `main.ts`：Phaser 查看器；`src/viewer/overlay.ts`（标注层绘制，屏幕和 _annotated.png 共用），`src/viewer/labels.ts`（标注格式和存储），`src/viewer/gen.worker.ts`（在 Worker 里生成）。`vite.config.ts` 里只有 `/api/labels`。
 
 ## 下一步
-- **v0.7.9**：宫殿花园（`17_Garden/Palace_Example_1/2`，25×34 格，参考图 garden）。特殊案例：比最大的街区（28 行）还高。
 - 等用户：
+  - v0.7.9 exp-09 宫殿花园：看 `docs/reports/v0.7.9.md` 第 7 节（布局、花园密度、对称、南边门、下车处），用标注决定转正 / 废弃 / 修改；
   - 79 条巷子删掉了挡路的垃圾桶：要不要改生成器，把巷子的垃圾桶放在不挡路的地方；
   - 核对 `docs/reports/PREFS.md` 的乘子表（A/B 已归档，不再做 A/B 题）；
-  - 从 `v0.7.0.md` 第 6 节选一个扩展提议空间的方案（编号取下一个，exp-09；exp-08 已给特色街区）；
+  - 从 `v0.7.0.md` 第 6 节选一个扩展提议空间的方案（编号取下一个，exp-10；exp-08 已给特色街区，exp-09 已给宫殿花园）；
   - 是否要限制楼上层伸进北边马路（v0.7.1 报告第 3 节）；
   - 默认创新度 0.10 要不要保留（exp-01 已转正）。
 - `stage6`、`stage7` 已合并到 `master`（2026-11-07，快进，没有合并提交）；分支还留着。

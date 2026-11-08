@@ -20,6 +20,7 @@ import type { PlacedBuilding } from './block';
 import { SceneBuilder, rect } from './place';
 import { person } from './vignettes';
 import { TILE } from './types';
+import { palacePlan, palaceCampus, palaceGrounds, EXP09 } from './palace';
 
 const T = TILE;
 const C = '3_City_Props/';
@@ -27,7 +28,7 @@ const V = '10_Vehicles/';
 const SC = '13_School/';
 const PS = '15_Police_Station/';
 
-export type DistrictKind = 'school' | 'hospital' | 'police' | 'fire' | 'mall' | 'hotel' | 'gas';
+export type DistrictKind = 'school' | 'hospital' | 'police' | 'fire' | 'mall' | 'hotel' | 'gas' | 'palace';
 
 interface Spec {
   name: string;
@@ -35,6 +36,8 @@ interface Spec {
   keys: string[];
   /** door centres (px from the sprite's left edge) on its bottom edge: where people go in */
   doors: number[];
+  /** an experiment still running (its products are tagged; the viewer marks it [exp], the random mix leaves it out) */
+  exp?: string;
 }
 
 export const DISTRICTS: Record<DistrictKind, Spec> = {
@@ -45,6 +48,8 @@ export const DISTRICTS: Record<DistrictKind, Spec> = {
   mall: { name: '购物中心', keys: ['9_Shopping_Center_and_Markets/Mall_1'], doors: [140, 237] },
   hotel: { name: '酒店', keys: ['12_Hotel_and_Hospital/Hotel_1'], doors: [52, 136, 216] },
   gas: { name: '加油站', keys: [V + 'Gas_Station_1', V + 'Gas_Station_2'], doors: [56] },
+  // v0.7.9 exp-09: the palace and its garden (palace.ts)
+  palace: { name: '宫殿花园', keys: ['17_Garden/Palace_Example_1', '17_Garden/Palace_Example_2'], doors: [200], exp: EXP09 },
 };
 export const DISTRICT_KINDS = Object.keys(DISTRICTS) as DistrictKind[];
 // own keys only ('constructor', 'toString' ... are in every object)
@@ -61,7 +66,8 @@ function plan(key: string, doors: number[], label: string): BuildingPlan {
 
 /** a purposeful area of the campus (cells, half-open; block-local while planning, map cells once placed) */
 export interface Feat {
-  kind: 'plaza' | 'court' | 'helipad' | 'parking' | 'ramp' | 'billboard' | 'apron' | 'bay' | 'playground' | 'forecourt' | 'pumps' | 'lot';
+  kind: 'plaza' | 'court' | 'helipad' | 'parking' | 'ramp' | 'billboard' | 'apron' | 'bay' | 'playground' | 'forecourt' | 'pumps' | 'lot'
+    | 'garden' | 'beds' | 'dropoff' | 'frontlawn' | 'fountain';   // exp-09 palace
   x0: number; y0: number; x1: number; y1: number;
   key?: string;
   why: string;
@@ -89,6 +95,8 @@ export interface Landmark {
 /** the campus of a district, block-local (decided before the layout: the block is sized to it). Stream `landmark` */
 export function planCampus(kind: DistrictKind, rng: Rng): Campus {
   const r = rng.fork('landmark', { district: kind });
+  // exp-09: the palace plans its own campus (the garden round it, the drop-off in front)
+  if (kind === 'palace') return palaceCampus(r, palacePlan(r, `L${nextId++}`));
   const s = DISTRICTS[kind];
   const main = plan(r.choose('district.variant', { district: kind }, s.keys), s.doors, s.name);
   const lw = main.w, lf = main.foot;
@@ -244,6 +252,7 @@ export function placeCampus(L: Layout, c: Campus): Landmark {
 
 /** paving and the props of every campus area */
 export function districtVignettes(L: Layout, lm: Landmark, sb: SceneBuilder, r: Rng) {
+  if (lm.kind === 'palace') { sb.withExp(EXP09, () => palaceGrounds(L, lm, sb, r)); return; }
   grounds(L, lm, sb, r);
 }
 
@@ -561,7 +570,7 @@ function gasWalk(sb: SceneBuilder, r: Rng, lm: Landmark, f: Feat, gid: string) {
 }
 
 /** a curb cut: sidewalk cells below the campus (from row y) become road, w columns from x */
-function driveway(L: Layout, sb: SceneBuilder, r: Rng, x: number, w: number, y: number, gid: string, why: string) {
+export function driveway(L: Layout, sb: SceneBuilder, r: Rng, x: number, w: number, y: number, gid: string, why: string) {
   const cells: [number, number][] = [];
   for (let c = x; c < x + w; c++) for (let yy = y; L.cls[yy]?.[c] === 'walk'; yy++) cells.push([c, yy]);
   if (!cells.length) return;

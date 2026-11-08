@@ -27,6 +27,8 @@ export interface Placed {
   layers?: string[];
   frame?: [number, number];
   x: number; y: number; w: number; h: number;   // px, top-left of the sprite image
+  /** sprite: only this px rect [x0, y0, x1, y1] of the image is drawn, its top-left at (x, y) (w, h = its size); exp-09 */
+  clip?: [number, number, number, number];
   /** depth-sort key in px (the y where the thing stands); ties broken by `sub` */
   foot: number;
   sub?: number;
