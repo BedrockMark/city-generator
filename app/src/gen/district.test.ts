@@ -12,6 +12,7 @@ const MUST: Record<DistrictKind, (keys: string[]) => boolean> = {
   fire: k => k.some(x => x.includes('Fire_Truck')),
   mall: k => k.some(x => x.includes('Underground_Parking')) && k.some(x => x.includes('Billboard')),
   hotel: k => k.some(x => x.includes('Underground_Parking')),
+  gas: k => k.some(x => /Gas_Station_[12]$/.test(x)) && k.some(x => x.includes('Price_Signboard')),
 };
 
 test('exp-08: the landmark footprint is on the lot north edge, the block is its campus, no ordinary buildings packed', () => {
@@ -35,7 +36,25 @@ test('exp-08: the landmark footprint is on the lot north edge, the block is its 
     // the fire engine waits beside the station, not in front of its garages and door (user 2026-11-07)
     const truck = sc.objects.find(o => o.key.includes('Fire_Truck'));
     if (truck) assert.ok(truck.fp!.x1 <= main!.rect.x0 || truck.fp!.x0 >= main!.rect.x1, `${at}: fire engine clear of the station front`);
+    // v0.7.8: the police booth never stands on a bay (bays are the 2_City_Terrains bay pieces)
+    const booth = sc.objects.find(o => o.key.includes('Parking_Booth'));
+    if (booth) for (const car of sc.objects.filter(o => o.cls === 'vehicle' && o.fp)) assert.ok(!overlaps(booth.fp!, car.fp!), `${at}: booth clear of ${car.key}`);
   }
+});
+
+test('v0.7.8: courts have hoops / goals, the gas station has its driveways', () => {
+  let booths = 0, playgrounds = 0;
+  for (const seed of ['1', '2', '3', '4', '5', '6', '7', '8']) {
+    const school = generate(seed, { district: 'school' });
+    const court = school.objects.find(o => /Basketball_Court|Soccer_Court/.test(o.key))!;
+    assert.ok(school.objects.some(o => /Basketball_Net|Soccer_Net/.test(o.key)) || /Court_[5-8]$|Soccer_Court_2$/.test(court.key), `school ${seed}: ${court.key} has hoops / goals`);
+    if (school.zones!.some(z => z.kind === 'playground')) playgrounds++;
+    if (generate(seed, { district: 'police' }).objects.some(o => o.key.includes('Parking_Booth'))) booths++;
+    const gas = generate(seed, { district: 'gas' });
+    assert.equal(gas.zones!.filter(z => z.kind === 'driveway' && z.exp === EXP08).length, 2, `gas ${seed}: entry and exit driveways`);
+  }
+  assert.ok(booths >= 3, `police booths ${booths}/8`);
+  assert.ok(playgrounds >= 1, `school playgrounds ${playgrounds}/8`);
 });
 
 test('exp-08: 普通街区 (no district) has no landmark', () => {
