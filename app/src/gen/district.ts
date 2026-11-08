@@ -20,7 +20,7 @@ import type { PlacedBuilding } from './block';
 import { SceneBuilder, rect } from './place';
 import { person } from './vignettes';
 import { TILE } from './types';
-import { palacePlan, palaceCampus, palaceGrounds, EXP09 } from './palace';
+import { palacePlan, palaceCampus, palaceGrounds } from './palace';
 
 const T = TILE;
 const C = '3_City_Props/';
@@ -38,6 +38,8 @@ interface Spec {
   doors: number[];
   /** an experiment still running (its products are tagged; the viewer marks it [exp], the random mix leaves it out) */
   exp?: string;
+  /** only chosen in the menu: the viewer's random mix leaves it out (the palace, user 0.7.9.1) */
+  menuOnly?: boolean;
 }
 
 export const DISTRICTS: Record<DistrictKind, Spec> = {
@@ -48,8 +50,8 @@ export const DISTRICTS: Record<DistrictKind, Spec> = {
   mall: { name: '购物中心', keys: ['9_Shopping_Center_and_Markets/Mall_1'], doors: [140, 237] },
   hotel: { name: '酒店', keys: ['12_Hotel_and_Hospital/Hotel_1'], doors: [52, 136, 216] },
   gas: { name: '加油站', keys: [V + 'Gas_Station_1', V + 'Gas_Station_2'], doors: [56] },
-  // v0.7.9 exp-09: the palace and its garden (palace.ts)
-  palace: { name: '宫殿花园', keys: ['17_Garden/Palace_Example_1', '17_Garden/Palace_Example_2'], doors: [200], exp: EXP09 },
+  // v0.7.9 exp-09 (adopted in 0.7.9.1): the palace and its garden (palace.ts)
+  palace: { name: '宫殿花园', keys: ['17_Garden/Palace_Example_1', '17_Garden/Palace_Example_2'], doors: [200], menuOnly: true },
 };
 export const DISTRICT_KINDS = Object.keys(DISTRICTS) as DistrictKind[];
 // own keys only ('constructor', 'toString' ... are in every object)
@@ -252,7 +254,7 @@ export function placeCampus(L: Layout, c: Campus): Landmark {
 
 /** paving and the props of every campus area */
 export function districtVignettes(L: Layout, lm: Landmark, sb: SceneBuilder, r: Rng) {
-  if (lm.kind === 'palace') { sb.withExp(EXP09, () => palaceGrounds(L, lm, sb, r)); return; }
+  if (lm.kind === 'palace') { palaceGrounds(L, lm, sb, r); return; }
   grounds(L, lm, sb, r);
 }
 

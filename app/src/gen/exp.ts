@@ -1,5 +1,5 @@
 // Generator options, and what is left of the experiments (docs/EXPERIMENTS.md keeps their history).
-// exp-01, exp-03 - exp-08 are adopted: normal generator logic, always on, untagged. Since 0.7.6 there are no switches,
+// exp-01, exp-03 - exp-09 are adopted: normal generator logic, always on, untagged. Since 0.7.6 there are no switches,
 // no registry and no regenerating as an older version (asOf); exp-02 (整体修图) was removed with the judge (NOTE D62).
 // The adopted experiments that draw random numbers still draw from the streams they had (`exp/<id>`): a stream's
 // name seeds it, so renaming one would change every picture.

@@ -1,4 +1,4 @@
-// exp-09 宫殿花园 (palace garden, v0.7.9): the special district built round 17_Garden/Palace_Example_1/2 (ref garden,
+// exp-09 宫殿花园 (palace garden, v0.7.9; adopted in 0.7.9.1, untagged, still menu-only): the special district built round 17_Garden/Palace_Example_1/2 (ref garden,
 // garden_warmhouse, different_swimming_pools, playground_for_kids).
 // User 2026-11-08: the palace has its own modular pieces (the entrance porches); a garden runs round the back of it with a
 // greenhouse in it and the garden walls (hedges) used; in front a drop-off area, and outside the drive a lawn or a fountain
@@ -16,7 +16,7 @@
 // Grass_Wall_1, opening onto the path at a random place), informal lawns with trees, the gardener's shed. Some seeds keep
 // the garden symmetric about the palace's axis (mirrored pieces, a court or an axis path behind the palace).
 //
-// Everything here is tagged exp-09 (district.ts runs it under sb.withExp). Random numbers: the plan on stream `landmark`
+// Random numbers: the plan on stream `landmark`
 // (as every district), the grounds on `district/palace` (layout attempts on its sub-streams `try<n>`).
 import { Rng } from './rng';
 import { spr, variants, hasSprite } from './assets';
@@ -30,7 +30,6 @@ import { driveway, type Campus, type Feat, type Landmark } from './district';
 const T = TILE;
 const G = '17_Garden/';
 const P = '14_Swimming_Pool/';
-export const EXP09 = 'exp-09';
 
 /** read off Palace_Example_1/2 (cells): the building is the top 29 rows, the stair columns 9-15 run to row 34; the
  *  entrance porch (Palace_<n>_Entrance_Variant_1-3, 7 x 4) sits at (144, 400) px, the door in its middle */
@@ -49,7 +48,7 @@ export function palacePlan(r: Rng, id: string): BuildingPlan {
   if (r.choose('palace.open', {}, { p: 0.4 }))
     parts.push({ key: `${G}Palace_${n}_Entrance_Variant_4`, dx: 176, dy: 400, sub: 2, role: 'entrance', clip: porch === 2 ? [0, 32, 48, 64] : [0, 0, 48, 32] });
   return { id, w: PW, h: PH, foot: PH, parts, doors: [AXIS * T], front: 'landmark', tall: true,
-    label: `宫殿（${porch === 1 ? '无柱' : porch === 2 ? '四柱' : '两柱'}门廊${parts.length > 2 ? '，大门敞开' : ''}）`, exp: EXP09 };
+    label: `宫殿（${porch === 1 ? '无柱' : porch === 2 ? '四柱' : '两柱'}门廊${parts.length > 2 ? '，大门敞开' : ''}）` };
 }
 
 /** the campus (block-local cells). User: about 2-3 ordinary blocks (an ordinary block's interior is ~550 cells; two or

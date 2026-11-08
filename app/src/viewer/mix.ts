@@ -13,8 +13,8 @@ export interface DistrictMix {
 }
 
 /** user 0.7.8.1: one seed in five, every kind alike */
-// experiments (exp-09 palace) are menu-only: leaving them out keeps every seed's draw as in 0.7.8.1
-export const DEFAULT_MIX: DistrictMix = { chance: 0.2, weights: Object.fromEntries(DISTRICT_KINDS.filter(k => !DISTRICTS[k].exp).map(k => [k, 1])) };
+// experiments and menu-only kinds (the palace, user 0.7.9.1) are left out: every seed keeps its draw as in 0.7.8.1
+export const DEFAULT_MIX: DistrictMix = { chance: 0.2, weights: Object.fromEntries(DISTRICT_KINDS.filter(k => !DISTRICTS[k].exp && !DISTRICTS[k].menuOnly).map(k => [k, 1])) };
 
 /** the district a seed gets under `mix` (undefined = 普通街区); deterministic in the seed */
 export function mixDistrict(seed: string, mix: DistrictMix = DEFAULT_MIX): DistrictKind | undefined {

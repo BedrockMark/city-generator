@@ -4,7 +4,7 @@ import { generate } from './generate';
 import { overlaps } from './place';
 import { mixDistrict } from '../viewer/mix';
 
-test('exp-09 palace: garden round the back, drop-off and lawn / plaza in front, everything tagged, nothing repaired away', () => {
+test('exp-09 palace: garden round the back, drop-off and lawn / plaza in front, untagged (adopted 0.7.9.1), nothing repaired away', () => {
   for (const seed of ['1', '2', '3', '4', '5', '6', '7', '8']) {
     const sc = generate(seed, { district: 'palace' });
     const at = `palace seed ${seed}`;
@@ -12,7 +12,7 @@ test('exp-09 palace: garden round the back, drop-off and lawn / plaza in front, 
     assert.ok(pal, `${at}: palace placed`);
     assert.equal(sc.buildings!.filter(b => b.block === 'main').length, 1, `${at}: no other buildings on the block`);
     const mine = sc.objects.filter(o => /^palace/.test(o.gid ?? '') || o.gid === pal.gid);
-    assert.ok(mine.every(o => o.exp === 'exp-09'), `${at}: every palace object tagged exp-09`);
+    assert.ok(!sc.objects.some(o => o.exp) && !sc.zones!.some(z => z.exp) && !sc.groups!.some(g => g.exp), `${at}: nothing tagged (exp-09 adopted)`);
     const keys = mine.map(o => o.key);
     // the modular porch, the garden wall with its gate, the greenhouse, the drop-off car
     assert.ok(keys.some(k => /Palace_[12]_Entrance_Variant_[123]$/.test(k)), `${at}: porch`);
@@ -35,10 +35,10 @@ test('exp-09 palace: garden round the back, drop-off and lawn / plaza in front, 
     // the repairs leave the campus alone
     const a = sc.audit!;
     assert.ok(!a.pruned.some(p => /^palace|^bld:L/.test(p.gid ?? '')), `${at}: no palace objects repaired away`);
-    assert.ok(!a.downgraded.some(d => sc.zones!.find(z => z.id === d.zone)?.exp === 'exp-09'), `${at}: no palace area downgraded`);
+    assert.ok(!a.downgraded.some(d => /^palace/.test(sc.zones!.find(z => z.id === d.zone)?.gid ?? '')), `${at}: no palace area downgraded`);
   }
 });
 
-test('exp-09: menu only, the viewer mix never draws the palace', () => {
+test('palace: menu only, the viewer mix never draws it', () => {
   for (let i = 0; i < 2000; i++) assert.notEqual(mixDistrict(String(i)), 'palace');
 });
