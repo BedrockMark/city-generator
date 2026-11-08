@@ -22,7 +22,7 @@
 - **v0.7.0 已完成**（2026-11-04，分支 `stage7`，报告 `docs/reports/v0.7.0.md`，D46–D50）：阶段 7 从选择中学习（局部 A/B、Bradley–Terry 偏好乘子）、创新度、实验转正 / 废弃的建议、“选择解决不了的问题”报告。**等用户**：核对乘子表（`docs/reports/PREFS.md`）、做一些 A/B 题、选扩展方案（exp-03）、答复 `v0.7.0.md` 第 8 节的问题。
   - 还没有任何 A/B 选择数据；乘子表只来自 16 条标注。
 - git：每个版本 commit 一次，并打 tag `v<版本>`。阶段 6 在分支 `stage6` 上做，阶段 7 在 `stage7`（从 `stage6` 分出）上做，确认后合并到 main。
-- 决策记录：`docs/NOTE.md`（D1–D62，D22 已删除）。实验功能登记：`docs/EXPERIMENTS.md`（exp-01、exp-03–exp-07 已转正，exp-02 已删除；v0.7.6 起没有在运行的实验，下一个编号 exp-08）。
+- 决策记录：`docs/NOTE.md`（D1–D64，D22 已删除）。实验功能登记：`docs/EXPERIMENTS.md`（exp-01、exp-03–exp-07 已转正，exp-02 已删除；v0.7.7 起 exp-08 特色街区在运行，下一个编号 exp-09）。
 - **v0.7.1**（2026-11-04，分支 `stage7`，报告 `docs/reports/v0.7.1.md`，D51–D52）：exp-03 前后排拉开（后排楼的占地推到地块最北，楼上层可以伸出地块），用户看过后当天和 exp-01 一起转正，始终开启。179/200 个种子变化，C02 10 → 0，C18 56 → 3。
   - 转正的实验带 `adoptedIn`；重新生成旧版本的标注时传 `asOf: <标注版本>`，转正之前的版本里它们按当时的开关运行（偏好学习因此还能复现 v0.5.1 的标注）。
   - v0.7.1 之前做的 A/B 选择（`references/choices/v0.7.0/`，17 个文件）用的是存下的场景，不受影响。
@@ -43,6 +43,11 @@
 - **v0.7.6**（2026-11-07，分支 `stage7`，报告 `docs/reports/v0.7.6.md`，D62）：用户：“现在这里的一切都很好”，exp-07 转正，去掉没在用的功能，保留标注，A/B 归档。
   - exp-07 **转正**（C25 始终运行、不带标记）。删除：评判器 + 热力图（H）、整体修图 exp-02、存档为合格（K）、实验证据。A/B 模式挪到 `archive/ab/`（见那里的 README），`Trace.force` 和 `/api/choices` 删除，已有回答留在 `references/choices/`。实验框架精简：没有登记表、开关、“实验 ▾”菜单、URL `x=` / `e=`、`asOf`。
   - 画面 200/200 相同、约束记录 200/200 相同（`work/regress/pre-cleanup` → `post-cleanup`）；标注测试和 v0.7.5 相同；48 项测试通过（删掉的功能的测试一起删了，原来 94 项）。
+- **v0.7.7**（2026-11-07，分支 `stage7`，报告 `docs/reports/v0.7.7.md`，D63–D64）：exp-08 特色街区。
+  - 顶栏种子前的下拉菜单：普通街区 / 学校 / 医院 / 警察局 / 消防站 / 购物中心 / 酒店（URL `d=`，`options.district`）。
+  - 第二轮（用户同日）：主街区就是地标的园区。地标占地顶到地块最北，南边和旁边是配套设施（学校操场、医院停机坪和便利店、警察局大停车场、购物中心广告牌和地下停车场入口、酒店地下停车场入口），不放普通楼。
+  - 普通街区 200/200 和 v0.7.6 相同（`work/regress/v077-normal`）。六种街区在种子 1–40 上剩余违规都是 0。
+  - 提交前修了消防车堵住车库出入口的问题：消防车改停在旁边的待命车位上。用户确认园区合适，v0.7.6、v0.7.7 分开提交并打 tag。
 
 ## 怎么运行
 - 查看器：`cd app && npx vite`，然后打开 http://localhost:5173/?seed=7
@@ -50,7 +55,7 @@
   - 标注模式：单击选中，Shift+拖动框选，1 / 2 标好 / 坏，Ctrl+Enter 保存，Esc 取消。标注由开发服务器写到 `references/labels/v<版本>/`。
   - 生成在 Web Worker 里跑（约 0.3 秒一张）。
   - 顶栏“学到的偏好”复选框（URL `l=0` 关）；创新度滑块。标注层金色虚线框 = `novel`（新贴图），悬停显示偏好乘子。
-  - URL 参数：`nov=0.3`（创新度），`l=0`（关掉学到的偏好），`p=0`（完全不剪枝）。可以把 scene JSON 拖进页面查看。脚本里的 `--pd`（草案约束也修复）还在。
+  - URL 参数：`d=school|hospital|police|fire|mall|hotel`（exp-08 特色街区，顶栏最左的下拉菜单），`nov=0.3`（创新度），`l=0`（关掉学到的偏好），`p=0`（完全不剪枝）。可以把 scene JSON 拖进页面查看。脚本里的 `--pd`（草案约束也修复）还在。
   - 标注层的“约束”图层：红框 = 违规，灰色叉框 = 已删除的物件，紫框 = 降级的区域，青框 = 改过的地面。
 - 测试：`cd app && npm test`（约 1 分钟）、`npx tsc --noEmit`。
 - 回归：`cd app && npx tsx scripts/regress.ts snapshot ../work/regress/<名> [--pd] [--nov <x>] [--noprefs]`；用 `snapshot-par <目录> [同样的参数] [--jobs 8]` 多进程跑（约 40 秒；14 个进程并不更快）。v0.7.6 起没有 `--on` / `--off`。然后：
@@ -67,7 +72,7 @@
 - 批量生成：`cd app && npx tsx scripts/batch.ts ../work/gen 1..12`
 - Python 渲染：`cd tools && uv run python render_generated.py ../work/gen/scene_1.json --scale 1 [--ghost]`。注意：它会把 PNG 写在 json 旁边，可能覆盖同名文件。
 - 评估：`cd tools && uv run python eval_generated.py <scene.json ...> --out report.md`
-- Phaser 实拍：先启动 vite，再 `cd app && npx tsx scripts/shots.ts <outDir> [--anno] 2 3 5`（用系统自带的 Edge；--anno 额外截标注层）。
+- Phaser 实拍：先启动 vite，再 `cd app && npx tsx scripts/shots.ts <outDir> [--anno] [--q=d=school] 2 3 5`（vite 不在 5173 时加 `PORT=5174`）（用系统自带的 Edge；--anno 额外截标注层）。
 - 素材元数据有变动时：`cd tools && uv run python export_manifest.py && uv run python export_opaque.py`，写入 `app/src/gen/data/`。链接条表（exp-04）：`uv run python export_links.py`。
 
 ## 代码结构（app/src/gen）
@@ -81,6 +86,7 @@
 - `neighbours.ts`：邻近街区。
 - `vignettes.ts`：路缘段、通行带、红绿灯、路缘设施、店门、巷子、广场、小岛、公交站、车、井盖、行人。
 - `yard.ts`：内院逐块分配，包括停车场和车道、花园、楼前空地、过道、绿化带、杂物角。楼后的地面和别处一样（D38）。`joinGardens` 是 exp-06（相邻的花园合成一个，已转正）。
+- `district.ts`：exp-08 特色街区。`planCampus`（地标和园区布局，在布局之前）、`placeCampus`、`districtVignettes`（园区物件、车道）。`layout.ts` 的 `makeLayout(rng, need)` 让街区正好是园区大小；`block.ts` 的 `planMainBlock(…, campus)` 有园区时不打包普通楼。
 - `rooftop.ts`：exp-01，平顶屋顶上的空调外机。
 - `kits.ts`：exp-05 其余拼接楼（已转正）（Condo_3 / Condo_4 / Condo_7 / 办公楼 / 酒店的拼法），由 `pack.ts` 的 `kitSwap` 调用。
 - `terrace.ts`：拼接楼（exp-04，已转正）（联排段、分段公寓、联排住宅）和相邻楼的链接（`linkBuildings`，在打包后、放置前调用）。
@@ -99,10 +105,14 @@
 - `main.ts`：Phaser 查看器；`src/viewer/overlay.ts`（标注层绘制，屏幕和 _annotated.png 共用），`src/viewer/labels.ts`（标注格式和存储），`src/viewer/gen.worker.ts`（在 Worker 里生成）。`vite.config.ts` 里只有 `/api/labels`。
 
 ## 下一步
+- **v0.7.8 的要求**（用户 2026-11-07）：
+  - 特色街区补充能加的东西（`docs/reports/v0.7.7.md` 第 7 节）：学校操场的围栏和篮球架（`13_School/School_Railing_1`、`Basketball_Net_*`），学校游乐设施（`School_Yard_Toy_*`）；警察局停车场的岗亭（`15_Police_Station/Parking_Booth_*`，不能挡住车位）；医院停机坪旁的担架；购物中心广场上更多的摊位。学校操场在前面时，广场另一半比较空。
+  - 新增特色街区：**加油站**（`10_Vehicles/Gas_Station_1/2`，参考图 gas_station）。它是雨棚加地面，不是有门的楼，要另做场地：油泵岛、进出车道、便利店等。
+- **v0.7.9**：宫殿花园（`17_Garden/Palace_Example_1/2`，25×34 格，参考图 garden）。特殊案例：比最大的街区（28 行）还高。
 - 等用户：
   - 79 条巷子删掉了挡路的垃圾桶：要不要改生成器，把巷子的垃圾桶放在不挡路的地方；
   - 核对 `docs/reports/PREFS.md` 的乘子表（A/B 已归档，不再做 A/B 题）；
-  - 从 `v0.7.0.md` 第 6 节选一个扩展提议空间的方案（编号取下一个，exp-08；它的开关要和它一起加回来）；
+  - 从 `v0.7.0.md` 第 6 节选一个扩展提议空间的方案（编号取下一个，exp-09；exp-08 已给特色街区）；
   - 是否要限制楼上层伸进北边马路（v0.7.1 报告第 3 节）；
   - 默认创新度 0.10 要不要保留（exp-01 已转正）。
 - `stage6`、`stage7` 分支都还没合并到 main。

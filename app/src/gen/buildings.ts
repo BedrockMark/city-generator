@@ -3,7 +3,7 @@ import { Rng } from './rng';
 import { MODULAR, spr, hasSprite, type ModPiece } from './assets';
 import { TILE } from './types';
 
-export type FrontKind = 'cafe' | 'bakery' | 'retail' | 'closed' | 'gym' | 'condo' | 'market' | 'house' | 'hardware' | 'office' | 'hotel';
+export type FrontKind = 'cafe' | 'bakery' | 'retail' | 'closed' | 'gym' | 'condo' | 'market' | 'house' | 'hardware' | 'office' | 'hotel' | 'landmark';
 
 export interface BuildingPlan {
   id: string;

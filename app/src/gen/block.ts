@@ -7,6 +7,7 @@ import type { BuildingPlan } from './buildings';
 import { pack } from './pack';
 import { SceneBuilder, rect } from './place';
 import { TILE } from './types';
+import { placeCampus, type Campus, type Landmark } from './district';
 
 const PART_NAMES: Record<string, string> = { roof: '屋顶', mid: '中间层', ground: '底层', whole: '整体精灵', link: '链接条（盖住与邻楼相接的墙缝）' };
 
@@ -21,10 +22,12 @@ export interface BlockPlan {
   yard: boolean[][];
   /** per column of the main interior: bottom/top interior rows */
   yb: Map<number, number>; yt: Map<number, number>;
+  /** exp-08: the special district's campus (its buildings are the block's buildings) */
+  landmark?: Landmark;
 }
 
 /** the rows behind slide north (pack.ts spread, exp-03 adopted) */
-export function planMainBlock(L: Layout, r0: Rng, composite?: { r: Rng; p: number }, kits?: { r: Rng; p: number }): BlockPlan {
+export function planMainBlock(L: Layout, r0: Rng, composite?: { r: Rng; p: number }, kits?: { r: Rng; p: number }, campus?: Campus): BlockPlan {
   const r = r0.fork('block');
   const yb = new Map<number, number>(), yt = new Map<number, number>();
   for (let x = L.bx0; x < L.bx1; x++) {
@@ -35,6 +38,14 @@ export function planMainBlock(L: Layout, r0: Rng, composite?: { r: Rng; p: numbe
   const zones: Zone[] = [];
   const carved = Array.from({ length: L.rows }, () => Array<boolean>(L.cols).fill(false));
   const carve = (z: Zone) => { zones.push(z); for (let y = z.y0; y < z.y1; y++) for (let x = z.x0; x < z.x1; x++) if (carved[y]?.[x] !== undefined) carved[y][x] = true; };
+  // ---- exp-08: the block is the landmark's campus; no alleys, no plaza, no ordinary buildings packed (user 2026-11-07:
+  // 普通建筑的生成应该最小化); cells the campus leaves over are yard ----
+  if (campus) {
+    const landmark = placeCampus(L, campus);
+    for (const [x, y] of landmark.cells) carved[y][x] = true;
+    const yard = Array.from({ length: L.rows }, (_, y) => Array.from({ length: L.cols }, (_, x) => L.inP[y][x] && !carved[y][x]));
+    return { buildings: landmark.buildings, zones, yard, yb, yt, landmark };
+  }
   // ---- frontage openings carved before packing: alleys through the block, at most one small plaza ----
   const xs = [...yb.keys()].sort((p, q) => p - q);
   const W = xs.length;

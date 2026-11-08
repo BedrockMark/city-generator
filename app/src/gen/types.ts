@@ -131,4 +131,6 @@ export interface GenOptions {
   pruneDraft: boolean;
   /** stage 7: apply the learned preferences (default true) */
   prefs?: boolean;
+  /** exp-08 特色街区: the main block is built around this special building (district.ts); absent = 普通街区 */
+  district?: import('./district').DistrictKind;
 }

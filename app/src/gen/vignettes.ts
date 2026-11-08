@@ -226,6 +226,7 @@ const FRONT_REASONS: Record<string, string> = {
 export function frontVignettes(L: Layout, plan: BlockPlan, sb: SceneBuilder, r: Rng) {
   // a building made by an experiment (exp-05) tags what stands in front of it too
   for (const pb of plan.buildings) {
+    if (pb.plan.front === 'landmark') continue;   // exp-08: the district's forecourt (district.ts) is its front
     if (pb.plan.exp) sb.withExp(pb.plan.exp, () => frontOf(L, pb, sb, r));
     else frontOf(L, pb, sb, r);
   }

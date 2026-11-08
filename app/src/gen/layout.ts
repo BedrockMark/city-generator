@@ -60,13 +60,16 @@ function chebDist(m: boolean[][]): number[][] {
 
 const SIDEWALK_STYLES = ['sidewalk_lightbeige', 'sidewalk_beige', 'sidewalk_lightgrey', 'sidewalk_grey', 'sidewalk_brown', 'sidewalk_blue'];
 
-export function makeLayout(rng: Rng): Layout {
+/** `need` (exp-08 special districts): the main interior is exactly need.w x need.h cells, a plain rectangle (the block
+ *  is the landmark's campus, district.ts) */
+export function makeLayout(rng: Rng, need?: { w: number; h: number }): Layout {
   const r = rng.fork('layout');
   // ---- size & shape of the main interior ----
   const area = Math.round(560 * r.range(0.72, 1.3));
   const aspect = r.range(1.05, 1.9);
-  const W = Math.max(18, Math.min(40, Math.round(Math.sqrt(area * aspect))));
-  const H = Math.max(13, Math.min(28, Math.round(area / W)));
+  let W = Math.max(18, Math.min(40, Math.round(Math.sqrt(area * aspect))));
+  let H = Math.max(13, Math.min(28, Math.round(area / W)));
+  if (need) { W = need.w; H = need.h; }
   // ---- widths (decided first: notch sizes depend on them) ----
   const rH = r.choose('layout.roadH', {}, { weights: [[5, 5], [7, 2]] as const });         // horizontal roads (north/south)
   const rV = r.choose('layout.roadV', {}, { weights: [[5, 4], [7, 2], [9, 1]] as const }); // vertical roads (east/west)
@@ -77,6 +80,7 @@ export function makeLayout(rng: Rng): Layout {
   //  jog   : one side steps inward by 2-4 cells -> the street there is offset (pure dilation follows it)
   //  notch : a corner is cut out and holds a small island block reached by a short street (T-junctions)
   let shape: string = r.choose('layout.shape', { area, W, H }, { weights: [['rect', 3], ['notch', 4], ['jog', 3], ['notchjog', 1]] as const });
+  if (need) shape = 'rect';
   const P = grid(H, W, true);
   const carve = (x0: number, y0: number, w: number, h: number) => {
     for (let y = Math.max(0, y0); y < Math.min(H, y0 + h); y++) for (let x = Math.max(0, x0); x < Math.min(W, x0 + w); x++) P[y][x] = false;

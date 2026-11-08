@@ -1,5 +1,5 @@
 // Capture Phaser renders through the real export button, using the installed Microsoft Edge (headless).
-//   npx tsx scripts/shots.ts <outDir> [--anno] [--q=nov=0.3] <seed|a..b> ...      (needs `npx vite` running on :5173)
+//   npx tsx scripts/shots.ts <outDir> [--anno] [--q=nov=0.3] <seed|a..b> ...      (needs `npx vite` running on :5173, or PORT=)
 import { chromium } from 'playwright-core';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -19,7 +19,7 @@ const page = await browser.newPage({ viewport: { width: 1700, height: 1000 }, ac
 page.on('console', m => { if (m.type() === 'error') console.log('[page error]', m.text()); });
 page.on('pageerror', e => console.log('[page exception]', e.message));
 for (const [i, s] of seeds.entries()) {
-  await page.goto(`http://localhost:5173/?seed=${encodeURIComponent(s)}${extra ? '&' + extra : ''}`);
+  await page.goto(`http://localhost:${process.env.PORT ?? 5173}/?seed=${encodeURIComponent(s)}${extra ? '&' + extra : ''}`);
   await page.waitForFunction((seed) => document.getElementById('info')?.textContent?.includes(`seed ${seed} `), s, { timeout: 180000 });
   await page.waitForTimeout(300);
   if (i === 0) await page.screenshot({ path: join(outDir, `ui_seed${s}.png`) });

@@ -9,7 +9,8 @@ import json, shutil
 from common import *
 
 PACKS = ('3_City_Props', '4_Generic_Building', '5_Floor_Modular_Building', '6_Garage_Sales', '7_Villas', '9_Shopping_Center',
-         '10_Vehicles', '16_Office', '17_Garden', '22_Post_Office', '24_Additional_Houses', '12_Hotel', '8_Worksite', '11_Camping')
+         '10_Vehicles', '16_Office', '17_Garden', '22_Post_Office', '24_Additional_Houses', '12_Hotel', '8_Worksite', '11_Camping',
+         '13_School', '15_Police_Station', '18_Fire_Station')
 OUT = ROOT/'app'/'src'/'gen'/'data'
 
 def main():

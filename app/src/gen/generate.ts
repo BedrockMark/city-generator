@@ -17,8 +17,9 @@ import { rationalize } from './rational/rationalize';
 import { makeAdjust } from './learn/adjust';
 import { PREFS } from './learn/prefs';
 import { markNovel } from './learn/novelty';
+import { planCampus, districtVignettes, isDistrict, resetDistrictIds } from './district';
 
-export const VERSION = '0.7.6';
+export const VERSION = '0.7.7';
 
 export function generate(seed: string, options: Partial<GenOptions> = {}): Scene {
   return generateBase(seed, withDefaults(options));
@@ -28,16 +29,20 @@ export function generate(seed: string, options: Partial<GenOptions> = {}): Scene
 export function generateBase(seed: string, opts: GenOptions): Scene {
   resetIds();
   resetKitIds();
+  resetDistrictIds();
+  // exp-08: a special district's campus, planned first: the block is sized to it
+  const district = isDistrict(opts.district) ? opts.district : undefined;
   // stage 7: learned preferences (and novelty) reweight decisions; undefined = every draw is the old one
   const trace = new Trace(seed, makeAdjust(opts, PREFS));
   const rng = new Rng(seed, trace);
-  const L = makeLayout(rng);
+  const campus = district && planCampus(district, rng);
+  const L = makeLayout(rng, campus && { w: campus.W, h: campus.H });
   const sb = new SceneBuilder(L.cols, L.rows, L.cls);
   // exp-04 (adopted): composite buildings on its own stream; touching neighbours switch to their linked state (no random numbers)
   const composite = { r: expStream(rng, EXP04, opts.novelty), p: compositeChance(opts.novelty) };
   // exp-05 (adopted): the packs' other building kits in place of a picked building, on its own stream
   const kits = { r: expStream(rng, EXP05, opts.novelty), p: kitChance(opts.novelty) };
-  const main = planMainBlock(L, rng, composite, kits);
+  const main = planMainBlock(L, rng, composite, kits, campus);
   const neigh = planNeighbours(L, rng, composite, kits);
   linkBuildings([main, neigh]);
   sb.inStream('block', () => emitBuildings(L, main, sb, 'main'));
@@ -51,6 +56,9 @@ export function generateBase(seed: string, opts: GenOptions): Scene {
   // exp-06 (adopted): touching gardens share one path (decided on its own stream)
   const e06 = expStream(rng, 'exp-06', opts.novelty);
   on('yard', r => yardSpaces(L, main, sb, r, e06));
+  // exp-08: the campus grounds (driveways cut the curb, so before the curb runs)
+  const lm = main.landmark;
+  if (lm) on('district', r => districtVignettes(L, lm, sb, r));
   const runs = curbRuns(L);
   reserveWalkways(sb, runs);
   // order = priority: things with a strong reason claim their space first
@@ -68,7 +76,7 @@ export function generateBase(seed: string, opts: GenOptions): Scene {
   sb.finish();
   const scene: Scene = {
     version: VERSION, seed,
-    params: { shape: L.shape, interior: [L.bx1 - L.bx0, L.by1 - L.by0], roads: { h: L.rH, v: L.rV }, sidewalk: L.sw,
+    params: { ...(district ? { district } : {}), shape: L.shape, interior: [L.bx1 - L.bx0, L.by1 - L.by0], roads: { h: L.rH, v: L.rV }, sidewalk: L.sw,
       buildings: main.buildings.map(b => b.plan.label) },
     cols: L.cols, rows: L.rows, tile: TILE, sheets: SHEETS,
     ground: [L.base, L.over], objects: sb.objects, cells: L.cls, notes: [],

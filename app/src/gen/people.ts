@@ -39,6 +39,7 @@ export function makePerson(r: Rng, role = 'citizen', o: { kid?: boolean } = {}):
   const accBy = (rx: RegExp) => L.Accessories.filter(f => rx.test(f));
   if (role === 'police') { outfit = r.choose('person.roleOutfit', { role }, byGroup('29')); acc = r.choose('person.roleAccessory', { role }, accBy(/Policeman_Hat/)); }
   if (role === 'postman') { outfit = r.choose('person.roleOutfit', { role }, byGroup('Postman')); acc = r.choose('person.roleAccessory', { role }, accBy(/Postman/)); }
+  if (role === 'firefighter') { outfit = r.choose('person.roleOutfit', { role }, byGroup('Firefighter')); acc = null; }
   if (role === 'worker') { acc = r.choose('person.roleAccessory', { role }, accBy(/Worker_Helmet|Worker_Jacket/)); }
   if (role === 'chef') { acc = r.choose('person.roleAccessory', { role }, accBy(/Chef/)); }
   if (role === 'business') { outfit = r.choose('person.roleOutfit', { role }, [...byGroup('05'), ...byGroup('06'), ...byGroup('22'), ...byGroup('26'), ...byGroup('27')]); acc = r.choose('person.hasAccessory', { role }, { p: 0.2 }) ? r.choose('person.roleAccessory', { role }, accBy(/Glasses/)) : null; }

@@ -13,7 +13,10 @@ from common import *
 OUT = ROOT/'app'/'src'/'gen'/'data'
 B = 4
 BUILDING = re.compile(r'^(4_Generic_Building/|5_Floor_Modular_Building/(Roof|Middle_Floor|Ground_Floor)|9_Shopping_Center_and_Markets/Market_Medium|'
-                      r'24_Additional_Houses/24_(Terraced|Victorian)_House_\d+$)')
+                      r'24_Additional_Houses/24_(Terraced|Victorian)_House_\d+$|'
+                      # exp-08 landmarks
+                      r'12_Hotel_and_Hospital/(Hospital|Hotel)_1$|13_School/(School_1|Clock_Tower_\d)$|15_Police_Station/Police_Station_\d$|'
+                      r'18_Fire_Station/Building$|9_Shopping_Center_and_Markets/Mall_1$)')
 
 def main():
     sp = json.load(open(OUT/'sprites.json'))

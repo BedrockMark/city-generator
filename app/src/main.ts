@@ -9,6 +9,7 @@ import { NOVEL_COLOR, drawOverlay, pick, zonesAt, objBox, hiddenObjects, buildin
 import { LabelStore, GOOD_TAGS, BAD_TAGS, sceneStem, type Label, type LabelTarget } from './viewer/labels';
 import type { Decision } from './gen/rng';
 import { PREFS } from './gen/learn/prefs';
+import { DISTRICTS, DISTRICT_KINDS, isDistrict } from './gen/district';
 
 const ASSET_ROOT = 'assets/';
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -77,6 +78,13 @@ class CityView extends Phaser.Scene {
     if (nov !== null) this.opts.novelty = Math.max(0, Math.min(1, +nov || 0));
     if (url.searchParams.get('p') !== null) this.opts.prune = url.searchParams.get('p') !== '0';
     if (url.searchParams.get('l') !== null) this.opts.prefs = url.searchParams.get('l') !== '0';
+    // exp-08 特色街区: 普通街区 = no district option
+    const d = url.searchParams.get('d');
+    if (isDistrict(d)) this.opts.district = d;
+    const dSel = $<HTMLSelectElement>('district');
+    dSel.innerHTML = `<option value="">普通街区</option>` + DISTRICT_KINDS.map(k => `<option value="${k}">${DISTRICTS[k].name}</option>`).join('');
+    dSel.value = this.opts.district ?? '';
+    dSel.onchange = () => { if (isDistrict(dSel.value)) this.opts.district = dSel.value; else delete this.opts.district; this.reload(); };
     const prefsBox = $<HTMLInputElement>('prefs');
     prefsBox.checked = this.opts.prefs !== false;
     prefsBox.onchange = () => { this.opts.prefs = prefsBox.checked; this.reload(); };
@@ -176,6 +184,7 @@ class CityView extends Phaser.Scene {
     if (this.opts.novelty !== DEFAULT_OPTIONS.novelty) q.set('nov', String(this.opts.novelty));
     if (!this.opts.prune) q.set('p', '0');
     if (this.opts.prefs === false) q.set('l', '0');
+    if (this.opts.district) q.set('d', this.opts.district);
     history.replaceState(null, '', `?${q}`);
     this.cancelGen();
     const id = this.reqId;
@@ -234,7 +243,7 @@ class CityView extends Phaser.Scene {
     this.ov.hover = undefined; this.ov.pinned = undefined;
     const o = sc.options;
     const au = sc.audit;
-    const optInfo = (o ? ` · 创新度 ${o.novelty.toFixed(2)}` : '')
+    const optInfo = (o?.district ? ` · ${DISTRICTS[o.district]?.name ?? o.district}` : '') + (o ? ` · 创新度 ${o.novelty.toFixed(2)}` : '')
       + (o ? ` · 偏好${o.prefs === false ? '关' : '开'}` : '')
       + (au ? ` · 约束违规 ${au.violations.length}${au.pruned.length || au.downgraded.length || au.regrounded?.length ? ` · 剪掉 ${au.pruned.length} 个物件、降级 ${au.downgraded.length} 块、改地面 ${au.regrounded?.length ?? 0} 处` : ''}` : '');
     const done = () => {
