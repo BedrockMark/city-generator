@@ -21,7 +21,7 @@
 - 用户确认了阶段 7 的 spec（`docs/superpowers/specs/2026-11-04-stage7-learning-design.md`）。
 - **v0.7.0 已完成**（2026-11-04，分支 `stage7`，报告 `docs/reports/v0.7.0.md`，D46–D50）：阶段 7 从选择中学习（局部 A/B、Bradley–Terry 偏好乘子）、创新度、实验转正 / 废弃的建议、“选择解决不了的问题”报告。**等用户**：核对乘子表（`docs/reports/PREFS.md`）、做一些 A/B 题、选扩展方案（exp-03）、答复 `v0.7.0.md` 第 8 节的问题。
   - 还没有任何 A/B 选择数据；乘子表只来自 16 条标注。
-- git：每个版本 commit 一次，并打 tag `v<版本>`。阶段 6 在分支 `stage6` 上做，阶段 7 在 `stage7`（从 `stage6` 分出）上做，确认后合并到 main。
+- git：每个版本 commit 一次，并打 tag `v<版本>`。阶段 6 在分支 `stage6` 上做，阶段 7 在 `stage7`（从 `stage6` 分出）上做；2026-11-07 两个分支都快进合并到了主分支 `master`（v0.7.7）。
 - 决策记录：`docs/NOTE.md`（D1–D64，D22 已删除）。实验功能登记：`docs/EXPERIMENTS.md`（exp-01、exp-03–exp-07 已转正，exp-02 已删除；v0.7.7 起 exp-08 特色街区在运行，下一个编号 exp-09）。
 - **v0.7.1**（2026-11-04，分支 `stage7`，报告 `docs/reports/v0.7.1.md`，D51–D52）：exp-03 前后排拉开（后排楼的占地推到地块最北，楼上层可以伸出地块），用户看过后当天和 exp-01 一起转正，始终开启。179/200 个种子变化，C02 10 → 0，C18 56 → 3。
   - 转正的实验带 `adoptedIn`；重新生成旧版本的标注时传 `asOf: <标注版本>`，转正之前的版本里它们按当时的开关运行（偏好学习因此还能复现 v0.5.1 的标注）。
@@ -115,7 +115,7 @@
   - 从 `v0.7.0.md` 第 6 节选一个扩展提议空间的方案（编号取下一个，exp-09；exp-08 已给特色街区）；
   - 是否要限制楼上层伸进北边马路（v0.7.1 报告第 3 节）；
   - 默认创新度 0.10 要不要保留（exp-01 已转正）。
-- `stage6`、`stage7` 分支都还没合并到 main。
+- `stage6`、`stage7` 已合并到 `master`（2026-11-07，快进，没有合并提交）；分支还留着。
 - v0.7.6 删除的功能（评判器、整体修图、A/B、实验开关、`asOf`）要找回时，从 tag `v0.7.5` 取。
 - 阶段 7 的计划和执行记录：`docs/_prev/superpowers/plans/2026-11-04-stage7-learning.md`；`.superpowers/sdd/2026-11-04-stage7-learning/progress.md`（git 忽略，含所有 Ruling）。阶段 6 的：`docs/_prev/superpowers/plans/2026-11-03-stage6-judge.md`。
 
