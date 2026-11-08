@@ -44,6 +44,7 @@ export function sceneStem(sc: Scene): string {
     if (o.prune === false) s += '_p0';
     if (o.pruneDraft) s += '_pd1';
     if (o.prefs === false) s += '_l0';
+    if (o.district) s += `_d${o.district}`;   // 0.7.8.2: seed 1 and seed 1 as a school are different scenes
   }
   return s.replace(/[^\w.-]/g, '_');
 }

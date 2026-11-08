@@ -22,9 +22,6 @@ export const compositeChance = fireByNovelty(0.35);
  *  kitSwap. Twice the experiment's fireByNovelty(0.2), capped at 1 (user, 0.7.5: 出现概率翻倍) */
 export const kitChance = (n: number) => Math.min(1, 2 * fireByNovelty(0.2)(n));
 
-/** exp-08 (adopted 0.7.8): chance that a 普通街区 seed is a special district instead (district.ts mixedDistrict) */
-export const districtChance = 0.2;
-
 export const DEFAULT_OPTIONS: GenOptions = { novelty: 0.1, prune: true, pruneDraft: false, prefs: true };
 
 export function withDefaults(o: Partial<GenOptions> = {}): GenOptions {

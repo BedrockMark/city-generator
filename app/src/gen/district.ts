@@ -8,8 +8,8 @@
 // v0.7.8: the gas station (加油站, ref gas_station): the station sprite is a shop with a canopy over a pump island (and a car
 // wash), not a building with a forecourt; its grounds are a walkway to the shop door and an asphalt forecourt with
 // driveways in and out.
-// Chosen in the viewer's menu (option `district`, URL d=); absent = 普通街区: the generator as before, except that one seed in
-// five (districtChance) becomes a special district of a random kind (mixedDistrict).
+// The caller decides (option `district`); absent = 普通街区. The generator never draws a district itself (0.7.8.2): a city
+// generator passes each block's kind explicitly, the viewer mixes them into random seeds (src/viewer/mix.ts).
 // Sizes, doors and props were read off the sprites and the reference maps school / hostpital_HQ / police_station_HQ /
 // shopping_centre_* / hotel (docs/reports/v0.7.7.md).
 import { Rng } from './rng';
@@ -20,7 +20,6 @@ import type { PlacedBuilding } from './block';
 import { SceneBuilder, rect } from './place';
 import { person } from './vignettes';
 import { TILE } from './types';
-import { districtChance } from './exp';
 
 const T = TILE;
 const C = '3_City_Props/';
@@ -48,14 +47,8 @@ export const DISTRICTS: Record<DistrictKind, Spec> = {
   gas: { name: '加油站', keys: [V + 'Gas_Station_1', V + 'Gas_Station_2'], doors: [56] },
 };
 export const DISTRICT_KINDS = Object.keys(DISTRICTS) as DistrictKind[];
-export const isDistrict = (d: unknown): d is DistrictKind => typeof d === 'string' && d in DISTRICTS;
-
-/** 普通街区 (no district asked for): now and then a special district anyway, every kind alike (exp-08 adopted in 0.7.8,
- *  user: 合并转正). Its own stream: the other seeds keep their pictures */
-export function mixedDistrict(rng: Rng): DistrictKind | undefined {
-  const r = rng.fork('district/mixed');
-  return r.choose('district.mixed', {}, { p: districtChance }) ? r.choose('district.mixedKind', {}, DISTRICT_KINDS) : undefined;
-}
+// own keys only ('constructor', 'toString' ... are in every object)
+export const isDistrict = (d: unknown): d is DistrictKind => typeof d === 'string' && Object.hasOwn(DISTRICTS, d);
 
 let nextId = 0;
 export const resetDistrictIds = () => { nextId = 0; };

@@ -22,7 +22,7 @@
 - **v0.7.0 已完成**（2026-11-04，分支 `stage7`，报告 `docs/reports/v0.7.0.md`，D46–D50）：阶段 7 从选择中学习（局部 A/B、Bradley–Terry 偏好乘子）、创新度、实验转正 / 废弃的建议、“选择解决不了的问题”报告。**等用户**：核对乘子表（`docs/reports/PREFS.md`）、做一些 A/B 题、选扩展方案（exp-03）、答复 `v0.7.0.md` 第 8 节的问题。
   - 还没有任何 A/B 选择数据；乘子表只来自 16 条标注。
 - git：每个版本 commit 一次，并打 tag `v<版本>`。**从 v0.7.8 起直接在 `master` 上开发，不开分支**（用户 2026-11-07）。阶段 6 在分支 `stage6` 上做，阶段 7 在 `stage7`（从 `stage6` 分出）上做；2026-11-07 两个分支都快进合并到了主分支 `master`（v0.7.7）。
-- 决策记录：`docs/NOTE.md`（D1–D67，D22 已删除）。实验功能登记：`docs/EXPERIMENTS.md`（v0.7.8.1 起 exp-08 也已转正，没有在运行的实验；exp-01、exp-03–exp-07 已转正，exp-02 已删除；v0.7.7 起 exp-08 特色街区在运行，下一个编号 exp-09）。
+- 决策记录：`docs/NOTE.md`（D1–D68，D22 已删除）。实验功能登记：`docs/EXPERIMENTS.md`（v0.7.8.1 起 exp-08 也已转正，没有在运行的实验；exp-01、exp-03–exp-07 已转正，exp-02 已删除；v0.7.7 起 exp-08 特色街区在运行，下一个编号 exp-09）。
 - **v0.7.1**（2026-11-04，分支 `stage7`，报告 `docs/reports/v0.7.1.md`，D51–D52）：exp-03 前后排拉开（后排楼的占地推到地块最北，楼上层可以伸出地块），用户看过后当天和 exp-01 一起转正，始终开启。179/200 个种子变化，C02 10 → 0，C18 56 → 3。
   - 转正的实验带 `adoptedIn`；重新生成旧版本的标注时传 `asOf: <标注版本>`，转正之前的版本里它们按当时的开关运行（偏好学习因此还能复现 v0.5.1 的标注）。
   - v0.7.1 之前做的 A/B 选择（`references/choices/v0.7.0/`，17 个文件）用的是存下的场景，不受影响。
@@ -52,6 +52,7 @@
   - 普通街区 200/200 和 v0.7.7 相同（`work/regress/v078-normal`）；七种街区种子 1–40 剩余违规 0，修复没删园区物件；51 项测试通过。
   - 用户 2026-11-07：“全都没有问题”，提交并打 tag `v0.7.8`；接着 exp-08 转正。
 - **v0.7.8.1**（2026-11-07，`master`，D67）：exp-08 **转正并混入随机生成**。“普通街区”的种子 20% 随机变成七种特色街区之一（`districtChance`，流 `district/mixed`），其余种子画面不变（200 个回归种子 166 个不变，`work/regress/v078-adopt`）；产物不带 `exp` 标记；菜单新增“只要普通街区”（`d=none`）。0.7.8 以前的标注按 `d=none` 重放，结果不变。现在没有在运行的实验。
+- **v0.7.8.2**（2026-11-07，`master`，D68）：随机混入**从生成器移到查看器**，为以后逐区块生成的大城市生成器做准备：生成器从不自己抽特色街区，`generate(seed, { district })` 由调用方明确传（不传 = 普通街区，不认识的值报错）。查看器的“普通街区”用 `src/viewer/mix.ts` 的 `mixDistrict(seed, { chance, weights })` 抽（默认 20%、七种一样），画面和 0.7.8.1 完全相同；生成器默认 200/200 回到 v0.7.8 普通街区（`work/regress/v0782`）。顺手修：`isDistrict('constructor')` 为真会崩溃；`sceneStem` 加 `_d<种类>`（同种子不同街区的标注场景会互相覆盖）。
 
 ## 怎么运行
 - 查看器：`cd app && npx vite`，然后打开 http://localhost:5173/?seed=7
@@ -59,7 +60,7 @@
   - 标注模式：单击选中，Shift+拖动框选，1 / 2 标好 / 坏，Ctrl+Enter 保存，Esc 取消。标注由开发服务器写到 `references/labels/v<版本>/`。
   - 生成在 Web Worker 里跑（约 0.3 秒一张）。
   - 顶栏“学到的偏好”复选框（URL `l=0` 关）；创新度滑块。标注层金色虚线框 = `novel`（新贴图），悬停显示偏好乘子。
-  - URL 参数：`d=school|hospital|police|fire|mall|hotel|gas|none`（特色街区，顶栏最左的下拉菜单；不传时 20% 的种子随机抽到一种，`none` = 只要普通街区），`nov=0.3`（创新度），`l=0`（关掉学到的偏好），`p=0`（完全不剪枝）。可以把 scene JSON 拖进页面查看。脚本里的 `--pd`（草案约束也修复）还在。
+  - URL 参数：`d=school|hospital|police|fire|mall|hotel|gas|none`（特色街区，顶栏最左的下拉菜单；不传时查看器按 `src/viewer/mix.ts` 让 20% 的种子随机抽到一种，`none` = 只要普通街区；生成器本身从不随机抽，脚本里 `generate(seed)` 就是普通街区），`nov=0.3`（创新度），`l=0`（关掉学到的偏好），`p=0`（完全不剪枝）。可以把 scene JSON 拖进页面查看。脚本里的 `--pd`（草案约束也修复）还在。
   - 标注层的“约束”图层：红框 = 违规，灰色叉框 = 已删除的物件，紫框 = 降级的区域，青框 = 改过的地面。
 - 测试：`cd app && npm test`（约 1 分钟）、`npx tsc --noEmit`。
 - 回归：`cd app && npx tsx scripts/regress.ts snapshot ../work/regress/<名> [--pd] [--nov <x>] [--noprefs]`；用 `snapshot-par <目录> [同样的参数] [--jobs 8]` 多进程跑（约 40 秒；14 个进程并不更快）。v0.7.6 起没有 `--on` / `--off`。然后：
@@ -67,7 +68,7 @@
   - `report <A> <B>`：画面变化、各约束违规与修复、标注测试；
   - `labels [--pd]`：只跑标注测试；
   - `explain`：检查解释覆盖率。
-  - 种子集在 `scripts/regression_seeds.json`（200 个，只增不改）。基线在 `work/regress/v078-adopt`（v0.7.8.1 默认，20% 是特色街区）、`v078-normal`（v0.7.8 普通街区，和 `v077-normal` 相同）、`post-cleanup`（v0.7.6 默认，和 `pre-cleanup` = v0.7.5 默认画面相同）、`v075`（v0.7.5 第一版）、`v074-base`、`v0.7.4`（v0.7.4 默认；和 v0.7.2 只差 seed 47）、`exp06-on`（v0.7.4 开 exp-06）、`v0.7.2`（v0.7.3 默认画面与它相同）、`exp05-off` / `exp05-on`（v0.7.3 关 / 开 exp-05）、`exp04-on`、`exp04-off`（v0.7.2 开 / 关 exp-04）、`v0.3.0`、`v0.4.0`、`v0.5.0`、`v0.5.0-pd`、`v0.5.1`、`v0.6.0-off`（exp-02 关）、`v0.6.0`、`v0.6.0-global`、`v0.6.1b-off`、`v0.6.1b-on`（整体修图）、`v0.7.0`（默认）、`v0.7.0-n0`、`v0.7.0-n05`、`v0.7.0-n1`（创新度 0 / 0.5 / 1）、`v0.7.0-n0-l0`（创新度 0 + 偏好关）、`v0.7.1`（默认）（work/ 不进 git，丢了就从对应 tag 重建）。
+  - 种子集在 `scripts/regression_seeds.json`（200 个，只增不改）。基线在 `work/regress/v0782`（v0.7.8.2 生成器默认 = 普通街区，和 `v078-normal` 相同）、`v078-adopt`（v0.7.8.1 默认，20% 是特色街区；= v0.7.8.2 查看器默认）、`v078-normal`（v0.7.8 普通街区，和 `v077-normal` 相同）、`post-cleanup`（v0.7.6 默认，和 `pre-cleanup` = v0.7.5 默认画面相同）、`v075`（v0.7.5 第一版）、`v074-base`、`v0.7.4`（v0.7.4 默认；和 v0.7.2 只差 seed 47）、`exp06-on`（v0.7.4 开 exp-06）、`v0.7.2`（v0.7.3 默认画面与它相同）、`exp05-off` / `exp05-on`（v0.7.3 关 / 开 exp-05）、`exp04-on`、`exp04-off`（v0.7.2 开 / 关 exp-04）、`v0.3.0`、`v0.4.0`、`v0.5.0`、`v0.5.0-pd`、`v0.5.1`、`v0.6.0-off`（exp-02 关）、`v0.6.0`、`v0.6.0-global`、`v0.6.1b-off`、`v0.6.1b-on`（整体修图）、`v0.7.0`（默认）、`v0.7.0-n0`、`v0.7.0-n05`、`v0.7.0-n1`（创新度 0 / 0.5 / 1）、`v0.7.0-n0-l0`（创新度 0 + 偏好关）、`v0.7.1`（默认）（work/ 不进 git，丢了就从对应 tag 重建）。
   - `report` 的标注测试只跑 B 的模式。
 - 偏好（阶段 7）：`cd app && npx tsx scripts/prefs.ts train`（A/B 选择 + 标注 → `src/gen/data/prefs.json`；A/B 已归档，选择只有 `references/choices/v0.7.0/` 的 17 个文件；0.6.0 以前的标注没有 stream，v0.7.6 起跳过），`prefs.ts eval`（写 `docs/reports/PREFS.md`），`prefs.ts gaps`（选择解决不了的坏标注 → `work/gaps/gaps.md` 和截图）。不同意的条目写进 `src/gen/learn/blacklist.json`（`标签` 或 `标签|选项`）再重训。
 - 使用次数（创新度用）：`cd tools && uv run python export_usage.py`（参考图 → `app/src/gen/data/usage.json`）。

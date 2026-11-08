@@ -58,12 +58,11 @@ test('v0.7.8: courts have hoops / goals, the gas station has its driveways', () 
   assert.ok(playgrounds >= 1, `school playgrounds ${playgrounds}/8`);
 });
 
-test('exp-08 adopted: 普通街区 is now and then a special district, otherwise no landmark', () => {
-  let mixed = 0;
-  for (let i = 1; i <= 60; i++) {
+test('0.7.8.2: the generator never draws a district; no option = 普通街区, an unknown one is an error', () => {
+  for (let i = 1; i <= 30; i++) {
     const sc = generate(String(i));
-    if (sc.params.district) { mixed++; assert.ok(sc.buildings!.some(b => b.front === 'landmark'), `seed ${i}: ${sc.params.district} has its landmark`); }
-    else assert.ok(!sc.buildings!.some(b => b.front === 'landmark'), `seed ${i}: no landmark`);
+    assert.equal(sc.params.district, undefined, `seed ${i}`);
+    assert.ok(!sc.buildings!.some(b => b.front === 'landmark'), `seed ${i}: no landmark`);
   }
-  assert.ok(mixed >= 4 && mixed <= 24, `special districts ${mixed}/60 (chance 0.2)`);
+  for (const bad of ['none', 'constructor', 'toString', 'castle']) assert.throws(() => generate('1', { district: bad as never }), /unknown district/, bad);
 });

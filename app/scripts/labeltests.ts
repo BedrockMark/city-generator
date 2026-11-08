@@ -43,10 +43,9 @@ export function runLabelTests(opts: Partial<GenOptions> = {}): LabelResult[] {
   const out: LabelResult[] = [];
   for (const { file, label: l } of loadLabels()) {
     // the options that still exist (older labels also recorded experiment switches, asOf ...: gone since 0.7.6)
-    // labels made before 0.7.8 were made on 普通街区 before special districts were mixed in
-    const old = l.version.split('.').slice(0, 3).map(Number).reduce((a, n) => a * 100 + n, 0) < 708;
+    // the district is in the options (the viewer passes the kind it drew, 0.7.8.2); none = 普通街区, as every label before 0.7.8
     const o: Partial<GenOptions> = { novelty: l.options?.novelty ?? l.novelty, prefs: l.options?.prefs, prune: true, pruneDraft: false,
-      ...(l.options?.district ? { district: l.options.district } : old ? { district: 'none' as const } : {}), ...opts };
+      ...(l.options?.district ? { district: l.options.district } : {}), ...opts };
     const k = JSON.stringify([l.seed, o]);
     if (!cache.has(k)) cache.set(k, generate(l.seed, o));
     const sc = cache.get(k)!;

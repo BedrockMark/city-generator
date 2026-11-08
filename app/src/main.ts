@@ -10,6 +10,7 @@ import { LabelStore, GOOD_TAGS, BAD_TAGS, sceneStem, type Label, type LabelTarge
 import type { Decision } from './gen/rng';
 import { PREFS } from './gen/learn/prefs';
 import { DISTRICTS, DISTRICT_KINDS, isDistrict, type DistrictKind } from './gen/district';
+import { mixDistrict } from './viewer/mix';
 
 const ASSET_ROOT = 'assets/';
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -29,6 +30,9 @@ class CityView extends Phaser.Scene {
   private source = '';
   private drag?: { x: number; y: number; sx: number; sy: number; box?: { x: number; y: number }; moved: boolean };
   private opts: GenOptions = withDefaults();
+  /** the district menu: '' = 普通街区 with the random mix (viewer/mix.ts), 'none' = 只要普通街区, or one kind. The generator
+   *  gets the resolved kind (opts.district stays unset here) */
+  private districtSel: '' | 'none' | DistrictKind = '';
   private anno = false;
   private ov: OverlayState = { layers: { groups: true, zones: false, buildings: false, labels: true, audit: true }, hiddenTypes: new Set(), hiddenZones: new Set(), ghost: false, labels: [] };
   private hidden = new Set<string>();
@@ -39,6 +43,8 @@ class CityView extends Phaser.Scene {
   private dirty = true;
   private worker?: Worker;
   private busy = false;
+  /** the shown (requested) scene's district came from the random mix */
+  private mixed = false;
   private reqId = 0;
   private reqT0 = 0;
   constructor() { super('city'); }
@@ -78,14 +84,14 @@ class CityView extends Phaser.Scene {
     if (nov !== null) this.opts.novelty = Math.max(0, Math.min(1, +nov || 0));
     if (url.searchParams.get('p') !== null) this.opts.prune = url.searchParams.get('p') !== '0';
     if (url.searchParams.get('l') !== null) this.opts.prefs = url.searchParams.get('l') !== '0';
-    // exp-08 特色街区 (adopted 0.7.8): 普通街区 = no district option (one seed in five is a special district anyway);
-    // 只要普通街区 = 'none' (URL d=none)
+    // exp-08 特色街区 (adopted 0.7.8): 普通街区 = the viewer's random mix (one seed in five is a special district; the
+    // generator itself never draws one, 0.7.8.2); 只要普通街区 = URL d=none
     const d = url.searchParams.get('d');
-    if (isDistrict(d) || d === 'none') this.opts.district = d;
+    if (isDistrict(d) || d === 'none') this.districtSel = d;
     const dSel = $<HTMLSelectElement>('district');
     dSel.innerHTML = `<option value="">普通街区</option><option value="none">只要普通街区</option>` + DISTRICT_KINDS.map(k => `<option value="${k}">${DISTRICTS[k].name}</option>`).join('');
-    dSel.value = this.opts.district ?? '';
-    dSel.onchange = () => { if (isDistrict(dSel.value) || dSel.value === 'none') this.opts.district = dSel.value; else delete this.opts.district; this.reload(); };
+    dSel.value = this.districtSel;
+    dSel.onchange = () => { this.districtSel = isDistrict(dSel.value) || dSel.value === 'none' ? dSel.value : ''; this.reload(); };
     const prefsBox = $<HTMLInputElement>('prefs');
     prefsBox.checked = this.opts.prefs !== false;
     prefsBox.onchange = () => { this.opts.prefs = prefsBox.checked; this.reload(); };
@@ -185,13 +191,17 @@ class CityView extends Phaser.Scene {
     if (this.opts.novelty !== DEFAULT_OPTIONS.novelty) q.set('nov', String(this.opts.novelty));
     if (!this.opts.prune) q.set('p', '0');
     if (this.opts.prefs === false) q.set('l', '0');
-    if (this.opts.district) q.set('d', this.opts.district);
+    if (this.districtSel) q.set('d', this.districtSel);
     history.replaceState(null, '', `?${q}`);
     this.cancelGen();
     const id = this.reqId;
     this.reqT0 = performance.now(); this.busy = true;
     $('info').textContent = `生成中… seed ${seed}`;
-    this.genWorker().postMessage({ id, seed, opts: this.opts });
+    const sel = this.districtSel, district = sel === '' ? mixDistrict(seed) : sel === 'none' ? undefined : sel;
+    this.mixed = sel === '' && !!district;
+    const opts: GenOptions = { ...this.opts };
+    if (district) opts.district = district;
+    this.genWorker().postMessage({ id, seed, opts });
   }
 
   /** a newer request (or a dropped file) replaces the running one: its result is no longer wanted */
@@ -245,7 +255,7 @@ class CityView extends Phaser.Scene {
     const o = sc.options;
     const au = sc.audit;
     const dk = sc.params?.district as DistrictKind | undefined;
-    const optInfo = (dk ? ` · ${DISTRICTS[dk]?.name ?? dk}${o && !o.district ? '（随机抽到）' : ''}` : '') + (o ? ` · 创新度 ${o.novelty.toFixed(2)}` : '')
+    const optInfo = (dk ? ` · ${DISTRICTS[dk]?.name ?? dk}${this.mixed && !source ? '（随机抽到）' : ''}` : '') + (o ? ` · 创新度 ${o.novelty.toFixed(2)}` : '')
       + (o ? ` · 偏好${o.prefs === false ? '关' : '开'}` : '')
       + (au ? ` · 约束违规 ${au.violations.length}${au.pruned.length || au.downgraded.length || au.regrounded?.length ? ` · 剪掉 ${au.pruned.length} 个物件、降级 ${au.downgraded.length} 块、改地面 ${au.regrounded?.length ?? 0} 处` : ''}` : '');
     const done = () => {

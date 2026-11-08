@@ -17,9 +17,9 @@ import { rationalize } from './rational/rationalize';
 import { makeAdjust } from './learn/adjust';
 import { PREFS } from './learn/prefs';
 import { markNovel } from './learn/novelty';
-import { planCampus, districtVignettes, isDistrict, mixedDistrict, resetDistrictIds } from './district';
+import { planCampus, districtVignettes, isDistrict, resetDistrictIds } from './district';
 
-export const VERSION = '0.7.8.1';
+export const VERSION = '0.7.8.2';
 
 export function generate(seed: string, options: Partial<GenOptions> = {}): Scene {
   return generateBase(seed, withDefaults(options));
@@ -33,9 +33,10 @@ export function generateBase(seed: string, opts: GenOptions): Scene {
   // stage 7: learned preferences (and novelty) reweight decisions; undefined = every draw is the old one
   const trace = new Trace(seed, makeAdjust(opts, PREFS));
   const rng = new Rng(seed, trace);
-  // exp-08 (adopted): a special district's campus, planned first: the block is sized to it. Chosen in the menu, or, for
-  // 普通街区, drawn now and then (user, 0.7.8: 合并转正)
-  const district = isDistrict(opts.district) ? opts.district : opts.district === 'none' ? undefined : mixedDistrict(rng);
+  // exp-08 (adopted): a special district's campus, planned first: the block is sized to it. Always the caller's choice
+  // (0.7.8.2): no option = 普通街区, never drawn here (the viewer's random mix is src/viewer/mix.ts)
+  if (opts.district !== undefined && !isDistrict(opts.district)) throw new Error(`unknown district: ${String(opts.district)}`);
+  const district = opts.district;
   const campus = district && planCampus(district, rng);
   const L = makeLayout(rng, campus && { w: campus.W, h: campus.H });
   const sb = new SceneBuilder(L.cols, L.rows, L.cls);
