@@ -59,6 +59,7 @@
   - 第二轮（用户同日，D71）：不要每座都一样；2–3 个街区大；随机打破对称、更大的后花园；泳池 / 迷宫 / 游乐场 / 大温室每个种子选一个或几个；避免一格一格的规律；通道和下车处保持。改为：比例随机，花园递归切成挨着小路的块，功能区放进贴合的块（`14_Swimming_Pool` 加进素材清单；迷宫的 T 字用 `clip` 拼；大温室重复示例图的模块化列加宽）；`clip` 改成矩形。种子 1–40 每个至少一种功能区、没有空的块、修复没删东西；普通街区 200/200 不变；55 项测试通过。
   - 用户 2026-11-08：“宫殿花园做的很好”，提交并打 tag `v0.7.9`；接着 exp-09 转正。
 - **v0.7.9.1**（2026-11-08，`master`，D72）：exp-09 宫殿花园**转正**，产物不带 `exp` 标记，菜单名去掉“[exp]”；按用户选择**仍只在菜单里**（`DISTRICTS.palace.menuOnly`），不参加查看器的随机混入。宫殿种子 1–40 除标记外不变，普通街区 200/200 不变（`work/regress/v0791`），55 项测试通过。现在没有在运行的实验。
+- **开源准备**（2026-11-10，不改生成器，没有新版本号）：根目录 `README.md`（英文）和 `README.zh-CN.md`，每个文件夹一份 README 解释各文件用途（`app/`、`app/src/gen/`、`tools/`、`docs/`、`references/`、`assets/`、`work/`）；README 插图在 `docs/readme/`，由 `tools/make_readme_figs.py` 从 `work/readme_shots/` 生成。`.gitignore` 改为不跟踪 `assets/`（只留 README）、`references/*.gif|png`、`docs/` 下除 `readme/`、`reports/fig/`、`_prev/fig/anti_crop.png` 外的所有图片；`references/labels/`、`references/choices/` JSON 仍跟踪（`deadend.test.ts` 和 `prefs.ts train` 依赖）。顺手修了 `tools/eval_generated.py` 对半像素 `foot` 的索引错误，`extract_frames.py` / `inspect_refs.py` 只读图片文件。注意：历史提交里仍含素材，公开仓库要么用 `git filter-repo` 重写历史，要么推送单提交快照分支 `public`。
 
 ## 怎么运行
 - 查看器：`cd app && npx vite`，然后打开 http://localhost:5173/?seed=7

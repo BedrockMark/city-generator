@@ -1,7 +1,22 @@
+# Not redistributed: the tileset and the hand-made reference maps (see assets/README.md, references/README.md)
+assets/*
+!assets/README.md
+references/*.gif
+references/*.png
+
+# Screenshots in version reports stay local; only the README figures and the analysis figures are tracked
+docs/**/*.png
+docs/**/*.gif
+!docs/readme/*.png
+!docs/reports/fig/*.png
+!docs/_prev/fig/anti_crop.png
+
+# Scratch / generated
+work/*
+!work/README.md
 app/node_modules/
 app/dist/
 app/public/assets
-work/
 tools/.venv/
 __pycache__/
 *.pyc

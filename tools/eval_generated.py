@@ -74,7 +74,7 @@ def gen_metrics(sc):
         if o['cls'] == 'building':
             occ[max(0, y0):max(0, y1 + 1), max(0, x0):max(0, x1 + 1)] = True
         else:
-            fy, fx = o['foot'] // T, (o['x'] + o['w'] // 2) // T
+            fy, fx = int(o['foot']) // T, (o['x'] + o['w'] // 2) // T
             if 0 <= fy < R and 0 <= fx < C:
                 occ[fy, fx] = True
                 if main[fy, fx]:
@@ -82,14 +82,14 @@ def gen_metrics(sc):
                     else: n_main += 1
     # placement sanity: furniture standing in the carriageway; sidewalk cut through by furniture
     on_road = sum(1 for o in sc['objects'] if o['kind'] == 'sprite' and o['cls'] not in ('vehicle', 'manhole', 'roadworks', 'building')
-                  and 0 <= (o['foot'] - 1) // T < R and 0 <= (o['x'] + o['w'] // 2) // T < C and cls[(o['foot'] - 1) // T, (o['x'] + o['w'] // 2) // T] == 'road')
+                  and 0 <= int(o['foot'] - 1) // T < R and 0 <= (o['x'] + o['w'] // 2) // T < C and cls[int(o['foot'] - 1) // T, (o['x'] + o['w'] // 2) // T] == 'road')
     S = 4   # 4-px grid over the main sidewalk; furniture footprint ~ middle half of the sprite width, 6 px above the foot
     walk = np.kron(cls == 'walk', np.ones((T // S, T // S), bool))
     free = walk.copy()
     for o in sc['objects']:
         if o['kind'] != 'sprite' or o['cls'] in ('building', 'vehicle', 'manhole'): continue
         x0, x1 = (o['x'] + o['w'] // 4) // S, (o['x'] + 3 * o['w'] // 4) // S + 1
-        free[max(0, (o['foot'] - 6) // S):max(0, o['foot'] // S + 1), max(0, x0):max(0, x1)] = False
+        free[max(0, int(o['foot'] - 6) // S):max(0, int(o['foot']) // S + 1), max(0, x0):max(0, x1)] = False
     from scipy.ndimage import distance_transform_edt as edt
     centre = edt(walk) * S >= 12                      # sidewalk centre line (>= 12 px from both edges)
     pinched = round(100 * float((centre & (edt(free) * S < 8)).sum()) / max(int(centre.sum()), 1), 1)

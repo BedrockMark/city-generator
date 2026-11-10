@@ -4,7 +4,7 @@ from PIL import Image
 root = Path(__file__).resolve().parent.parent
 out = root/'work'/'refs_raw'; out.mkdir(parents=True, exist_ok=True)
 for p in sorted((root/'references').glob('*.*')):
-    if p.is_dir(): continue
+    if p.is_dir() or p.suffix.lower() not in ('.gif', '.png'): continue
     im = Image.open(p); im.seek(0)
     im.convert('RGBA').save(out/(p.stem+'.png'))
 print('done')
