@@ -44,6 +44,11 @@ export function classRaster(seed: string, r: Rect): WorldCls[][] {
   return raster(seed, r).cls;
 }
 
+/** Block id per cell of r (null on road), row-major (rows y0..y1-1). */
+export function blockRaster(seed: string, r: Rect): (string | null)[][] {
+  return raster(seed, r).block;
+}
+
 /** Block owning a road cell: the block of the Chebyshev-nearest sidewalk cell; ties go to the smallest id (spec 2.3).
  *  Junction cells follow the same rule. */
 export function roadOwner(seed: string, x: number, y: number): string {
