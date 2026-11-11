@@ -1,6 +1,6 @@
 // Top-level generator: seed -> Scene.
 import { Rng, Trace } from './rng';
-import { makeLayout, type Layout } from './layout';
+import { makeLayout, cloneLayout, type Layout } from './layout';
 import { planMainBlock, emitBuildings, type BlockPlan } from './block';
 import { planNeighbours } from './neighbours';
 import { SceneBuilder } from './place';
@@ -47,7 +47,7 @@ export function generateBase(seed: string, opts: GenOptions, win?: BlockWindow):
   if (opts.district !== undefined && !isDistrict(opts.district)) throw new Error(`unknown district: ${String(opts.district)}`);
   const district = opts.district;
   const campus = district && planCampus(district, rng);
-  const L = win ? win.layout : makeLayout(rng, campus && { w: campus.W, h: campus.H });
+  const L = win ? cloneLayout(win.layout) : makeLayout(rng, campus && { w: campus.W, h: campus.H });
   const sb = new SceneBuilder(L.cols, L.rows, L.cls);
   // exp-04 (adopted): composite buildings on its own stream; touching neighbours switch to their linked state (no random numbers)
   const composite = { r: expStream(rng, EXP04, opts.novelty), p: compositeChance(opts.novelty) };
@@ -88,6 +88,9 @@ export function generateBase(seed: string, opts: GenOptions, win?: BlockWindow):
   on('walk', r => walkers(L, sb, r, runs));
   explainGround(L, sb, runs);
   sb.finish();
+  // the window's params sit beside the generator's, never over them
+  const clash = win && Object.keys(win.params).find(k => ['district', 'shape', 'interior', 'roads', 'sidewalk', 'buildings'].includes(k));
+  if (clash) throw new Error(`window params override the generator's: ${clash}`);
   const scene: Scene = {
     version: VERSION, seed,
     params: { ...(district ? { district } : {}), shape: L.shape, interior: [L.bx1 - L.bx0, L.by1 - L.by0], roads: { h: L.rH, v: L.rV }, sidewalk: L.sw,

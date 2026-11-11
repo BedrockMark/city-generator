@@ -61,6 +61,23 @@ test('topLimit: no building sprite reaches above the north road centre line', ()
   }
 });
 
+test('the same window object used twice: equal scenes, the window layout left unchanged', () => {
+  const opts = withDefaults({});
+  for (const s of ['1', '2', '7']) {
+    const win = testWindow(s);
+    const before = JSON.stringify(win.layout);
+    const a = generateBase(s, opts, win);
+    assert.equal(JSON.stringify(win.layout), before, `seed ${s}: window layout mutated`);
+    const b = generateBase(s, opts, win);
+    assert.equal(JSON.stringify(a), JSON.stringify(b), `seed ${s}: second call differs`);
+  }
+});
+
+test('window params may not override generator params', () => {
+  const win = testWindow('7');
+  assert.throws(() => generateBase('7', withDefaults({}), { ...win, params: { shape: 'x' } }), /shape/);
+});
+
 // the north road centre line does not bind in this small window (the north row's sprites stop at row 4), so the limit is
 // also checked where it does: at the lot's top row, the rows behind may not slide north at all (without the limit they do)
 test('topLimit binds: a limit at the lot top keeps every sprite on the lot', () => {

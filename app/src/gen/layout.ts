@@ -41,6 +41,14 @@ export interface Layout {
 
 const grid = <T>(r: number, c: number, v: T): T[][] => Array.from({ length: r }, () => Array<T>(c).fill(v));
 
+/** a copy the generator may mutate (subsystems repaint ground, turn cells into road ...): fresh rows for every grid, fresh
+ *  segment / crossing objects; tiles are never mutated in place, so they are shared; topLimit keeps its reference */
+export function cloneLayout(L: Layout): Layout {
+  const rows = <T>(g: T[][]) => g.map(row => row.slice());
+  return { ...L, cls: rows(L.cls), inP: rows(L.inP), roadDist: rows(L.roadDist), region: rows(L.region), regionStyle: L.regionStyle.slice(),
+    segs: L.segs.map(s => ({ ...s })), crossings: L.crossings.map(c => ({ ...c })), base: rows(L.base), over: rows(L.over), mark: rows(L.mark) };
+}
+
 function dilate(m: boolean[][], rx: number, ry: number): boolean[][] {
   const R = m.length, C = m[0].length;
   const tmp = grid(R, C, false), out = grid(R, C, false);
