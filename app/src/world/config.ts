@@ -9,6 +9,9 @@ export const ARTERIAL_WIDTHS = { v: [[5, 4], [7, 2], [9, 1]], h: [[5, 5], [7, 2]
 export const STREET_WIDTH = 5;                             // width of the street between blocks
 export const JOG_CHANCE = 0.25;                            // chance a cut is offset midway
 export const JOG_STEP = [2, 4] as const;                   // jog offset range
+export const JOG_AT = [0.3, 0.7] as const;                 // where along the cut the jog happens, as a fraction of its length
+export const LEAF_CHANCE = 0.5;                            // chance an in-range rect stops splitting even though it could split
+export const CELL_CACHE = 256;                             // arterial cells whose block lists are cached
 export const ZONE_THRESHOLDS = { downtown: 0.62, residential: 0.38 } as const;   // z >= 0.62 downtown, z < 0.38 residential
 export const ZONE_OCTAVE = { scale: 3, weight: 0.5 } as const;   // second noise octave: relative scale and blend weight
 export const ZONES: Record<ZoneKind, { lotW: [number, number]; lotH: [number, number]; sw: 2 | 3; paving: readonly (readonly [string, number])[] }> = {
