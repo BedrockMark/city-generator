@@ -1,6 +1,6 @@
 # app/src/gen/
 
-The generator proper: pure TypeScript, no Phaser. `generate(seed, options?)` turns a seed string into a `Scene` JSON (ground tiles, placed sprites, buildings, groups and zones with reasons, a decision trace and a constraint audit). It is consumed by the Phaser viewer (`../main.ts`, `../viewer/`), by the Node scripts in `../../scripts/` (batch, regress, prefs, constraints, shots) and, once exported, by the Python tools in `../../../tools/`. `data/` is JSON exported from the asset packs by those tools, `rational/` is the constraint audit and repair, `learn/` is the learned-preference and novelty reweighting. Tests are `node:test` files next to the code they test. Current `VERSION` is `0.7.9.1`.
+The generator proper: pure TypeScript, no Phaser. `generate(seed, options?)` turns a seed string into a `Scene` JSON (ground tiles, placed sprites, buildings, groups and zones with reasons, a decision trace and a constraint audit). It is consumed by the Phaser viewer (`../main.ts`, `../viewer/`), by the Node scripts in `../../scripts/` (batch, regress, prefs, constraints, shots) and, once exported, by the Python tools in `../../../tools/`. `data/` is JSON exported from the asset packs by those tools, `rational/` is the constraint audit and repair, `learn/` is the learned-preference and novelty reweighting. Tests are `node:test` files next to the code they test. Current `VERSION` is `0.8.0`. City mode (`../world/`) calls `generateBase` with an optional block window; without it nothing changes.
 
 ## Pipeline (`generate.ts` -> `generateBase`)
 
@@ -21,7 +21,7 @@ RNG forking: `rng.fork(label)` seeds a new sfc32 stream from the original seed p
 
 | Path | Purpose |
 |---|---|
-| `generate.ts` | Entry point: `generate`, `generateBase`, `VERSION`; wires the stages above |
+| `generate.ts` | Entry point: `generate`, `generateBase(seed, opts, win?)` (optional `BlockWindow` from `../world/window.ts`: its layout replaces `makeLayout`, no neighbours / `nfronts` / `island`), `VERSION`; wires the stages above |
 | `types.ts` | Scene JSON format shared with the viewer and `tools/eval_generated.py`: `TILE` (16 px), `SHEETS`, `Placed`, `GroupRec`, `BuildingRec`, `ZoneRec`, `Scene`, `GenOptions` |
 | `exp.ts` | `DEFAULT_OPTIONS` (novelty 0.1, prune, prefs), `withDefaults`, `expStream`, `fireByNovelty`, `compositeChance`, `kitChance`; remains of the experiment system |
 | `rng.ts` | Seeded RNG (sfc32 + cyrb128), `fork`, decision `Trace`; labelled `choose / count / order / tex`, unlabelled `pick / weighted / chance / shuffle`, geometry `int / range / jitter` |
@@ -81,6 +81,7 @@ RNG forking: `rng.fork(label)` seeds a new sfc32 stream from the original seed p
 
 | Path | Covers |
 |---|---|
+| `window.test.ts` (5) | `generateBase` with a block window; packer `topLimit` (city mode height limit) |
 | `rng.test.ts` (9) | Fork independence, decision trace, adjust hook |
 | `deadend.test.ts` (8) | C25 dead-end paths on two fixture scenes from `references/labels/v0.7.4/` (tracked JSON) |
 | `district.test.ts` (3), `palace.test.ts` (2) | Special districts and the palace garden; `palace.test.ts` imports `../viewer/mix.ts` |
@@ -91,7 +92,7 @@ RNG forking: `rng.fork(label)` seeds a new sfc32 stream from the original seed p
 
 | Working dir | Command | Produces |
 |---|---|---|
-| `app` | `npm test` | Runs all `node:test` suites via `tsx --test` (55 tests incl. `src/viewer/mix.test.ts`, about 1 min) |
+| `app` | `npm test` | Runs all `node:test` suites via `tsx --test` (104 tests incl. `src/viewer/mix.test.ts` and `src/world/*.test.ts`, about 1 min) |
 | `app` | `npx tsc --noEmit` | Type-checks generator and viewer (about 3 s) |
 | `app` | `npx tsx scripts/batch.ts ../work/gen 1..12 [--d=gas]` | Scene JSON per seed under `work/gen/` (optionally a special district) |
 | `app` | `npx tsx scripts/regress.ts snapshot-par ../work/regress/<name> --jobs 8` then `compare <dirA> <dirB>` | 200-seed picture signatures and a diff of what changed |

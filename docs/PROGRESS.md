@@ -1,6 +1,6 @@
 # 进度
 
-## 当前状态（2026-11-08）
+## 当前状态（2026-11-11）
 - 阶段 1（分析，`docs/reports/ANALYSIS.md`）和阶段 2（原型，v0.2.0）已完成。
 - 现在是迭代阶段，按版本号汇报。
   - 用户反馈是查看器里的好 / 坏标注（`references/labels/v<版本>/`）。文字评价 remarks 和反面案例 anti_references 已不再使用（D37）。
@@ -21,8 +21,8 @@
 - 用户确认了阶段 7 的 spec（`docs/superpowers/specs/2026-11-04-stage7-learning-design.md`）。
 - **v0.7.0 已完成**（2026-11-04，分支 `stage7`，报告 `docs/reports/v0.7.0.md`，D46–D50）：阶段 7 从选择中学习（局部 A/B、Bradley–Terry 偏好乘子）、创新度、实验转正 / 废弃的建议、“选择解决不了的问题”报告。**等用户**：核对乘子表（`docs/reports/PREFS.md`）、做一些 A/B 题、选扩展方案（exp-03）、答复 `v0.7.0.md` 第 8 节的问题。
   - 还没有任何 A/B 选择数据；乘子表只来自 16 条标注。
-- git：每个版本 commit 一次，并打 tag `v<版本>`。**从 v0.7.8 起直接在 `master` 上开发，不开分支**（用户 2026-11-07）。阶段 6 在分支 `stage6` 上做，阶段 7 在 `stage7`（从 `stage6` 分出）上做；2026-11-07 两个分支都快进合并到了主分支 `master`（v0.7.7）。
-- 决策记录：`docs/NOTE.md`（D1–D72，D22 已删除）。实验功能登记：`docs/EXPERIMENTS.md`（exp-01、exp-03–exp-09 已转正，exp-02 已删除；v0.7.9.1 起没有在运行的实验，下一个编号 exp-10）。
+- git：每个版本 commit 一次，并打 tag `v<版本>`。**从 v0.7.8 起直接在主分支上开发，不开分支**（用户 2026-11-07；主分支当时叫 `master`，现在是 `main`，v0.8.0 起在 `main` 上）。阶段 6 在分支 `stage6` 上做，阶段 7 在 `stage7`（从 `stage6` 分出）上做；2026-11-07 两个分支都快进合并到了主分支 `master`（v0.7.7）。
+- 决策记录：`docs/NOTE.md`（D1–D78，D22 已删除）。实验功能登记：`docs/EXPERIMENTS.md`（exp-01、exp-03–exp-09 已转正，exp-02 已删除；v0.7.9.1 起没有在运行的实验，下一个编号 exp-10）。
 - **v0.7.1**（2026-11-04，分支 `stage7`，报告 `docs/reports/v0.7.1.md`，D51–D52）：exp-03 前后排拉开（后排楼的占地推到地块最北，楼上层可以伸出地块），用户看过后当天和 exp-01 一起转正，始终开启。179/200 个种子变化，C02 10 → 0，C18 56 → 3。
   - 转正的实验带 `adoptedIn`；重新生成旧版本的标注时传 `asOf: <标注版本>`，转正之前的版本里它们按当时的开关运行（偏好学习因此还能复现 v0.5.1 的标注）。
   - v0.7.1 之前做的 A/B 选择（`references/choices/v0.7.0/`，17 个文件）用的是存下的场景，不受影响。
@@ -60,6 +60,9 @@
   - 用户 2026-11-08：“宫殿花园做的很好”，提交并打 tag `v0.7.9`；接着 exp-09 转正。
 - **v0.7.9.1**（2026-11-08，`master`，D72）：exp-09 宫殿花园**转正**，产物不带 `exp` 标记，菜单名去掉“[exp]”；按用户选择**仍只在菜单里**（`DISTRICTS.palace.menuOnly`），不参加查看器的随机混入。宫殿种子 1–40 除标记外不变，普通街区 200/200 不变（`work/regress/v0791`），55 项测试通过。现在没有在运行的实验。
 - **开源准备**（2026-11-10，不改生成器，没有新版本号）：根目录 `README.md`（英文）和 `README.zh-CN.md`，每个文件夹一份 README 解释各文件用途（`app/`、`app/src/gen/`、`tools/`、`docs/`、`references/`、`assets/`、`work/`）；README 插图在 `docs/readme/`，由 `tools/make_readme_figs.py` 从 `work/readme_shots/` 生成。`.gitignore` 改为不跟踪 `assets/`（只留 README）、`references/*.gif|png`、`docs/` 下除 `readme/`、`reports/fig/`、`_prev/fig/anti_crop.png` 外的所有图片；`references/labels/`、`references/choices/` JSON 仍跟踪（`deadend.test.ts` 和 `prefs.ts train` 依赖）。顺手修了 `tools/eval_generated.py` 对半像素 `foot` 的索引错误，`extract_frames.py` / `inspect_refs.py` 只读图片文件。注意：历史提交里仍含素材，公开仓库要么用 `git filter-repo` 重写历史，要么推送单提交快照分支 `public`。
+- **v0.8.0**（2026-11-11，`main`，报告 `docs/reports/v0.8.0.md`，D73–D78）：v1.0.0 城市生成的第一个里程碑，**世界层**（新目录 `app/src/world/`）：分区噪声、主干道（偏移、宽度、错位）、支路切分成街区（含 jog 街区）、马路格按最近人行道归属（路口也一样）、横道、世界地面；**街区窗口**：`generateBase(seed, opts, win?)` 可选参数，`generateBlock` 在窗口里跑现有流水线再按归属过滤；城市模式楼不高过北边马路中线（`Layout.topLimit`）；`region.ts` + `scripts/cityshot.ts` 把一片区域导出成一张大图。所有世界层常量在 `app/src/world/config.ts`。
+  - 单街区 200/200 和 v0.7.9.1 相同（`work/regress/v080`，约束记录逐字节相同）；104 项测试通过。种子 1–3 的 360 × 264 格区域各约 45 秒，地块全部在 18–40 × 13–28 格里（统计见报告第 3 节）。
+  - 执行记录：`.superpowers/sdd/2026-11-11-v080-world-layer/progress.md`（git 忽略，含所有 Ruling）。
 
 ## 怎么运行
 - 查看器：`cd app && npx vite`，然后打开 http://localhost:5173/?seed=7
@@ -69,13 +72,14 @@
   - 顶栏“学到的偏好”复选框（URL `l=0` 关）；创新度滑块。标注层金色虚线框 = `novel`（新贴图），悬停显示偏好乘子。
   - URL 参数：`d=school|hospital|police|fire|mall|hotel|gas|palace|none`（特色街区，顶栏最左的下拉菜单；`palace`（宫殿花园，v0.7.9.1 转正）只在菜单里，不参加随机混入；不传时查看器按 `src/viewer/mix.ts` 让 20% 的种子随机抽到一种，`none` = 只要普通街区；生成器本身从不随机抽，脚本里 `generate(seed)` 就是普通街区），`nov=0.3`（创新度），`l=0`（关掉学到的偏好），`p=0`（完全不剪枝）。可以把 scene JSON 拖进页面查看。脚本里的 `--pd`（草案约束也修复）还在。
   - 标注层的“约束”图层：红框 = 违规，灰色叉框 = 已删除的物件，紫框 = 降级的区域，青框 = 改过的地面。
-- 测试：`cd app && npm test`（约 1 分钟）、`npx tsc --noEmit`。
+- 测试：`cd app && npm test`（约 1 分钟，104 项）、`npx tsc --noEmit`。
+- 城市区域（v0.8.0）：`cd app && npx tsx scripts/cityshot.ts ../work/city080 <种子> [x0,y0,w,h]`（默认 `-60,-44,360,264`，约 45 秒）写 `city_<种子>.json` 并打印统计，然后 `cd tools && uv run python render_generated.py ../work/city080/city_1.json --scale 1` 出 PNG（5760 × 4224）。还没有查看器城市模式（v0.8.1）。
 - 回归：`cd app && npx tsx scripts/regress.ts snapshot ../work/regress/<名> [--pd] [--nov <x>] [--noprefs]`；用 `snapshot-par <目录> [同样的参数] [--jobs 8]` 多进程跑（约 40 秒；14 个进程并不更快）。v0.7.6 起没有 `--on` / `--off`。然后：
   - `compare <旧> <新>`：画面签名逐项对比；
   - `report <A> <B>`：画面变化、各约束违规与修复、标注测试；
   - `labels [--pd]`：只跑标注测试；
   - `explain`：检查解释覆盖率。
-  - 种子集在 `scripts/regression_seeds.json`（200 个，只增不改）。基线在 `work/regress/v0791`（v0.7.9.1 生成器默认，和 `v079` 相同）、`v079`（v0.7.9 生成器默认，和 `v0782` 相同）、`v0782`（v0.7.8.2 生成器默认 = 普通街区，和 `v078-normal` 相同）、`v078-adopt`（v0.7.8.1 默认，20% 是特色街区；= v0.7.8.2 查看器默认）、`v078-normal`（v0.7.8 普通街区，和 `v077-normal` 相同）、`post-cleanup`（v0.7.6 默认，和 `pre-cleanup` = v0.7.5 默认画面相同）、`v075`（v0.7.5 第一版）、`v074-base`、`v0.7.4`（v0.7.4 默认；和 v0.7.2 只差 seed 47）、`exp06-on`（v0.7.4 开 exp-06）、`v0.7.2`（v0.7.3 默认画面与它相同）、`exp05-off` / `exp05-on`（v0.7.3 关 / 开 exp-05）、`exp04-on`、`exp04-off`（v0.7.2 开 / 关 exp-04）、`v0.3.0`、`v0.4.0`、`v0.5.0`、`v0.5.0-pd`、`v0.5.1`、`v0.6.0-off`（exp-02 关）、`v0.6.0`、`v0.6.0-global`、`v0.6.1b-off`、`v0.6.1b-on`（整体修图）、`v0.7.0`（默认）、`v0.7.0-n0`、`v0.7.0-n05`、`v0.7.0-n1`（创新度 0 / 0.5 / 1）、`v0.7.0-n0-l0`（创新度 0 + 偏好关）、`v0.7.1`（默认）（work/ 不进 git，丢了就从对应 tag 重建）。
+  - 种子集在 `scripts/regression_seeds.json`（200 个，只增不改）。基线在 `work/regress/v080`（v0.8.0 生成器默认，和 `v0791` 相同）、`v0791`（v0.7.9.1 生成器默认，和 `v079` 相同）、`v079`（v0.7.9 生成器默认，和 `v0782` 相同）、`v0782`（v0.7.8.2 生成器默认 = 普通街区，和 `v078-normal` 相同）、`v078-adopt`（v0.7.8.1 默认，20% 是特色街区；= v0.7.8.2 查看器默认）、`v078-normal`（v0.7.8 普通街区，和 `v077-normal` 相同）、`post-cleanup`（v0.7.6 默认，和 `pre-cleanup` = v0.7.5 默认画面相同）、`v075`（v0.7.5 第一版）、`v074-base`、`v0.7.4`（v0.7.4 默认；和 v0.7.2 只差 seed 47）、`exp06-on`（v0.7.4 开 exp-06）、`v0.7.2`（v0.7.3 默认画面与它相同）、`exp05-off` / `exp05-on`（v0.7.3 关 / 开 exp-05）、`exp04-on`、`exp04-off`（v0.7.2 开 / 关 exp-04）、`v0.3.0`、`v0.4.0`、`v0.5.0`、`v0.5.0-pd`、`v0.5.1`、`v0.6.0-off`（exp-02 关）、`v0.6.0`、`v0.6.0-global`、`v0.6.1b-off`、`v0.6.1b-on`（整体修图）、`v0.7.0`（默认）、`v0.7.0-n0`、`v0.7.0-n05`、`v0.7.0-n1`（创新度 0 / 0.5 / 1）、`v0.7.0-n0-l0`（创新度 0 + 偏好关）、`v0.7.1`（默认）（work/ 不进 git，丢了就从对应 tag 重建）。
   - `report` 的标注测试只跑 B 的模式。
 - 偏好（阶段 7）：`cd app && npx tsx scripts/prefs.ts train`（A/B 选择 + 标注 → `src/gen/data/prefs.json`；A/B 已归档，选择只有 `references/choices/v0.7.0/` 的 17 个文件；0.6.0 以前的标注没有 stream，v0.7.6 起跳过），`prefs.ts eval`（写 `docs/reports/PREFS.md`），`prefs.ts gaps`（选择解决不了的坏标注 → `work/gaps/gaps.md` 和截图）。不同意的条目写进 `src/gen/learn/blacklist.json`（`标签` 或 `标签|选项`）再重训。
 - 使用次数（创新度用）：`cd tools && uv run python export_usage.py`（参考图 → `app/src/gen/data/usage.json`）。
@@ -117,8 +121,16 @@
   - 在 `generate()` 的最后调用。
 - `main.ts`：Phaser 查看器；`src/viewer/overlay.ts`（标注层绘制，屏幕和 _annotated.png 共用），`src/viewer/labels.ts`（标注格式和存储），`src/viewer/gen.worker.ts`（在 Worker 里生成）。`vite.config.ts` 里只有 `/api/labels`。
 
+## 代码结构（app/src/world，v0.8.0 起）
+世界层：全是 `(seed, 格坐标)` 的纯函数，随机数来自坐标散列（D73）；只依赖 `app/src/gen/`，反过来不依赖。详见 `app/src/world/README.md`。
+- `config.ts`：所有常量（spec 3.8，D78）。`types.ts`：`Rect`、`BlockRec` 等。`hash.ts`：坐标散列。
+- `zone.ts`：分区噪声（闹市 / 混合 / 住宅）。`arterials.ts`：主干道。`blocks.ts`：支路切分、街区 id `b<i>,<j>/<路径>`、jog（D76）。
+- `cells.ts`：每格类别、马路格归属（D74）、横道。`ground.ts`：世界地面。
+- `window.ts`：街区窗口 `blockLayout`、`generateInWindow`（归属过滤）、`generateBlock`（缓存）（D75、D77）。`region.ts`：`blocksIn`、`assembleRegion`（一片区域拼成一个 Scene）。
+
 ## 下一步
-- **v1.0.0 城市生成**（2026-11-11 开始）：spec `docs/superpowers/specs/2026-11-11-v1-city-design.md`。已审（2026-11-11）。v0.8.0 的实施计划：`docs/superpowers/plans/2026-11-11-v080-world-layer.md`（**等用户审阅、选执行方式**）；之后每个里程碑审完再写下一个计划。按 spec 第 10 节的里程碑 v0.8.0 → v1.0.0 做，每个里程碑停下等确认。
+- **等用户看 v0.8.0 报告**（`docs/reports/v0.8.0.md` 第 6 节）：路网间距、街区大小、分区过渡、jog 的观感、横道、想调哪些常量；已知问题 1（小物件随窗口变）、2（小闹市街区没有楼）要不要在 v0.8.1 之前修。用户确认后再写 v0.8.1 的计划（`getChunk` / `getBlock` / `worldInfo`、Worker 池、查看器城市模式）。
+- **v1.0.0 城市生成**（2026-11-11 开始）：spec `docs/superpowers/specs/2026-11-11-v1-city-design.md`。已审（2026-11-11）。v0.8.0 已按计划 `docs/superpowers/plans/2026-11-11-v080-world-layer.md` 完成（subagent 逐任务执行）；之后每个里程碑审完再写下一个计划。按 spec 第 10 节的里程碑 v0.8.0 → v1.0.0 做，每个里程碑停下等确认。
   - 用户已定：无限世界、按需流式生成；分区噪声 + 两级路网；查看器漫游 + `getChunk` API；方案 A（世界路网层 + 街区窗口复用现有生成器）；要运河、桥、高度（参考 `town_near_river`）。
   - 高度素材：`3_City_Props_16x16.png` 第 153–201 行（只有整合图，没有单张；用 `work/v1probe/probe.py` 逐格比对 `town_near_river` 找到）。
 - 等用户（v1.0.0 之前留下的）：
@@ -132,6 +144,7 @@
 - 阶段 7 的计划和执行记录：`docs/_prev/superpowers/plans/2026-11-04-stage7-learning.md`；`.superpowers/sdd/2026-11-04-stage7-learning/progress.md`（git 忽略，含所有 Ruling）。阶段 6 的：`docs/_prev/superpowers/plans/2026-11-03-stage6-judge.md`。
 
 ## 已知问题
+- v0.8.0 城市模式（详见 `docs/reports/v0.8.0.md` 第 5 节）：小物件（花园、路缘设施、停车）随窗口的形状变化，楼不变（D77）；种子 1 的 `b-1,1/LRRR`（闹市，地块 18 × 13）生成器没放下楼；横道按路口的每条臂散列，不是单街区的每个路口 0–2 条；矩形边上中心在矩形外的车行道区域被丢掉（只影响标注说明）。
 - exp-07 整条删掉 56 条花园小路（共 356 条），能看见的 40 条，多数是从人行道伸进花园、撞上楼背面的路。“新去处”要求绕行 > 1.5 倍（D59 ③）。
 - 巷子的垃圾桶生成在巷子通往内院的口上，通到里面的巷子会被 exp-07 删掉（79 条巷子、145 个）。应该在生成时放到不挡路的地方。
 - C19 剩下 14 条，C25 认为通（岔口外 1 格的长椅角落、在楼底下接上了别的路）。

@@ -87,6 +87,7 @@ cd tools && uv sync && uv run python render_generated.py ../work/gen/scene_gas_1
 |---|---|
 | [app/](app/README.md) | Vite + Phaser 3 查看器，以及无头脚本（批量生成、回归、截图、偏好训练）。 |
 | [app/src/gen/](app/src/gen/README.md) | 生成器本体：布局、打包、特色街区、街面小景、约束、学习。 |
+| [app/src/world/](app/src/world/README.md) | 城市模式的世界层：分区、路网、街区、世界地面、街区窗口、区域导出。 |
 | [tools/](tools/README.md) | Python 参考图分析、素材元数据导出、无头渲染和评估。 |
 | [docs/](docs/README.md) | 需求、决策记录、进度、实验登记、分析和各版本报告。 |
 | [references/](references/README.md) | 用户的标注和归档的 A/B 选择（JSON）。参考图本身不公开。 |
@@ -96,7 +97,7 @@ cd tools && uv sync && uv run python render_generated.py ../work/gen/scene_gas_1
 
 ## 现状
 
-版本 0.7.9.1（2026 年 11 月）。生成器目前产出单个街区，带周围街区作为环境；由这样的街区拼成完整城市是长期目标。实验 exp-01 和 exp-03 到 exp-09 都已转正进入默认输出，exp-02 已废弃。
+版本 0.8.0（2026 年 11 月）。生成器产出单个街区，带周围街区作为环境。v0.8.0 加了世界层（`app/src/world/`）：铺好路网和街区，每个街区在自己的窗口里生成，`app/scripts/cityshot.ts` 导出成一张大图；可以漫游的流式城市是 v1.0.0 的目标。实验 exp-01 和 exp-03 到 exp-09 都已转正进入默认输出，exp-02 已废弃。
 
 ## 许可
 

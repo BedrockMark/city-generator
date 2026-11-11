@@ -87,6 +87,7 @@ Each folder has its own README that explains every file in it.
 |---|---|
 | [app/](app/README.md) | Vite + Phaser 3 viewer, the headless scripts (batch, regression, screenshots, preference training). |
 | [app/src/gen/](app/src/gen/README.md) | The generator: layout, packing, districts, vignettes, constraints, learning. |
+| [app/src/world/](app/src/world/README.md) | City mode's world layer: zones, roads, blocks, world ground, block windows, region export. |
 | [tools/](tools/README.md) | Python analysis of the reference maps, asset metadata export, headless render and evaluation. |
 | [docs/](docs/README.md) | Brief, decision log, progress, experiment register, analysis and version reports (Chinese). |
 | [references/](references/README.md) | The user's labels and archived A/B choices (JSON). The reference maps themselves are not published. |
@@ -96,7 +97,7 @@ Each folder has its own README that explains every file in it.
 
 ## Status
 
-Version 0.7.9.1 (November 2026). The generator produces a single block with neighbouring blocks for context; a full city made of such blocks is the long-term goal. Experiments exp-01 and exp-03 to exp-09 have been adopted into the default output; exp-02 was dropped. Design documents, decision log and reports are written in Chinese.
+Version 0.8.0 (November 2026). The generator produces a single block with neighbouring blocks for context. v0.8.0 adds a world layer (`app/src/world/`) that lays out roads and blocks and generates each block in a window, exported as one large picture by `app/scripts/cityshot.ts`; a streamed, explorable city is the v1.0.0 goal. Experiments exp-01 and exp-03 to exp-09 have been adopted into the default output; exp-02 was dropped. Design documents, decision log and reports are written in Chinese.
 
 ## Credits
 

@@ -42,6 +42,7 @@ Layout convention (PROGRESS.md, 2026-11-05): the `docs/` root holds only hand-of
 | `reports/v0.7.7.md` | Version report v0.7.7 (exp-08 special districts: school, hospital, police, fire, mall, hotel). |
 | `reports/v0.7.8.md` | Version report v0.7.8 (gas-station district, district extras). |
 | `reports/v0.7.9.md` | Version report v0.7.9 (exp-09 palace garden, two rounds). |
+| `reports/v0.8.0.md` | Version report v0.8.0 (world layer and block windows: city region screenshots, cityshot statistics, open questions). Screenshots in `reports/v0.8.0/` (not tracked). |
 | `reports/v0.7.<n>/*.png` | Screenshots for each version report. Local only, not published (gitignored); produced with `cd app && npx tsx scripts/shots.ts`. |
 
 Version report convention: one `reports/v<version>.md` per tagged version with its screenshots in `reports/v<version>/`; one commit and one git tag `v<version>` per version. A report moves to `_prev/` once its open questions are answered, so the numbers in `reports/` are not contiguous (v0.7.2 is already in `_prev/`). Point releases v0.7.8.1, v0.7.8.2 and v0.7.9.1 have no report of their own; they are recorded in `PROGRESS.md` and in `NOTE.md` D67, D68 and D72.
