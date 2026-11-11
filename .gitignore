@@ -1,6 +1,7 @@
 # Not redistributed: the tileset and the hand-made reference maps (see assets/README.md, references/README.md)
 assets/*
 !assets/README.md
+!assets/Modern_Exteriors_License.pdf
 references/*.gif
 references/*.png
 

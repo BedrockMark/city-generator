@@ -4,7 +4,7 @@ Procedural pixel-art city blocks that look hand-made. A seed-driven, rule-based 
 
 [中文说明](README.zh-CN.md)
 
-![A generated block, seed 2](docs/readme/hero_seed2.png)
+![A generated block, seed 770748](docs/readme/hero_seed770748.png)
 
 ## What it does
 
@@ -98,6 +98,21 @@ Each folder has its own README that explains every file in it.
 
 Version 0.7.9.1 (November 2026). The generator produces a single block with neighbouring blocks for context; a full city made of such blocks is the long-term goal. Experiments exp-01 and exp-03 to exp-09 have been adopted into the default output; exp-02 was dropped. Design documents, decision log and reports are written in Chinese.
 
+## Credits
+
+This project uses art assets by **LimeZu**:
+- [Modern Exteriors](https://limezu.itch.io/modernexteriors) by LimeZu
+
+These assets are **not** covered by this project's open source license.
+They are used under LimeZu's own license, which allows use in commercial and
+non-commercial projects but does not allow redistributing or reselling the
+assets on their own. See [`assets/Modern_Exteriors_License.pdf`](assets/Modern_Exteriors_License.pdf)
+for the full terms.
+
+If you want to use these assets to reproduce your own version, you'll need to purchase it yourself, and drop in the 16x16 version in subfolders in assets\, named `exteriors` for building blocks, and `exterior_autotiles` for autotiles assets.
+
 ## License
 
-The code license has not been decided yet. The tileset in `assets/` and the hand-made reference maps in `references/` are third-party work and are not included in this repository; the README figures contain crops of them for illustration only.
+The project code is licensed under the GNU GPLv3. See the LICENSE file for details. 
+
+The tileset in `assets/` and the hand-made reference maps in `references/` are third-party work and are not included in this repository; the README figures contain crops of them for illustration only. You can see a full version of them at [sourse](https://limezu.itch.io/modernexteriors)
