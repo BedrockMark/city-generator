@@ -118,7 +118,7 @@
 - `main.ts`：Phaser 查看器；`src/viewer/overlay.ts`（标注层绘制，屏幕和 _annotated.png 共用），`src/viewer/labels.ts`（标注格式和存储），`src/viewer/gen.worker.ts`（在 Worker 里生成）。`vite.config.ts` 里只有 `/api/labels`。
 
 ## 下一步
-- **v1.0.0 城市生成**（2026-11-11 开始）：spec `docs/superpowers/specs/2026-11-11-v1-city-design.md`，**等用户审阅**（第 12 节 5 个待确认问题）。审过后写实施计划（`docs/superpowers/plans/`），按 spec 第 10 节的里程碑 v0.8.0 → v1.0.0 做，每个里程碑停下等确认。
+- **v1.0.0 城市生成**（2026-11-11 开始）：spec `docs/superpowers/specs/2026-11-11-v1-city-design.md`。已审（2026-11-11）。v0.8.0 的实施计划：`docs/superpowers/plans/2026-11-11-v080-world-layer.md`（**等用户审阅、选执行方式**）；之后每个里程碑审完再写下一个计划。按 spec 第 10 节的里程碑 v0.8.0 → v1.0.0 做，每个里程碑停下等确认。
   - 用户已定：无限世界、按需流式生成；分区噪声 + 两级路网；查看器漫游 + `getChunk` API；方案 A（世界路网层 + 街区窗口复用现有生成器）；要运河、桥、高度（参考 `town_near_river`）。
   - 高度素材：`3_City_Props_16x16.png` 第 153–201 行（只有整合图，没有单张；用 `work/v1probe/probe.py` 逐格比对 `town_near_river` 找到）。
 - 等用户（v1.0.0 之前留下的）：
