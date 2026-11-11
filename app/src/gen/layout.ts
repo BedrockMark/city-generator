@@ -58,7 +58,7 @@ export function chebDist(m: boolean[][]): number[][] {
   return d;
 }
 
-const SIDEWALK_STYLES = ['sidewalk_lightbeige', 'sidewalk_beige', 'sidewalk_lightgrey', 'sidewalk_grey', 'sidewalk_brown', 'sidewalk_blue'];
+export const SIDEWALK_STYLES = ['sidewalk_lightbeige', 'sidewalk_beige', 'sidewalk_lightgrey', 'sidewalk_grey', 'sidewalk_brown', 'sidewalk_blue'];
 
 /** `need` (exp-08 special districts): the main interior is exactly need.w x need.h cells, a plain rectangle (the block
  *  is the landmark's campus, district.ts) */
@@ -198,10 +198,10 @@ const SLAB_BLOCK: Record<string, [number, number]> = {
 };
 export function slab(style: string, x: number, y: number): TileRef {
   const [bx, by] = SLAB_BLOCK[style];
-  return ['city', bx + 9 + (x % 4), by + (y % 2)];   // rows 0-1: seamless slabs (row 3 is an edge piece)
+  return ['city', bx + 9 + (((x % 4) + 4) % 4), by + (((y % 2) + 2) % 2)];   // rows 0-1: seamless slabs (row 3 is an edge piece); non-negative modulo for world coords
 }
 
-const ASPHALT: [TileRef, number][] = [
+export const ASPHALT: [TileRef, number][] = [
   [['city', 1, 4], 30], [['city', 2, 4], 10], [['city', 0, 5], 10], [['city', 1, 5], 10], [['city', 3, 5], 6],
   [['city', 2, 6], 6], [['city', 4, 6], 3], [['city', 0, 7], 1.5], [['city', 2, 7], 1.5], [['city', 4, 7], 1],
 ];
@@ -259,6 +259,14 @@ export function findSegs(cls: CellClass[][], widthOk: (axis: 'h' | 'v', w: numbe
   return segs;
 }
 
+/** Zebra tile at cell j (0..1) along a crossing and k cells into its band. Crossing a horizontal road (walking N-S):
+ *  horizontal bars; vertical road: vertical bars. */
+export function zebraTile(axis: 'h' | 'v', j: number, k: number): TileRef {
+  return axis === 'h' ? ['city', 7 + j, 4 + (k % 2)] : ['city', 7 + (k % 2), 6 + j];
+}
+/** Centre-line dash tile of a corridor. */
+export function dashTile(axis: 'h' | 'v'): TileRef { return axis === 'h' ? ['city', 12, 6] : ['city', 12, 7]; }
+
 /** corridor analysis: run lengths of road cells; dashes on corridor centre lines; zebra crossings near intersections */
 function roadMarkings(L: Layout, r: Rng) {
   const { rows, cols, cls } = L;
@@ -298,9 +306,7 @@ function roadMarkings(L: Layout, r: Rng) {
       L.crossings.push({ axis: sg.axis, band0: sg.band0, band1: sg.band1, at: c.at });
       for (let k2 = sg.band0; k2 < sg.band1; k2++) for (let j = 0; j < 2; j++) {
         const [x, y] = sg.axis === 'h' ? [c.at + j, k2] : [k2, c.at + j];
-        // crossing a horizontal road (walking N-S): horizontal bars; vertical road: vertical bars
-        const t: TileRef = sg.axis === 'h' ? ['city', 7 + j, 4 + ((k2 - sg.band0) % 2)] : ['city', 7 + ((k2 - sg.band0) % 2), 6 + j];
-        L.base[y][x] = t; L.mark[y][x] = 'zebra';
+        L.base[y][x] = zebraTile(sg.axis, j, k2 - sg.band0); L.mark[y][x] = 'zebra';
       }
     }
   }
@@ -312,7 +318,7 @@ function roadMarkings(L: Layout, r: Rng) {
       const [x, y] = s.axis === 'h' ? [p, mid] : [mid, p];
       const near = (q: number) => { const [xx, yy] = s.axis === 'h' ? [q, mid] : [mid, q]; return L.mark[yy]?.[xx] === 'zebra'; };
       if (near(p) || near(p - 1) || near(p + 1)) continue;
-      L.base[y][x] = s.axis === 'h' ? ['city', 12, 6] : ['city', 12, 7];
+      L.base[y][x] = dashTile(s.axis);
       L.mark[y][x] = 'dash';
     }
   }

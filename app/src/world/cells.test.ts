@@ -3,16 +3,17 @@ import assert from 'node:assert/strict';
 import { worldCell, roadOwner, ownerOf, classRaster, crossingsIn } from './cells';
 import { blockById, lotOf } from './blocks';
 import { cellAt } from './arterials';
-import { ROAD_WIDTHS, CROSSING_MIN_RUN } from './config';
+import { ROAD_WIDTHS, CROSSING_MIN_RUN, CROSSING_LEN, CROSSING_GAP } from './config';
 import type { Rect, WCrossing, BlockRec, WorldCell } from './types';
 
 const SEEDS = ['1', '2', '3', '7', 'city'];
+const gaps = Array.from({ length: CROSSING_GAP[1] - CROSSING_GAP[0] + 1 }, (_, i) => CROSSING_GAP[0] + i);
 const inRect = (r: Rect, x: number, y: number) => x >= r.x0 && x < r.x1 && y >= r.y0 && y < r.y1;
 const inFoot = (b: BlockRec, x: number, y: number) => b.foot.some(r => inRect(r, x, y));
 const key = (c: WCrossing) => `${c.axis}:${c.band0}-${c.band1}@${c.at}`;
 const crossRect = (c: WCrossing): Rect => c.axis === 'h'
-  ? { x0: c.at, x1: c.at + 2, y0: c.band0, y1: c.band1 }
-  : { x0: c.band0, x1: c.band1, y0: c.at, y1: c.at + 2 };
+  ? { x0: c.at, x1: c.at + CROSSING_LEN, y0: c.band0, y1: c.band1 }
+  : { x0: c.band0, x1: c.band1, y0: c.at, y1: c.at + CROSSING_LEN };
 const hits = (a: Rect, b: Rect) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
 const within = (seed: string, r: Rect, s: Rect, cs = crossingsIn(seed, r)) => cs.filter(c => hits(crossRect(c), s)).map(key).sort();
 
@@ -141,16 +142,16 @@ test('crossings sit next to junctions and span the full road width', () => {
       assert.ok(ROAD_WIDTHS.includes(w), `${s} ${key(c)} width ${w}`);
       const at = (p: number, k: number) => (c.axis === 'h' ? worldCell(s, p, k) : worldCell(s, k, p));
       // the zebra covers the whole band and the band is bounded by sidewalk on both sides
-      for (let p = c.at; p < c.at + 2; p++) {
+      for (let p = c.at; p < c.at + CROSSING_LEN; p++) {
         for (let k = c.band0; k < c.band1; k++) assert.equal(at(p, k).cls, 'road', `${s} ${key(c)} zebra cell ${p},${k}`);
         assert.notEqual(at(p, c.band0 - 1).cls, 'road', `${s} ${key(c)} not bounded at ${p}`);
         assert.notEqual(at(p, c.band1).cls, 'road', `${s} ${key(c)} not bounded at ${p}`);
       }
       kinds.add(at(c.at, c.band0).arterial ? 'arterial' : 'street');
-      // a junction 1 or 2 cells before or after: the whole band is road there and a cross road leaves it,
+      // a junction right before or after the zebra, CROSSING_GAP cells away: the whole band is road there and a cross road leaves it,
       // and the corridor runs on for at least CROSSING_MIN_RUN cells on the other side
-      const ok = [-1, 1].some(dir => [0, 1].some(g => {
-        const j = dir < 0 ? c.at - 1 - g : c.at + 2 + g;
+      const ok = [-1, 1].some(dir => gaps.some(g => {
+        const j = dir < 0 ? c.at - 1 - g : c.at + CROSSING_LEN + g;
         for (let k = c.band0; k < c.band1; k++) if (at(j, k).cls !== 'road') return false;
         if (at(j, c.band0 - 1).cls !== 'road' && at(j, c.band1).cls !== 'road') return false;
         for (let t = 1; t <= CROSSING_MIN_RUN; t++) {

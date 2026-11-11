@@ -4,7 +4,7 @@
 import { hash01, hashInt } from './hash';
 import { cellAt, cellRect } from './arterials';
 import { blockAt, cellBlocks, lotOf } from './blocks';
-import { ARTERIAL_SPACING, CROSSING_CHANCE, CROSSING_MIN_RUN, ANALYSIS_PAD, ROAD_WIDTHS } from './config';
+import { ARTERIAL_SPACING, CROSSING_CHANCE, CROSSING_MIN_RUN, CROSSING_LEN, CROSSING_GAP, ANALYSIS_PAD, ROAD_WIDTHS } from './config';
 import { findSegs } from '../gen/layout';
 import type { Rect, WorldCell, WorldCls, WCrossing } from './types';
 
@@ -70,7 +70,7 @@ export function ownerOf(seed: string, x: number, y: number): string {
   return b ? b.id : roadOwner(seed, x, y);
 }
 
-/** Zebra crossings (2 cells along the road, the full road width across) intersecting r.
+/** Zebra crossings (CROSSING_LEN cells along the road, the full road width across) intersecting r.
  *  Corridors are found on r padded by ANALYSIS_PAD. A crossing is drawn at a corridor end whose next cell is a
  *  junction (road in no corridor) when the corridor runs on for >= CROSSING_MIN_RUN cells; whether and where is
  *  hashed on the junction's first world cell. Locality: a cell's corridor status depends only on runs of at most the
@@ -105,13 +105,13 @@ export function crossingsIn(seed: string, r: Rect): WCrossing[] {
       const [cx, cy] = at(end === 'a' ? s.a : s.b - 1, s.band0);
       const kind = ras.art[cy][cx] ? 'arterial' : 'street';
       if (hash01(seed, 'xing', wx, wy, s.axis) >= CROSSING_CHANCE[kind]) continue;
-      const gap = hashInt(seed, 0, 1, 'xgap', wx, wy, s.axis);
-      const p = end === 'a' ? s.a + gap : s.b - 2 - gap;
+      const gap = hashInt(seed, CROSSING_GAP[0], CROSSING_GAP[1], 'xgap', wx, wy, s.axis);
+      const p = end === 'a' ? s.a + gap : s.b - CROSSING_LEN - gap;
       const o = s.axis === 'h' ? pr.x0 : pr.y0, ob = s.axis === 'h' ? pr.y0 : pr.x0;
       const c: WCrossing = { axis: s.axis, band0: s.band0 + ob, band1: s.band1 + ob, at: p + o };
       const cr = s.axis === 'h'
-        ? { x0: c.at, x1: c.at + 2, y0: c.band0, y1: c.band1 }
-        : { x0: c.band0, x1: c.band1, y0: c.at, y1: c.at + 2 };
+        ? { x0: c.at, x1: c.at + CROSSING_LEN, y0: c.band0, y1: c.band1 }
+        : { x0: c.band0, x1: c.band1, y0: c.at, y1: c.at + CROSSING_LEN };
       if (cr.x0 < r.x1 && r.x0 < cr.x1 && cr.y0 < r.y1 && r.y0 < cr.y1) out.push(c);
     }
   }

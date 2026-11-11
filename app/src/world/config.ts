@@ -21,6 +21,9 @@ export const ZONES: Record<ZoneKind, { lotW: [number, number]; lotH: [number, nu
 };
 export const CROSSING_CHANCE = { arterial: 0.45, street: 0.3 } as const;   // chance of a crosswalk per junction arm
 export const CROSSING_MIN_RUN = 8;                         // minimum straight road run (cells) for a crosswalk
+export const CROSSING_LEN = 2;                             // zebra length along the road (cells)
+export const CROSSING_GAP = [0, 1] as const;               // gap range between the junction and the zebra (cells)
+export const DASH_MIN_RUN = 6;                             // minimum corridor length (cells) that gets centre dashes
 export const WINDOW_MARGIN = 14;                           // window overhang beyond the footprint (>= widest road 9 + sidewalk 3 + 2)
 export const WINDOW_SW2 = 3;                               // sidewalk width used for the window layout
 export const ANALYSIS_PAD = 16;                            // paint / analysis padding around a window
