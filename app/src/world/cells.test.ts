@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { worldCell, roadOwner, ownerOf, classRaster, crossingsIn } from './cells';
+import { worldCell, roadOwner, ownerOf, ownerRaster, classRaster, crossingsIn } from './cells';
 import { blockById, lotOf } from './blocks';
 import { cellAt } from './arterials';
 import { ROAD_WIDTHS, CROSSING_MIN_RUN, CROSSING_LEN, CROSSING_GAP } from './config';
@@ -103,6 +103,12 @@ test('ownerOf partitions: each cell has exactly one owner, and it is a block tou
       assert.ok(touch, `${s} ${x},${y} owner ${o} not within ${d}`);
     }
   }
+});
+
+test('ownerRaster equals ownerOf', () => {
+  const r: Rect = { x0: -30, y0: -20, x1: 30, y1: 20 };
+  const own = ownerRaster('r1', r);
+  for (let y = r.y0; y < r.y1; y++) for (let x = r.x0; x < r.x1; x++) assert.equal(own[y - r.y0][x - r.x0], ownerOf('r1', x, y), `${x},${y}`);
 });
 
 test('crossingsIn is local: crossings of rect A ∩ B are the same computed from A or from B', () => {

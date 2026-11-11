@@ -1,7 +1,7 @@
 // Every tunable of the world layer lives here as a named constant (spec 3.8); other files must not hold these numbers.
 import type { ZoneKind } from './types';
 
-export const CHUNK = 64;                                   // chunk edge in cells
+export const CHUNK = 64;                                   // chunk edge in cells; reserved (spec 3.8 name; used from v0.8.1)
 export const ARTERIAL_SPACING = { x: 120, y: 88 };         // nominal arterial grid pitch
 export const ARTERIAL_JITTER = 12;                         // |jitter| <= 12 cells
 export const ARTERIAL_JOG = 2;                             // shift of a whole segment between two junctions, 0..2 cells
@@ -27,10 +27,12 @@ export const DASH_MIN_RUN = 6;                             // minimum corridor l
 export const WINDOW_MARGIN = 14;                           // window overhang beyond the footprint (>= widest road 9 + sidewalk 3 + 2)
 export const WINDOW_SW2 = 3;                               // sidewalk width used for the window layout
 export const ANALYSIS_PAD = 16;                            // paint / analysis padding around a window
-export const REGION_PAD = 6;                               // padding when listing blocks in a region
-export const OVERHANG_LIMIT = 'centre' as const;
-export const CITY_NOVELTY = 0.10;
-export const BLOCK_CACHE = 256;
+// Padding when listing blocks in a region: a road cell is at most half a road width from its owner's sidewalk, and
+// an arterial jog widens the band locally by ARTERIAL_JOG, so ceil((widest arterial + ARTERIAL_JOG) / 2) (= 6).
+export const REGION_PAD = Math.ceil((Math.max(...[...ARTERIAL_WIDTHS.v, ...ARTERIAL_WIDTHS.h].map(w => w[0])) + ARTERIAL_JOG) / 2);
+export const OVERHANG_LIMIT = 'centre' as const;           // upper floors never overhang past the road centre line; reserved (spec 3.8 name; used from v0.8.1)
+export const CITY_NOVELTY = 0.10;                          // novelty every world block is generated with (fixed in city mode, spec 3.9)
+export const BLOCK_CACHE = 256;                            // finished block scenes kept by generateBlock's LRU
 
 // Sorted unique road widths derived from the arterial and street widths.
 export const ROAD_WIDTHS: readonly number[] = [...new Set<number>([

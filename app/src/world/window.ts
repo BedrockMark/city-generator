@@ -1,13 +1,13 @@
 // Block windows (spec 4): one world block plus its surroundings as a gen Layout, the single-block generator run on it,
-// and the ownership filter (spec 2.3) that keeps only the objects standing on cells the block owns.
+// and the ownership filter (spec 2.3) that keeps only the objects and zones on cells the block owns.
 import { blockById } from './blocks';
-import { classRaster, blockRaster, crossingsIn, ownerOf } from './cells';
+import { classRaster, blockRaster, crossingsIn, ownerOf, ownerRaster } from './cells';
 import { paintGround } from './ground';
 import { BLOCK_CACHE, CITY_NOVELTY, ROAD_WIDTHS, STREET_WIDTH, WINDOW_MARGIN, WINDOW_SW2 } from './config';
 import { chebDist, findSegs, type Crossing, type Layout } from '../gen/layout';
 import { generateBase } from '../gen/generate';
 import { withDefaults } from '../gen/exp';
-import { TILE, type CellClass, type Placed, type Scene } from '../gen/types';
+import { TILE, type CellClass, type Placed, type PxRect, type Scene, type ZoneRec } from '../gen/types';
 import type { BlockRec, Rect } from './types';
 
 /** city mode options; no novelty (spec 3.9: CITY_NOVELTY is fixed) */
@@ -80,8 +80,16 @@ export function ownerCell(p: Placed): [number, number] {
   return [Math.floor((p.x + p.w / 2) / TILE), Math.floor((p.foot - 1) / TILE)];
 }
 
+/** The window cell a zone stands on: the centre of its rect. */
+export function zoneCell(r: PxRect): [number, number] {
+  return [Math.floor((r.x0 + r.x1) / 2 / TILE), Math.floor((r.y0 + r.y1) / 2 / TILE)];
+}
+
 /** Runs the generator on block b's window and keeps only the objects on cells b owns (spec 2.3); groups lose the
- *  dropped members, and groups left empty are removed. Uncached; generateBlock is the cached entry point. */
+ *  dropped members, and groups left empty are removed. Zones are kept when b owns their centre cell, except the
+ *  carriageways, which are cut to the stretches whose centre line b owns, so that the windows of all blocks along a
+ *  road share it out without overlap; a zone's gid is dropped when its group is not kept (or is no group at all).
+ *  Uncached; generateBlock is the cached entry point. */
 export function generateInWindow(seed: string, b: BlockRec, win: BlockWindowLayout, opts: CityOptions = {}): BlockScene {
   const { layout, ox, oy } = win;
   // only the city options are passed on (a stray novelty from an untyped caller must not override CITY_NOVELTY)
@@ -90,20 +98,43 @@ export function generateInWindow(seed: string, b: BlockRec, win: BlockWindowLayo
   if (opts.prefs !== undefined) city.prefs = opts.prefs;
   const scene = generateBase(`${seed}/${b.id}`, withDefaults({ novelty: CITY_NOVELTY, ...city }),
     { layout, params: { world: { seed, blockId: b.id, zone: b.zone, offset: [ox, oy] } } });
-  const owner = new Map<string, string>();       // ownerOf is slow: once per cell
-  const owns = (p: Placed) => {
-    const [cx, cy] = ownerCell(p);
-    const k = `${cx},${cy}`;
-    let o = owner.get(k);
-    if (o === undefined) { o = ownerOf(seed, ox + cx, oy + cy); owner.set(k, o); }
-    return o === b.id;
-  };
-  scene.objects = scene.objects.filter(owns);
+  const owner = ownerRaster(seed, { x0: ox, y0: oy, x1: ox + layout.cols, y1: oy + layout.rows });
+  const owns = (x: number, y: number) =>
+    (x >= 0 && y >= 0 && x < layout.cols && y < layout.rows ? owner[y][x] : ownerOf(seed, ox + x, oy + y)) === b.id;
+  scene.objects = scene.objects.filter(p => owns(...ownerCell(p)));
   if (scene.groups) {
     const kept = new Set(scene.objects.map(o => o.id));
     scene.groups = scene.groups
       .map(g => ({ ...g, members: g.members.filter(m => kept.has(m)) }))
       .filter(g => g.members.length > 0);
+  }
+  if (scene.zones) {
+    const groups = new Set((scene.groups ?? []).map(g => g.gid));
+    const T = TILE, segOf = new Map(layout.segs.map(s => [JSON.stringify(s.axis === 'h'
+      ? { x0: s.a * T, y0: s.band0 * T, x1: s.b * T, y1: s.band1 * T }
+      : { x0: s.band0 * T, y0: s.a * T, x1: s.band1 * T, y1: s.b * T }), s]));
+    const zones: ZoneRec[] = [];
+    for (const z of scene.zones) {
+      const s = z.kind === 'carriageway' ? segOf.get(JSON.stringify(z.rect)) : undefined;
+      const parts: ZoneRec[] = [];
+      if (s) {
+        // runs of the centre line that b owns, each a zone across the full road width
+        const k = s.band0 + Math.floor((s.band1 - s.band0) / 2);
+        for (let p = s.a; p < s.b; p++) {
+          if (!(s.axis === 'h' ? owns(p, k) : owns(k, p))) continue;
+          let q = p;
+          while (q < s.b && (s.axis === 'h' ? owns(q, k) : owns(k, q))) q++;
+          const rect = s.axis === 'h' ? { ...z.rect, x0: p * T, x1: q * T } : { ...z.rect, y0: p * T, y1: q * T };
+          parts.push({ ...z, id: parts.length ? `${z.id}#${parts.length}` : z.id, rect });
+          p = q;
+        }
+      } else if (owns(...zoneCell(z.rect))) parts.push({ ...z });
+      for (const m of parts) {
+        if (m.gid !== undefined && !groups.has(m.gid)) delete m.gid;
+        zones.push(m);
+      }
+    }
+    scene.zones = zones;
   }
   return { scene, ox, oy };
 }

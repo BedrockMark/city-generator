@@ -17,14 +17,22 @@ export function worldCell(seed: string, x: number, y: number): WorldCell {
 
 interface Raster { cls: WorldCls[][]; block: (string | null)[][]; art: boolean[][] }
 
+/** Arterial cell index range that can cover a point of r: the jitter never moves a cell edge by a whole spacing, so
+ *  one spacing of slack on each side is enough. */
+export function cellRange(r: Rect): { i0: number; i1: number; j0: number; j1: number } {
+  return {
+    i0: Math.floor(r.x0 / ARTERIAL_SPACING.x) - 1, i1: Math.floor((r.x1 - 1) / ARTERIAL_SPACING.x) + 1,
+    j0: Math.floor(r.y0 / ARTERIAL_SPACING.y) - 1, j1: Math.floor((r.y1 - 1) / ARTERIAL_SPACING.y) + 1,
+  };
+}
+
 /** Paints r from the blocks of every arterial cell that cellAt could return for a point of r. */
 function raster(seed: string, r: Rect): Raster {
   const W = r.x1 - r.x0, H = r.y1 - r.y0;
   const cls: WorldCls[][] = Array.from({ length: H }, () => Array<WorldCls>(W).fill('road'));
   const block: (string | null)[][] = Array.from({ length: H }, () => Array<string | null>(W).fill(null));
   const art: boolean[][] = Array.from({ length: H }, () => Array<boolean>(W).fill(true));
-  const i0 = Math.floor(r.x0 / ARTERIAL_SPACING.x) - 1, i1 = Math.floor((r.x1 - 1) / ARTERIAL_SPACING.x) + 1;
-  const j0 = Math.floor(r.y0 / ARTERIAL_SPACING.y) - 1, j1 = Math.floor((r.y1 - 1) / ARTERIAL_SPACING.y) + 1;
+  const { i0, i1, j0, j1 } = cellRange(r);
   const clip = (q: Rect, f: (x: number, y: number) => void) => {
     for (let y = Math.max(q.y0, r.y0); y < Math.min(q.y1, r.y1); y++)
       for (let x = Math.max(q.x0, r.x0); x < Math.min(q.x1, r.x1); x++) f(x, y);
@@ -49,23 +57,29 @@ export function blockRaster(seed: string, r: Rect): (string | null)[][] {
   return raster(seed, r).block;
 }
 
+/** Ring search of roadOwner on a raster: the smallest block id on the nearest ring (Chebyshev distance 1..maxD around
+ *  raster cell (x, y)) holding a sidewalk cell, or null if no ring up to maxD has one. The rings must lie inside ras. */
+function ringOwner(ras: Raster, x: number, y: number, maxD: number): string | null {
+  for (let d = 1; d <= maxD; d++) {
+    let best: string | null = null;
+    for (let dy = -d; dy <= d; dy++) for (let dx = -d; dx <= d; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== d || ras.cls[y + dy][x + dx] !== 'walk') continue;
+      const id = ras.block[y + dy][x + dx]!;
+      if (best === null || id < best) best = id;
+    }
+    if (best !== null) return best;
+  }
+  return null;
+}
+
 /** Block owning a road cell: the block of the Chebyshev-nearest sidewalk cell; ties go to the smallest id (spec 2.3).
  *  Junction cells follow the same rule. */
 export function roadOwner(seed: string, x: number, y: number): string {
   // Search rings in a window around (x, y); a larger window only adds rings further out, so the answer does not
   // depend on the window size as long as the nearest ring is inside it.
   for (let R = Math.max(...ROAD_WIDTHS); ; R *= 2) {
-    const ras = raster(seed, { x0: x - R, y0: y - R, x1: x + R + 1, y1: y + R + 1 });
-    for (let d = 1; d <= R; d++) {
-      let best: string | null = null;
-      for (let dy = -d; dy <= d; dy++) for (let dx = -d; dx <= d; dx++) {
-        if (Math.max(Math.abs(dx), Math.abs(dy)) !== d) continue;
-        if (ras.cls[R + dy][R + dx] !== 'walk') continue;
-        const id = ras.block[R + dy][R + dx]!;
-        if (best === null || id < best) best = id;
-      }
-      if (best !== null) return best;
-    }
+    const o = ringOwner(raster(seed, { x0: x - R, y0: y - R, x1: x + R + 1, y1: y + R + 1 }), R, R, R);
+    if (o !== null) return o;
   }
 }
 
@@ -75,13 +89,28 @@ export function ownerOf(seed: string, x: number, y: number): string {
   return b ? b.id : roadOwner(seed, x, y);
 }
 
+/** Owner block id of every cell of r (row-major); equal to ownerOf cell by cell, but resolved on one raster of r
+ *  padded by ANALYSIS_PAD (roadOwner's ring search out to the pad, roadOwner itself beyond it). */
+export function ownerRaster(seed: string, r: Rect): string[][] {
+  const P = ANALYSIS_PAD, ras = raster(seed, { x0: r.x0 - P, y0: r.y0 - P, x1: r.x1 + P, y1: r.y1 + P });
+  const out: string[][] = [];
+  for (let y = P; y < P + r.y1 - r.y0; y++) {
+    const row: string[] = [];
+    for (let x = P; x < P + r.x1 - r.x0; x++)
+      row.push(ras.block[y][x] ?? ringOwner(ras, x, y, P) ?? roadOwner(seed, x - P + r.x0, y - P + r.y0));
+    out.push(row);
+  }
+  return out;
+}
+
 /** Zebra crossings (CROSSING_LEN cells along the road, the full road width across) intersecting r.
  *  Corridors are found on r padded by ANALYSIS_PAD. A crossing is drawn at a corridor end whose next cell is a
  *  junction (road in no corridor) when the corridor runs on for >= CROSSING_MIN_RUN cells; whether and where is
  *  hashed on the junction's first world cell. Locality: a cell's corridor status depends only on runs of at most the
- *  widest road through it, and every cell a crossing intersecting r looks at lies within CROSSING_MIN_RUN of r, so
- *  the pad (>= widest road + CROSSING_MIN_RUN) keeps all of them unaffected by the raster edge; ends cut by the
- *  raster edge are never junctions inside that zone. */
+ *  widest road through it. A crossing intersecting r, its gap and its junction reach at most ~7 cells beyond r, so
+ *  with ANALYSIS_PAD = 16 a corridor run cut by the raster edge still keeps >= 10 cells, >= CROSSING_MIN_RUN; the
+ *  decisions for crossings intersecting r are therefore unaffected by the raster edge, and ends cut by the raster
+ *  edge are never junctions near r. */
 export function crossingsIn(seed: string, r: Rect): WCrossing[] {
   const P = ANALYSIS_PAD, pr: Rect = { x0: r.x0 - P, y0: r.y0 - P, x1: r.x1 + P, y1: r.y1 + P };
   const ras = raster(seed, pr);

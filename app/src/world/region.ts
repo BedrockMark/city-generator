@@ -1,13 +1,13 @@
 // A rectangle of the world as one Scene (spec 5): the world ground, overlaid on every cell with the ground of the
 // block that owns it, plus the kept objects / buildings / groups / zones of every block that owns a cell of the rect,
-// moved to region pixel coordinates. Pure function of (seed, rect, options): the blocks come from the cached
-// generateBlock, whose results do not depend on the cache.
+// moved to region pixel coordinates (zones follow the objects' rule: their centre cell). Pure function of
+// (seed, rect, options): the blocks come from the cached generateBlock, whose results do not depend on the cache.
 import { cellRect } from './arterials';
 import { cellBlocks } from './blocks';
-import { classRaster, blockRaster, ownerOf } from './cells';
+import { cellRange, classRaster, ownerRaster } from './cells';
 import { paintGround } from './ground';
-import { generateBlock, ownerCell, type CityOptions } from './window';
-import { ARTERIAL_SPACING, ANALYSIS_PAD, CITY_NOVELTY, REGION_PAD } from './config';
+import { generateBlock, ownerCell, zoneCell, type CityOptions } from './window';
+import { CITY_NOVELTY, REGION_PAD } from './config';
 import { VERSION } from '../gen/generate';
 import { withDefaults } from '../gen/exp';
 import { SHEETS, TILE, type Anchor, type BuildingRec, type GroupRec, type Placed, type PxRect, type Scene, type TileRef, type ZoneRec } from '../gen/types';
@@ -15,44 +15,17 @@ import type { Rect } from './types';
 
 const hits = (a: Rect, b: Rect) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
 
-/** Ids (sorted) of the blocks whose footprint, grown by REGION_PAD (half the widest road), intersects r: every block
- *  that can own a cell of r. */
+/** Ids (sorted) of the blocks whose footprint, grown by REGION_PAD (how far a road cell can be from its owner's
+ *  sidewalk), intersects r: every block that can own a cell of r. Includes blocks that only own road cells of r. */
 export function blocksIn(seed: string, r: Rect): string[] {
   const P = REGION_PAD, pr: Rect = { x0: r.x0 - P, y0: r.y0 - P, x1: r.x1 + P, y1: r.y1 + P };
-  // same arterial cell range as cells.ts' raster: the jitter never moves a cell edge by a whole spacing
-  const i0 = Math.floor(pr.x0 / ARTERIAL_SPACING.x) - 1, i1 = Math.floor((pr.x1 - 1) / ARTERIAL_SPACING.x) + 1;
-  const j0 = Math.floor(pr.y0 / ARTERIAL_SPACING.y) - 1, j1 = Math.floor((pr.y1 - 1) / ARTERIAL_SPACING.y) + 1;
+  const { i0, i1, j0, j1 } = cellRange(pr);
   const out: string[] = [];
   for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) {
     if (!hits(cellRect(seed, i, j), pr)) continue;
     for (const b of cellBlocks(seed, i, j)) if (b.foot.some(f => hits(f, pr))) out.push(b.id);
   }
   return out.sort();
-}
-
-/** Owner block id of every cell of r (row-major); equal to ownerOf, but road cells are resolved by the same ring search
- *  as roadOwner on one raster padded by ANALYSIS_PAD instead of one raster per cell. */
-export function ownerRaster(seed: string, r: Rect): string[][] {
-  const P = ANALYSIS_PAD, pr: Rect = { x0: r.x0 - P, y0: r.y0 - P, x1: r.x1 + P, y1: r.y1 + P };
-  const cls = classRaster(seed, pr), blk = blockRaster(seed, pr);
-  const out: string[][] = [];
-  for (let y = P; y < P + r.y1 - r.y0; y++) {
-    const row: string[] = [];
-    for (let x = P; x < P + r.x1 - r.x0; x++) {
-      let o = blk[y][x];
-      // nearest sidewalk ring by Chebyshev distance, smallest id on ties (roadOwner's rule)
-      for (let d = 1; o === null && d <= P; d++) {
-        for (let dy = -d; dy <= d; dy++) for (let dx = -d; dx <= d; dx++) {
-          if (Math.max(Math.abs(dx), Math.abs(dy)) !== d || cls[y + dy][x + dx] !== 'walk') continue;
-          const id = blk[y + dy][x + dx]!;
-          if (o === null || id < o) o = id;
-        }
-      }
-      row.push(o ?? ownerOf(seed, x - P + r.x0, y - P + r.y0));
-    }
-    out.push(row);
-  }
-  return out;
 }
 
 const movePx = (p: PxRect, dx: number, dy: number): PxRect => ({ x0: p.x0 + dx, y0: p.y0 + dy, x1: p.x1 + dx, y1: p.y1 + dy });
@@ -95,25 +68,30 @@ export function assembleRegion(seed: string, r: Rect, opts: CityOptions = {}): S
       if (o.anchor) m.anchor = moveAnchor(o.anchor, dx, dy);
       objects.push(m);
     }
+    const keptGroups = new Set<string>();
     for (const gr of scene.groups ?? []) {
       const members = gr.members.filter(mm => kept.has(mm));
       if (!members.length) continue;
+      keptGroups.add(gr.gid);
       const m: GroupRec = { ...gr, gid: pre(id, gr.gid), members: members.map(mm => pre(id, mm)) };
       if (gr.anchor) m.anchor = moveAnchor(gr.anchor, dx, dy);
       if (gr.bbox) m.bbox = movePx(gr.bbox, dx, dy);
       groups.push(m);
     }
-    // buildings whose sprites were kept; zones touching r
+    // buildings whose sprites were kept
     for (const b of scene.buildings ?? []) {
       if (!keptG.has(b.gid)) continue;
       buildings.push({ ...b, gid: pre(id, b.gid), id: pre(id, b.id), rect: movePx(b.rect, dx, dy), solid: movePx(b.solid, dx, dy),
         doors: b.doors.map(d => ({ x: d.x + dx, y: d.y + dy })) });
     }
+    // zones by the objects' rule: kept when their centre cell is a cell of r the block owns (generateBlock already
+    // kept only zones centred on its own cells); a group id is kept only if that group is
     for (const z of scene.zones ?? []) {
       const rect = movePx(z.rect, dx, dy);
-      if (!(rect.x0 < cols * TILE && rect.x1 > 0 && rect.y0 < rows * TILE && rect.y1 > 0)) continue;
+      const [x, y] = zoneCell(rect);
+      if (x < 0 || y < 0 || x >= cols || y >= rows || owner[y][x] !== id) continue;
       const m: ZoneRec = { ...z, id: pre(id, z.id), rect };
-      if (z.gid) m.gid = pre(id, z.gid);
+      if (z.gid && keptGroups.has(z.gid)) m.gid = pre(id, z.gid); else delete m.gid;
       zones.push(m);
     }
   }
