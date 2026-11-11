@@ -48,7 +48,7 @@ function dilate(m: boolean[][], rx: number, ry: number): boolean[][] {
   return out;
 }
 
-function chebDist(m: boolean[][]): number[][] {
+export function chebDist(m: boolean[][]): number[][] {
   const R = m.length, C = m[0].length, INF = 1e6;
   const d: number[][] = m.map(row => row.map(v => (v ? 0 : INF)));
   for (let y = 0; y < R; y++) for (let x = 0; x < C; x++) for (const [dx, dy] of [[-1, 0], [0, -1], [-1, -1], [1, -1]]) {
@@ -227,9 +227,11 @@ function paintGround(L: Layout, r: Rng) {
   roadMarkings(L, r);
 }
 
-/** corridor analysis: run lengths of road cells; dashes on corridor centre lines; zebra crossings near intersections */
-function roadMarkings(L: Layout, r: Rng) {
-  const { rows, cols, cls } = L;
+/** Corridor analysis: road cells whose run across the road is bounded and has an accepted width (and whose run along
+ *  the road is not itself such a width) form corridor segments, grouped by band (first row / column of the cross
+ *  run), width and contiguity. Pure: no RNG. `widthOk('h', w)` judges a horizontal corridor of height w. */
+export function findSegs(cls: CellClass[][], widthOk: (axis: 'h' | 'v', w: number) => boolean): Seg[] {
+  const rows = cls.length, cols = rows ? cls[0].length : 0;
   const road = (x: number, y: number) => x >= 0 && y >= 0 && x < cols && y < rows && cls[y][x] === 'road';
   // vertical run (for horizontal corridors) and horizontal run (for vertical corridors)
   const vrun = grid(rows, cols, 0), vidx = grid(rows, cols, 0), hrun = grid(rows, cols, 0), hidx = grid(rows, cols, 0);
@@ -240,18 +242,27 @@ function roadMarkings(L: Layout, r: Rng) {
   for (let y = 0; y < rows; y++) { let x = 0; while (x < cols) { if (!road(x, y)) { x++; continue; }
     let e = x; while (e < cols && road(e, y)) e++;
     for (let k = x; k < e; k++) { hrun[y][k] = e - x; hidx[y][k] = k - x; hbounded[y][k] = x > 0 && e < cols; } x = e; } }
-  const hcorr = (x: number, y: number) => road(x, y) && vbounded[y][x] && vrun[y][x] === L.rH && !(hbounded[y][x] && hrun[y][x] === L.rV);
-  const vcorr = (x: number, y: number) => road(x, y) && hbounded[y][x] && hrun[y][x] === L.rV && !(vbounded[y][x] && vrun[y][x] === L.rH);
-  // horizontal corridor segments: group by band (top row of the vertical run) and contiguous x
+  const hcorr = (x: number, y: number) => road(x, y) && vbounded[y][x] && widthOk('h', vrun[y][x]) && !(hbounded[y][x] && widthOk('v', hrun[y][x]));
+  const vcorr = (x: number, y: number) => road(x, y) && hbounded[y][x] && widthOk('v', hrun[y][x]) && !(vbounded[y][x] && widthOk('h', vrun[y][x]));
+  // horizontal corridor segments: group by band (top row of the vertical run), width and contiguous x
   const segs: Seg[] = [];
   for (let y = 0; y < rows; y++) { let x = 0; while (x < cols) {
     if (!(hcorr(x, y) && vidx[y][x] === 0)) { x++; continue; }
-    let e = x; while (e < cols && hcorr(e, y) && vidx[y][e] === 0) e++;
-    segs.push({ axis: 'h', band0: y, band1: y + L.rH, a: x, b: e }); x = e; } }
+    const w = vrun[y][x];
+    let e = x; while (e < cols && hcorr(e, y) && vidx[y][e] === 0 && vrun[y][e] === w) e++;
+    segs.push({ axis: 'h', band0: y, band1: y + w, a: x, b: e }); x = e; } }
   for (let x = 0; x < cols; x++) { let y = 0; while (y < rows) {
     if (!(vcorr(x, y) && hidx[y][x] === 0)) { y++; continue; }
-    let e = y; while (e < rows && vcorr(x, e) && hidx[e][x] === 0) e++;
-    segs.push({ axis: 'v', band0: x, band1: x + L.rV, a: y, b: e }); y = e; } }
+    const w = hrun[y][x];
+    let e = y; while (e < rows && vcorr(x, e) && hidx[e][x] === 0 && hrun[e][x] === w) e++;
+    segs.push({ axis: 'v', band0: x, band1: x + w, a: y, b: e }); y = e; } }
+  return segs;
+}
+
+/** corridor analysis: run lengths of road cells; dashes on corridor centre lines; zebra crossings near intersections */
+function roadMarkings(L: Layout, r: Rng) {
+  const { rows, cols, cls } = L;
+  const segs = findSegs(cls, (a, w) => w === (a === 'h' ? L.rH : L.rV));
   L.segs = segs;
   // zebra crossings: candidates = corridor ends next to an intersection; per intersection keep 0-2 of them,
   // more likely where the main block is involved (refs show 1-3 crossings per junction, never all arms).
