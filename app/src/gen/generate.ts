@@ -1,7 +1,7 @@
 // Top-level generator: seed -> Scene.
 import { Rng, Trace } from './rng';
-import { makeLayout } from './layout';
-import { planMainBlock, emitBuildings } from './block';
+import { makeLayout, type Layout } from './layout';
+import { planMainBlock, emitBuildings, type BlockPlan } from './block';
 import { planNeighbours } from './neighbours';
 import { SceneBuilder } from './place';
 import { resetIds } from './buildings';
@@ -25,8 +25,17 @@ export function generate(seed: string, options: Partial<GenOptions> = {}): Scene
   return generateBase(seed, withDefaults(options));
 }
 
-/** the generator proper, constraint repairs included (stage 5) */
-export function generateBase(seed: string, opts: GenOptions): Scene {
+/** a world block's window (city mode, spec 4): the layout in window coordinates, built by the world layer */
+export interface BlockWindow {
+  layout: Layout;
+  /** merged into scene.params (world: { seed, blockId, zone, offset }) */
+  params: Record<string, unknown>;
+}
+
+/** the generator proper, constraint repairs included (stage 5). With `win`: the window's layout instead of makeLayout,
+ *  no neighbour blocks planned (they are generated on their own), no 'nfronts' / 'island' subsystems; every stream is
+ *  forked by label from the seed, so skipping these leaves the others' draws unchanged */
+export function generateBase(seed: string, opts: GenOptions, win?: BlockWindow): Scene {
   resetIds();
   resetKitIds();
   resetDistrictIds();
@@ -38,14 +47,15 @@ export function generateBase(seed: string, opts: GenOptions): Scene {
   if (opts.district !== undefined && !isDistrict(opts.district)) throw new Error(`unknown district: ${String(opts.district)}`);
   const district = opts.district;
   const campus = district && planCampus(district, rng);
-  const L = makeLayout(rng, campus && { w: campus.W, h: campus.H });
+  const L = win ? win.layout : makeLayout(rng, campus && { w: campus.W, h: campus.H });
   const sb = new SceneBuilder(L.cols, L.rows, L.cls);
   // exp-04 (adopted): composite buildings on its own stream; touching neighbours switch to their linked state (no random numbers)
   const composite = { r: expStream(rng, EXP04, opts.novelty), p: compositeChance(opts.novelty) };
   // exp-05 (adopted): the packs' other building kits in place of a picked building, on its own stream
   const kits = { r: expStream(rng, EXP05, opts.novelty), p: kitChance(opts.novelty) };
   const main = planMainBlock(L, rng, composite, kits, campus);
-  const neigh = planNeighbours(L, rng, composite, kits);
+  const neigh: BlockPlan = win ? { buildings: [], zones: [], yard: L.cls.map(row => row.map(() => false)), yb: new Map(), yt: new Map() }
+    : planNeighbours(L, rng, composite, kits);
   linkBuildings([main, neigh]);
   sb.inStream('block', () => emitBuildings(L, main, sb, 'main'));
   sb.inStream('neigh', () => emitBuildings(L, neigh, sb, 'neigh'));
@@ -68,8 +78,10 @@ export function generateBase(seed: string, opts: GenOptions): Scene {
   on('zones', r => zoneVignettes(L, main, sb, r));
   on('bus', r => busStop(L, sb, r, runs));
   on('fronts', r => frontVignettes(L, main, sb, r));
-  on('nfronts', r => frontVignettes(L, { ...neigh, buildings: neigh.buildings.filter(b => b.side === 'S') }, sb, r));
-  on('island', r => islandSquares(L, neigh, sb, r));
+  if (!win) {
+    on('nfronts', r => frontVignettes(L, { ...neigh, buildings: neigh.buildings.filter(b => b.side === 'S') }, sb, r));
+    on('island', r => islandSquares(L, neigh, sb, r));
+  }
   on('curb', r => curbStrips(L, sb, r, runs));
   on('cars', r => cars(L, sb, r, runs));
   on('road', r => roadDetails(L, sb, r));
@@ -79,7 +91,7 @@ export function generateBase(seed: string, opts: GenOptions): Scene {
   const scene: Scene = {
     version: VERSION, seed,
     params: { ...(district ? { district } : {}), shape: L.shape, interior: [L.bx1 - L.bx0, L.by1 - L.by0], roads: { h: L.rH, v: L.rV }, sidewalk: L.sw,
-      buildings: main.buildings.map(b => b.plan.label) },
+      buildings: main.buildings.map(b => b.plan.label), ...win?.params },
     cols: L.cols, rows: L.rows, tile: TILE, sheets: SHEETS,
     ground: [L.base, L.over], objects: sb.objects, cells: L.cls, notes: [],
     options: opts, groups: [...sb.groups.values()], buildings: sb.buildings, zones: sb.zones, trace: trace.toJSON(),

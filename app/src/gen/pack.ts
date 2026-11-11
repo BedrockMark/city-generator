@@ -34,6 +34,8 @@ export interface PackOpts {
   composite?: { r: Rng; p: number };
   /** exp-05: the packs' other building kits (kits.ts) in place of the picked building, on the experiment's own stream */
   kits?: { r: Rng; p: number };
+  /** city mode (spec 4): a building sprite's top row may not be above topLimit(x), for every column x it covers */
+  topLimit?: (x: number) => number;
 }
 
 export interface Packed { plan: BuildingPlan; cx: number; cy: number; why: string; /** rows slid north by `spread` */ moved?: number;
@@ -49,6 +51,7 @@ export function pack(o: PackOpts, r: Rng): { placed: Packed[]; yard: boolean[][]
   const over = (x: number, y: number) => inside(x, y) ? o.canopy(x, y) : !!o.overflow?.(x, y);
   const placed: Packed[] = [];
   const fits = (b: BuildingPlan, x0: number, bottom: number) => {
+    if (!underTop(o, x0, b.w, bottom - b.h + 1)) return false;
     for (let y = bottom - b.foot + 1; y <= bottom; y++) for (let x = x0; x < x0 + b.w; x++) if (!ok(x, y)) return false;
     for (let y = bottom - b.h + 1; y <= bottom - b.foot; y++) for (let x = x0; x < x0 + b.w; x++) if (!over(x, y)) return false;
     // front clearance: the 2 rows below must not be building
@@ -145,6 +148,13 @@ export function pack(o: PackOpts, r: Rng): { placed: Packed[]; yard: boolean[][]
   return { placed, yard };
 }
 
+/** the sprite's top row `top` over columns x0..x0+w-1 is not above `topLimit` (no limit: always true) */
+function underTop(o: PackOpts, x0: number, w: number, top: number): boolean {
+  if (!o.topLimit) return true;
+  for (let x = x0; x < x0 + w; x++) if (top < o.topLimit(x)) return false;
+  return true;
+}
+
 /** exp-04: a building put together from parts in place of `bp` (same kind of front), or null */
 function composed(c: { r: Rng; p: number }, bp: BuildingPlan, rem: number, avail: number, minH: number): { plan: BuildingPlan; why: string } | null {
   const single = bp.parts.length === 1 && bp.parts[0].role === 'whole';
@@ -235,6 +245,7 @@ function spreadNorth(o: PackOpts, placed: Packed[], bld: boolean[][], free: bool
   };
   const fitsAt = (p: Packed, bot: number) => {
     const b = p.plan, x0 = p.cx;
+    if (!underTop(o, x0, b.w, bot - b.h + 1)) return false;
     for (let y = bot - b.foot + 1; y <= bot; y++) for (let x = x0; x < x0 + b.w; x++) {
       if (!inside(x, y) || !o.buildable(x, y) || bld[y][x]) return false;
       // the footprint must not stand in the 2 rows in front of another facade

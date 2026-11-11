@@ -34,6 +34,9 @@ export interface Layout {
   over: (TileRef | null)[][];
   /** semantic marks on road cells: 'dash', 'zebra', 'park', 'bus' ... */
   mark: string[][];
+  /** city mode (spec 4): the top row a building sprite may reach in column x (upper floors stop at the north road's
+   *  centre line); undefined = no limit (single-block mode) */
+  topLimit?: (x: number) => number;
 }
 
 const grid = <T>(r: number, c: number, v: T): T[][] => Array.from({ length: r }, () => Array<T>(c).fill(v));

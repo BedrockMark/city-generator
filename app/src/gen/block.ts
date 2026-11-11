@@ -78,7 +78,7 @@ export function planMainBlock(L: Layout, r0: Rng, composite?: { r: Rng; p: numbe
   const { placed, yard } = pack({
     cols: L.cols, rows: L.rows, buildable: (x, y) => L.inP[y][x] && !carved[y][x], canopy: (x, y) => L.inP[y][x], mix, minH: 8,
     gapAfter: [[0, 6], [1, 2], [2, 1]], pairChance: 0.4, spread: true, composite: composite && { r: composite.r.fork('main'), p: composite.p },
-    kits: kits && { r: kits.r.fork('main'), p: kits.p },
+    kits: kits && { r: kits.r.fork('main'), p: kits.p }, topLimit: L.topLimit,
     // only buildings that face the street (sidewalk right below the facade) may be shops
     frontFilter: (x0, w, bottom) => {
       let street = true;
