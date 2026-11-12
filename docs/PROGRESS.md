@@ -72,6 +72,7 @@
 
 ## 怎么运行
 - **v0.8.0-hotfix2**（2026-11-11，`main`，报告 `docs/reports/v0.8.0-hotfix2.md`，D83）：用户看了 hotfix1：双实线要占一格，车道间距一样（都按虚线到人行道的距离）→ 主干道 11 格（两车道）/ 17 格（三车道，只有竖向），每条线一格、每条车道 2 格。jog、横道保持。单街区不变（生成器只改了 `VERSION`）。
+- **v0.8.1**（2026-11-11，`main`，报告 `docs/reports/v0.8.1.md`，D84–D86）：v1.0.0 的第二个里程碑，**区块 API 和查看器城市模式**。`app/src/world/chunk.ts`：`getChunk` / `getBlock` / `worldInfo`（64 × 64 格区块，由拥有格子的街区拼出，D84）；查看器 Worker 池（`pool.ts`、`cityqueue.ts`、`city.worker.ts`，街区、组装两步，D85）；城市模式（`city.ts`，拖动、滚轮、悬停 / 单击看说明、双击 / Enter 进入街区做好坏标注、Esc 返回、E 导出；标注存放键 `storeKey`，D86）；`draw.ts` 是从 `main.ts` 搬出的共用画图函数；`scripts/cityregress.ts` 世界回归。单街区 200/200 相同（`work/regress/v081`，约束记录逐字节相同）；世界回归 20 个种子全部通过（`work/cityregress/v081`，6 分 40 秒）；132 项测试通过。一屏画满（headless Edge 软件 WebGL）z=1 约 10–14 秒、z=0.5 约 13–31 秒、z=0.25 约 76 秒。
 - 查看器：`cd app && npx vite`，然后打开 http://localhost:5173/?seed=7
   - 快捷键：R 重新生成，F 适应窗口，G 虚化楼上层，A 标注层，E 导出（PNG、_ghost.png、_annotated.png、JSON，有标注时加 _labels.json）。v0.7.6 起没有 H（热力图）、B（A/B）、K（存档为合格）。
   - 标注模式：单击选中，Shift+拖动框选，1 / 2 标好 / 坏，Ctrl+Enter 保存，Esc 取消。标注由开发服务器写到 `references/labels/v<版本>/`。
@@ -135,7 +136,13 @@
 - `cells.ts`：每格类别、马路格归属（D74）、横道。`ground.ts`：世界地面。
 - `window.ts`：街区窗口 `blockLayout`、`generateInWindow`（归属过滤）、`generateBlock`（缓存）（D75、D82）。`region.ts`：`blocksIn`、`assembleRegion`（一片区域拼成一个 Scene）。
 
+## 代码结构（v0.8.1 新增）
+- `app/src/world/chunk.ts`：`getChunk` / `getBlock` / `worldInfo`、`assembleChunk`（街区由调用方给）、`trimBlock`、`chunkRect`、`chunkOf`。
+- `app/src/viewer/`：`pool.ts`（Worker 池）、`cityqueue.ts`（调度，纯函数）、`city.worker.ts`（`block` / `chunk` / `scene` 三种消息）、`city.ts`（城市模式）、`draw.ts`（共用画图），各自带 `.test.ts`；`labels.test.ts`。
+- `app/scripts/cityregress.ts` + `city_seeds.json`（世界回归）；`shots.ts --city x,y,z`。`main.ts` 的换行从 CRLF 改成 LF。
+
 ## 下一步
+- **v0.8.1 已完成，等用户看**：在查看器里漫游（`cd app && npx vite`，`?city=1&seed=1`），标几个街区（`references/labels/v0.8.1/`）；之后写 v0.8.2 的计划（繁荣度、大街区中心广场、环岛）。tag `v0.8.1` 由最终评审后打。
 - 用户 2026-11-11 确认 v0.8.0-hotfix2：“现在这样就很好”（横向主干道不加 17 格）。**v0.8.1 的计划**：`docs/superpowers/plans/2026-11-11-v081-chunks-viewer.md`（`getChunk` / `getBlock` / `worldInfo`、Worker 池、查看器城市模式、街区标注、世界回归），等用户审阅后执行。
 - **v0.8.2 新增（用户 2026-11-11）**：繁荣度决定街区大小、范围放宽、大街区中心广场（方案见 hotfix1 报告第 5 节）；主干道路口的环岛。已写进 spec 第 10 节的里程碑表。
 - **v1.0.0 城市生成**（2026-11-11 开始）：spec `docs/superpowers/specs/2026-11-11-v1-city-design.md`。已审（2026-11-11）。v0.8.0 已按计划 `docs/superpowers/plans/2026-11-11-v080-world-layer.md` 完成（subagent 逐任务执行）；之后每个里程碑审完再写下一个计划。按 spec 第 10 节的里程碑 v0.8.0 → v1.0.0 做，每个里程碑停下等确认。
@@ -152,6 +159,7 @@
 - 阶段 7 的计划和执行记录：`docs/_prev/superpowers/plans/2026-11-04-stage7-learning.md`；`.superpowers/sdd/2026-11-04-stage7-learning/progress.md`（git 忽略，含所有 Ruling）。阶段 6 的：`docs/_prev/superpowers/plans/2026-11-03-stage6-judge.md`。
 
 ## 已知问题
+- v0.8.1 城市模式（详见 `docs/reports/v0.8.1.md` 第 4 节）：同一行相邻区块的大精灵排序可能错；城市模式没有虚化楼上层和网格；失败的街区同一 epoch 内不重试；z=0.25 显存重；区块组装 53–82 ms 略超 50 ms 目标。
 - v0.8.0-hotfix1 的种子 2 有一条 C18（门前 1 格草坪没清掉，生成器修复的问题）；hotfix2 重新切了街区，这条没有了，问题本身还在。
 - v0.8.0 城市模式（详见 `docs/reports/v0.8.0.md` 第 5 节）：小物件随窗口变（D77）已在 hotfix1 修好（D82）；种子 1 的 `b-1,1/LRRR`（闹市，地块 18 × 13）生成器没放下楼；横道按路口的每条臂散列（hotfix1 起 90%），不是单街区的每个路口 0–2 条；矩形边上中心在矩形外的车行道区域被丢掉（只影响标注说明）。
 - exp-07 整条删掉 56 条花园小路（共 356 条），能看见的 40 条，多数是从人行道伸进花园、撞上楼背面的路。“新去处”要求绕行 > 1.5 倍（D59 ③）。
