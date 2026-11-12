@@ -15,7 +15,7 @@
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
-import { join, dirname } from 'node:path';
+import { join, dirname, basename, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getChunk, chunkRect } from '../src/world/chunk';
 import { assembleRegion, blocksIn } from '../src/world/region';
@@ -279,7 +279,7 @@ function finish(t0: number): void {
     L.push(`- 单街区快照（${base}）：${rs.length}/${stats.length} 个种子有记录，每个种子平均剩余违规 ${rs.length ? (sum(rs) / rs.length).toFixed(1) : '-'}；世界区域（每个种子 ${(blocks / stats.length).toFixed(0)} 个街区）平均 ${(vt / stats.length).toFixed(1)}`);
   }
   L.push('');
-  if (prev) comparison(L, stats, blocks, vt, viol);
+  if (prev) comparison(L, stats);
   const ms = stats.map(s => s.ms);
   L.push('## 耗时', '', `- 每个种子（含检查）：平均 ${(sum(ms.map(m => m.total)) / stats.length / 1000).toFixed(1)} s，最长 ${(Math.max(...ms.map(m => m.total)) / 1000).toFixed(1)} s`);
   L.push(`- 街区生成：平均 ${(sum(ms.map(m => m.blockAvg)) / stats.length).toFixed(0)} ms，最长 ${Math.max(...ms.map(m => m.blockMax)).toFixed(0)} ms`);
@@ -290,20 +290,25 @@ function finish(t0: number): void {
   if (failed) process.exit(1);
 }
 
-// '## 对比' table: this run against the per-seed JSON of an older cityregress directory (same seeds)
-function comparison(L: string[], now: SeedStat[], blocksNow: number, vtNow: number, violNow: Record<string, number>): void {
-  const old = now.map(s => join(prev!, `${s.seed}.json`)).filter(existsSync).map(f => JSON.parse(readFileSync(f, 'utf8')) as SeedStat);
+// '## 对比' table: this run against the per-seed JSON of an older cityregress directory, both sides summed over the
+// seeds present in both; the columns are labelled with the two directories' names
+function comparison(L: string[], stats: SeedStat[]): void {
+  const both = stats.filter(s => existsSync(join(prev!, `${s.seed}.json`)));
+  const old = both.map(s => JSON.parse(readFileSync(join(prev!, `${s.seed}.json`), 'utf8')) as SeedStat);
   const sum = (v: number[]) => v.reduce((p, q) => p + q, 0);
   const fmt = (v: number[]) => (v.length ? `${v[0]} / ${v[Math.floor(v.length / 2)]} / ${v[v.length - 1]}` : '-');
-  const bo = sum(old.map(s => s.blocks)), vo = sum(old.map(s => s.violationsTotal));
-  const vOld: Record<string, number> = {};
-  for (const s of old) for (const [c, n] of Object.entries(s.violations)) vOld[c] = (vOld[c] ?? 0) + n;
-  const per = (v: number, n: number) => (v / Math.max(1, n)).toFixed(3);
-  L.push(`## 对比（${prev}，旧目录有 ${old.length}/${now.length} 个种子）`, '', '| | v0.8.1-hotfix1 | v0.8.2 |', '|---|---|---|');
-  L.push(`| 有地块的街区数 | ${bo} | ${blocksNow} |`);
-  L.push(`| 地块宽 最小 / 中位 / 最大 | ${fmt(sorted(old.flatMap(s => s.lotW)))} | ${fmt(sorted(now.flatMap(s => s.lotW)))} |`);
-  L.push(`| 地块高 最小 / 中位 / 最大 | ${fmt(sorted(old.flatMap(s => s.lotH)))} | ${fmt(sorted(now.flatMap(s => s.lotH)))} |`);
-  L.push(`| 剩余违规合计 | ${vo} | ${vtNow} |`, `| 剩余违规每街区 | ${per(vo, bo)} | ${per(vtNow, blocksNow)} |`);
-  for (const c of [...new Set([...Object.keys(vOld), ...Object.keys(violNow)])].sort()) L.push(`| ${c} | ${vOld[c] ?? 0} | ${violNow[c] ?? 0} |`);
+  const totals = (ss: SeedStat[]) => {
+    const viol: Record<string, number> = {};
+    for (const s of ss) for (const [c, n] of Object.entries(s.violations)) viol[c] = (viol[c] ?? 0) + n;
+    return { blocks: sum(ss.map(s => s.blocks)), vt: sum(ss.map(s => s.violationsTotal)), viol };
+  };
+  const o = totals(old), n = totals(both);
+  const per = (v: number, k: number) => (v / Math.max(1, k)).toFixed(3);
+  L.push(`## 对比（${prev}，两边都有的种子 ${both.length}/${stats.length} 个，只算这些）`, '', `| | ${basename(resolve(prev!))} | ${basename(resolve(outDir))} |`, '|---|---|---|');
+  L.push(`| 有地块的街区数 | ${o.blocks} | ${n.blocks} |`);
+  L.push(`| 地块宽 最小 / 中位 / 最大 | ${fmt(sorted(old.flatMap(s => s.lotW)))} | ${fmt(sorted(both.flatMap(s => s.lotW)))} |`);
+  L.push(`| 地块高 最小 / 中位 / 最大 | ${fmt(sorted(old.flatMap(s => s.lotH)))} | ${fmt(sorted(both.flatMap(s => s.lotH)))} |`);
+  L.push(`| 剩余违规合计 | ${o.vt} | ${n.vt} |`, `| 剩余违规每街区 | ${per(o.vt, o.blocks)} | ${per(n.vt, n.blocks)} |`);
+  for (const c of [...new Set([...Object.keys(o.viol), ...Object.keys(n.viol)])].sort()) L.push(`| ${c} | ${o.viol[c] ?? 0} | ${n.viol[c] ?? 0} |`);
   L.push('');
 }

@@ -228,7 +228,7 @@ export function reserveCorner(cell: Rect, fw: Range, fh: Range, size: (path: str
   return null;
 }
 
-/** The special district drawn for arterial cell (i, j) in `zone`, or null (most cells have none). */
+/** The special district drawn for arterial cell (i, j) in `zone`, or null (per DISTRICT_CHANCE[zone]). */
 export function cellDistrict(seed: string, i: number, j: number, zone: ZoneKind): DistrictKind | null {
   if (hash01(seed, 'district', i, j) >= DISTRICT_CHANCE[zone]) return null;
   const ws = (Object.entries(DISTRICT_WEIGHTS[zone]) as [DistrictKind, number][]).filter(([, w]) => w > 0);
