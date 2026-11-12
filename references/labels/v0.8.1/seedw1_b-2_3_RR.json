@@ -1,0 +1,81 @@
+{
+ "version": "0.8.1",
+ "seed": "w1_b-2_3_RR",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-12T16:11:14.249Z",
+   "version": "0.8.1",
+   "seed": "1/b-2,3/RR",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "prune": true,
+    "pruneDraft": false,
+    "prefs": true
+   },
+   "scene": "seedw1_b-2_3_RR.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "没有存在理由"
+   ],
+   "text": "",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 576,
+     "y0": 576,
+     "x1": 592,
+     "y1": 592
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "z7"
+    ]
+   },
+   "world": {
+    "seed": "1",
+    "blockId": "b-2,3/RR"
+   }
+  },
+  {
+   "id": "L2",
+   "created": "2026-11-12T16:11:24.644Z",
+   "version": "0.8.1",
+   "seed": "1/b-2,3/RR",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "prune": true,
+    "pruneDraft": false,
+    "prefs": true
+   },
+   "scene": "seedw1_b-2_3_RR.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "没有存在理由"
+   ],
+   "text": "",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 560,
+     "y0": 560,
+     "x1": 576,
+     "y1": 576
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "k5",
+     "z5"
+    ]
+   },
+   "world": {
+    "seed": "1",
+    "blockId": "b-2,3/RR"
+   }
+  }
+ ]
+}

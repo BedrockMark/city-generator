@@ -138,3 +138,23 @@ test('a jog block generates without throwing', () => {
   assert.equal(scene.params.shape, 'jog');
   assert.ok(scene.objects.length > 0);
 });
+
+test('a notch island block is a little square: no buildings, its centre piece and paving on the lot (0.8.1-hotfix1)', () => {
+  let n = 0;
+  for (const s of ['1', '2', '3']) for (let i = -1; i <= 1 && n < 4; i++) for (let j = -1; j <= 1 && n < 4; j++) {
+    for (const b of cellBlocks(s, i, j).filter(o => o.shape === 'island')) {
+      if (n >= 4) break;
+      n++;
+      const { scene } = generateBlock(s, b.id);
+      assert.equal(scene.buildings?.length ?? 0, 0, `${s} ${b.id} buildings`);
+      const g = scene.groups?.find(q => q.type === 'island');
+      assert.ok(g, `${s} ${b.id} has no island group`);
+      const centre = scene.objects.filter(o => o.gid === g.gid && (o.reason ?? '').includes('中心物'));
+      assert.equal(centre.length, 1, `${s} ${b.id} centre pieces: ${centre.length}`);
+      assert.ok(scene.zones?.some(z => z.kind === 'island'), `${s} ${b.id} island zone`);
+      // the centre piece is not pruned: nothing of the square goes to the repairs' walkway rule
+      assert.ok(!scene.audit!.pruned.some(p => p.gid === g.gid && p.c === 'C15'), `${s} ${b.id} square pruned by C15`);
+    }
+  }
+  assert.ok(n >= 2, `only ${n} island blocks found`);
+});

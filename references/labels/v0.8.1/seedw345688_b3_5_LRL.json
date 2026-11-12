@@ -1,0 +1,133 @@
+{
+ "version": "0.8.1",
+ "seed": "w345688_b3_5_LRL",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-12T16:08:14.042Z",
+   "version": "0.8.1",
+   "seed": "345688/b3,5/LRL",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "prune": true,
+    "pruneDraft": false,
+    "prefs": true
+   },
+   "scene": "seedw345688_b3_5_LRL.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "挡路"
+   ],
+   "text": "",
+   "target": {
+    "kind": "object",
+    "rect": {
+     "x0": 621,
+     "y0": 535,
+     "x1": 707,
+     "y1": 671
+    },
+    "objects": [
+     {
+      "id": "o71",
+      "key": "3_City_Props/Kiosk_Coffee_Cup",
+      "cls": "kiosk",
+      "gid": "plaza#0",
+      "x": 614,
+      "y": 527
+     }
+    ],
+    "gids": [
+     "plaza#0"
+    ],
+    "zones": [
+     "k1",
+     "k5",
+     "z0",
+     "z13"
+    ]
+   },
+   "world": {
+    "seed": "345688",
+    "blockId": "b3,5/LRL"
+   }
+  },
+  {
+   "id": "L2",
+   "created": "2026-11-12T16:08:19.544Z",
+   "version": "0.8.1",
+   "seed": "345688/b3,5/LRL",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "prune": true,
+    "pruneDraft": false,
+    "prefs": true
+   },
+   "scene": "seedw345688_b3_5_LRL.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "没有存在理由"
+   ],
+   "text": "",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 576,
+     "y0": 592,
+     "x1": 592,
+     "y1": 608
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "k58",
+     "z12"
+    ]
+   },
+   "world": {
+    "seed": "345688",
+    "blockId": "b3,5/LRL"
+   }
+  },
+  {
+   "id": "L3",
+   "created": "2026-11-12T16:08:25.932Z",
+   "version": "0.8.1",
+   "seed": "345688/b3,5/LRL",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "prune": true,
+    "pruneDraft": false,
+    "prefs": true
+   },
+   "scene": "seedw345688_b3_5_LRL.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "没有存在理由"
+   ],
+   "text": "",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 576,
+     "y0": 512,
+     "x1": 592,
+     "y1": 528
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "z10",
+     "k60"
+    ]
+   },
+   "world": {
+    "seed": "345688",
+    "blockId": "b3,5/LRL"
+   }
+  }
+ ]
+}

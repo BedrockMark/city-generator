@@ -5,10 +5,10 @@
 import { Rng } from './rng';
 import type { Layout, Seg } from './layout';
 import type { BlockPlan, PlacedBuilding } from './block';
-import { SceneBuilder, rect } from './place';
+import { SceneBuilder, rect, type PutOpts } from './place';
 import { spr, variants, hasSprite } from './assets';
 import { makePerson, frameFor, type Dir, type Pose } from './people';
-import { TILE, type Anchor } from './types';
+import { TILE, type Anchor, type Placed } from './types';
 import { slab, orgOf } from './layout';
 
 const C = '3_City_Props/';
@@ -333,6 +333,27 @@ function seated(r: Rng, fx: number, fy: number, dir: Dir): [string[], [number, n
 // ------------------------------------------------------------------------------------------------
 // alleys, plaza, pockets
 
+/** sprite k with its foot at (fx, fy) would hide a building's door: the door behind it, its picture over the door (C24) */
+export function hidesDoor(sb: SceneBuilder, k: string, fx: number, fy: number): boolean {
+  const s = spr(k), hw = (s.bb[2] - s.bb[0]) / 2, top = fy - (s.bb[3] - s.bb[1]);
+  return sb.buildings.some(b => b.doors.some(d => fy > d.y && d.x >= fx - hw && d.x < fx + hw && d.y - 12 >= top));
+}
+
+/** puts sprite k, its foot at y fy, at the x nearest to fx (fx, then 1, 2 ... cells right, then left) where it is not
+ *  blocked and hides no building's door (C24: a door behind it, its picture over the door); moved off fx, it stays
+ *  within [xa, xb). Null: nowhere; else the sprite and its foot x */
+export function putClearOfDoors(sb: SceneBuilder, k: string, xa: number, xb: number, fx: number, fy: number, cls: string, o: PutOpts): { p: Placed; x: number } | null {
+  const s = spr(k), hw = (s.bb[2] - s.bb[0]) / 2;
+  const hides = (x: number) => hidesDoor(sb, k, x, fy);
+  for (let i = 0; i * T <= xb - xa; i++) for (const sg of i ? [1, -1] : [1]) {
+    const x = fx + sg * i * T;
+    if (!(i === 0 || (x - hw >= xa && x + hw <= xb)) || hides(x)) continue;
+    const p = sb.putFoot(k, x, fy, cls, { ...o, why: i ? `${o.why}；从正中挪开 ${i} 格，免得挡住后面楼的门或别的东西` : o.why });
+    if (p) return { p, x };
+  }
+  return null;
+}
+
 export function zoneVignettes(L: Layout, plan: BlockPlan, sb: SceneBuilder, r: Rng) {
   for (const z of plan.zones) {
     const rr = sb.enter(r.fork(`zone${z.x0 + orgOf(L)[0]},${z.y0 + orgOf(L)[1]}`, { zone: z.kind, w: z.x1 - z.x0, h: z.y1 - z.y0 }));
@@ -354,18 +375,33 @@ export function zoneVignettes(L: Layout, plan: BlockPlan, sb: SceneBuilder, r: R
       const paving = rr.choose('plaza.paving', {}, ['sidewalk_beige', 'sidewalk_lightbeige', 'sidewalk_brown'].filter(st => st !== L.mainStyle));
       for (let y = z.y0; y < z.y1; y++) for (let x = z.x0; x < z.x1; x++) L.base[y][x] = slab(paving, x, y);
       // centre piece a little above the middle so there is room in front of it
-      const cxp = x0 + w / 2, cyp = y0 + (y1 - y0) * 0.45;
+      const cyp = y0 + (y1 - y0) * 0.45;
+      let cxp = x0 + w / 2;
       const centre = rr.choose('plaza.centre', {}, { weights: [['fountain', 2], ['tree', 2], ['kiosk', 1]] as const });
-      const centreWhy = '广场的中心物，略偏上，前方留出空间';
+      const ck = centre === 'fountain' ? rr.choose('plaza.fountainModel', {}, variants(C + 'Fountain'))
+        : centre === 'tree' ? rr.choose('plaza.treeModel', {}, [C + 'Tree_11', C + 'Tree_13'])
+        : rr.choose('plaza.kioskModel', {}, [C + 'Kiosk_Infopoint_1', C + 'Kiosk_Coffee_Cup', C + 'Kiosk_Icecream'].filter(hasSprite));
+      // where it hides no door (C24; 406829 L2, 0.8.1-hotfix1 w345688 b4,5/LLLL L1 "应该移到右侧"): the middle, else 1, 2
+      // ... cells to the right, then the left, overhanging the plaza by 3 cells at most. Nowhere: a smaller piece (the
+      // fountains, then the trees; the plaza stays lively), else no centre piece and no benches facing it
+      const dyOf = (k: string) => k.includes('Fountain') ? 12 : k.includes('Tree') ? 14 : 20;
+      const clsOf = (k: string) => k.includes('Fountain') ? 'utility' : k.includes('Tree') ? 'tree' : 'kiosk';
+      const pieces = [ck, ...[...variants(C + 'Fountain'), C + 'Tree_13', C + 'Tree_11'].filter(k => k !== ck && (centre === 'kiosk' || clsOf(k) === 'tree'))];
+      let cp: { p: Placed; x: number } | null = null, used = ck;
+      for (const k of pieces) {
+        cp = putClearOfDoors(sb, k, x0 - 3 * T, x0 + w + 3 * T, cxp, cyp + dyOf(k), clsOf(k), { gid, why: k === ck ? '广场的中心物，略偏上，前方留出空间' : `广场的中心物，略偏上，前方留出空间（抽到的 ${ck.split('/').pop()} 放在哪里都挡住后面楼的门，换小一点的）` });
+        if (cp) { used = k; break; }
+      }
       let half = 16;
-      if (centre === 'fountain') { const k = rr.choose('plaza.fountainModel', {}, variants(C + 'Fountain')); half = (spr(k).bb[2] - spr(k).bb[0]) / 2; sb.putFoot(k, cxp, cyp + 12, 'utility', { gid, why: centreWhy }); }
-      if (centre === 'tree') sb.putFoot(rr.choose('plaza.treeModel', {}, [C + 'Tree_11', C + 'Tree_13']), cxp, cyp + 14, 'tree', { gid, why: centreWhy });
-      if (centre === 'kiosk') { const k = rr.choose('plaza.kioskModel', {}, [C + 'Kiosk_Infopoint_1', C + 'Kiosk_Coffee_Cup', C + 'Kiosk_Icecream'].filter(hasSprite)); half = (spr(k).bb[2] - spr(k).bb[0]) / 2; sb.putFoot(k, cxp, cyp + 20, 'kiosk', { gid, why: centreWhy }); }
+      if (cp) {
+        cxp = cp.x;
+        if (clsOf(used) !== 'tree') half = (spr(used).bb[2] - spr(used).bb[0]) / 2;
+      }
       const centreAnchor: Anchor = { kind: 'object', ref: `${gid}/centre`, x: cxp, y: cyp };
       // benches either side facing the centre with a cell of space between; on a narrow plaza one bench south of
       // the centre piece, facing it (back to the viewer)
       const off = Math.round(half + T + 8);
-      if (rr.choose('plaza.benches', {}, { p: 0.85 })) {
+      if (cp && rr.choose('plaza.benches', {}, { p: 0.85 })) {
         const l = sb.putFoot(rr.choose('plaza.benchLeftModel', {}, [C + 'Bench_4', C + 'Bench_6']), cxp - off, cyp + 30, 'bench', { gid, why: '中心物左侧的长椅，面朝中心，隔一格（D21）', anchor: centreAnchor });
         const rgt = l && sb.putFoot(rr.choose('plaza.benchRightModel', {}, [C + 'Bench_3', C + 'Bench_5']), cxp + off, cyp + 30, 'bench', { gid, why: '中心物右侧的长椅，面朝中心，隔一格（D21）', anchor: centreAnchor });
         if (l && !rgt) { sb.objects.splice(sb.objects.indexOf(l), 1); sb.feet.pop(); }
@@ -403,25 +439,43 @@ export function islandSquares(L: Layout, neigh: BlockPlan, sb: SceneBuilder, r: 
     const x0 = Math.min(...xs), x1 = Math.max(...xs) + 1, y0 = Math.min(...ys), y1 = Math.max(...ys) + 1;
     if (x0 === 0 || y0 === 0 || x1 === L.cols || y1 === L.rows) continue;   // only fully visible islands
     const rr = sb.enter(r.fork(`island${g}`, { region: g, cells: cs.length }));
-    const cx = (x0 + x1) / 2 * T, cy = (y0 + y1) / 2 * T;
-    const why = `小岛街区（缺角处被环路围出的小地块，${cs.length} 格，放不下楼）：做成小广场`;
-    const gid = sb.group('island', why, { anchor: { kind: 'block', ref: `region${g}`, x: cx, y: cy } });
-    sb.zone('block', 'island', rect(x0 * T, y0 * T, x1 * T, y1 * T), why, gid);
-    const paving = rr.choose('island.paving', {}, ['sidewalk_beige', 'sidewalk_brown', 'sidewalk_lightbeige']);
-    for (const [x, y] of cs) if (L.cls[y][x] === 'nlot') L.base[y][x] = slab(paving, x, y);
-    const centre = rr.choose('island.centre', {}, { weights: [['kiosk', 2], ['fountain', 1], ['billboard', 1], ['tree', 1]] as const });
-    const cw = '小广场的中心物';
-    if (centre === 'kiosk') sb.putFoot(rr.choose('island.kioskModel', {}, [C + 'Kiosk_Infopoint_1', C + 'Kiosk_Coffee_Cup', C + 'Kiosk_Icecream', C + 'Kiosk_Mushroom'].filter(hasSprite)), cx, cy + 22, 'kiosk', { gid, why: cw, ignoreClear: true });
-    if (centre === 'fountain') sb.putFoot(rr.choose('island.fountainModel', {}, variants(C + 'Fountain')), cx, cy + 14, 'utility', { gid, why: cw, ignoreClear: true });
-    // billboard centred on the island (its picture, not its foot; user label 941983 L3)
-    if (centre === 'billboard') { const k = rr.choose('island.billboardModel', {}, variants(C + 'Billboard', [2, 3, 5, 6, 7, 8])); sb.putFoot(k, cx, cy + Math.round((spr(k).bb[3] - spr(k).bb[1]) / 2), 'info_sign', { gid, why: cw, ignoreClear: true }); }
-    if (centre === 'tree') sb.putFoot(C + 'Tree_13', cx, cy + 16, 'tree', { gid, why: cw, ignoreClear: ['walkway'] });
-    for (const sx of [-1, 1]) if (rr.choose('island.sideTree', {}, { p: 0.7 })) sb.putFoot(rr.choose('island.sideTreeModel', {}, [C + 'Tree_11', C + 'Tree_13']), cx + sx * ((x1 - x0) / 2 - 1.5) * T, cy + rr.int(-8, 16), 'tree', { gid, why: '小广场两侧的树，局部对称', ignoreClear: ['walkway'] });
-    if (rr.choose('island.bench', {}, { p: 0.7 })) sb.putFoot(C + 'Bench_2', cx + rr.int(-20, 20), y1 * T - 10, 'bench', { gid, why: '小广场南边的长椅，面朝观众一侧的街道', ignoreClear: ['walkway'] });
-    for (let i = 0; i < rr.count('island.people', {}, 1, 3); i++) {
-      const p = makePerson(rr, 'citizen');
-      sb.putChar(p.layers, frameFor(p, rr.choose('island.personPose', {}, ['stand', 'phone', 'walk'] as const), rr.choose('island.personDir', {}, ['down', 'left', 'right', 'up'] as const), rr), cx + rr.int(-30, 30), cy + rr.int(-10, 30), 'citizen', { gid, why: '在小广场上的人' });
-    }
+    islandSquare(L, sb, rr, { x0, y0, x1, y1 }, cs.filter(([x, y]) => L.cls[y][x] === 'nlot'), `region${g}`,
+      `小岛街区（缺角处被环路围出的小地块，${cs.length} 格，放不下楼）：做成小广场`);
+  }
+}
+
+/** one island block (cells x0..x1, y0..y1 with its sidewalk; `lot` = its lot cells) made a little public square: paving,
+ *  a centre piece, trees either side, a bench, people. Everything but the centre piece stands on the lot, off the
+ *  sidewalk's walkway (0.8.1-hotfix1: on the sidewalk C15 deleted them). The centre piece is the island's reason: when
+ *  the drawn one does not fit, the other kiosks, then a small tree (482260: a bare island) */
+export function islandSquare(L: Layout, sb: SceneBuilder, rr: Rng, box: { x0: number; y0: number; x1: number; y1: number }, lot: [number, number][], ref: string, why: string) {
+  const { x0, y0, x1, y1 } = box;
+  const cx = (x0 + x1) / 2 * T, cy = (y0 + y1) / 2 * T;
+  const gid = sb.group('island', why, { anchor: { kind: 'block', ref, x: cx, y: cy } });
+  sb.zone('block', 'island', rect(x0 * T, y0 * T, x1 * T, y1 * T), why, gid);
+  const paving = rr.choose('island.paving', {}, ['sidewalk_beige', 'sidewalk_brown', 'sidewalk_lightbeige']);
+  for (const [x, y] of lot) L.base[y][x] = slab(paving, x, y);
+  const lx0 = Math.min(...lot.map(c => c[0])), lx1 = Math.max(...lot.map(c => c[0])) + 1, ly1 = Math.max(...lot.map(c => c[1])) + 1;
+  const centre = rr.choose('island.centre', {}, { weights: [['kiosk', 2], ['fountain', 1], ['billboard', 1], ['tree', 1]] as const });
+  const cw = '小广场的中心物';
+  // the kiosks that fit the island: narrower than it by a cell. Tall is fine: it may rise over the road behind (862872
+  // L1, good: the giant ice-cream kiosk on its island)
+  const kiosks = [C + 'Kiosk_Infopoint_1', C + 'Kiosk_Coffee_Cup', C + 'Kiosk_Icecream', C + 'Kiosk_Mushroom'].filter(hasSprite)
+    .filter(k => spr(k).bb[2] - spr(k).bb[0] <= (x1 - x0 - 1) * T);
+  let put: Placed | null = null;
+  if (centre === 'kiosk' && kiosks.length) { const k = rr.choose('island.kioskModel', {}, kiosks); put = sb.putFoot(k, cx, cy + 22, 'kiosk', { gid, why: cw, ignoreClear: true });
+    for (const k2 of kiosks) if (!put && k2 !== k) put = sb.putFoot(k2, cx, cy + 22, 'kiosk', { gid, why: `${cw}（抽到的${k.split('/').pop()}放不下，换一个）`, ignoreClear: true }); }
+  if (centre === 'fountain') put = sb.putFoot(rr.choose('island.fountainModel', {}, variants(C + 'Fountain')), cx, cy + 14, 'utility', { gid, why: cw, ignoreClear: true });
+  // billboard centred on the island (its picture, not its foot; user label 941983 L3)
+  if (centre === 'billboard') { const k = rr.choose('island.billboardModel', {}, variants(C + 'Billboard', [2, 3, 5, 6, 7, 8])); put = sb.putFoot(k, cx, cy + Math.round((spr(k).bb[3] - spr(k).bb[1]) / 2), 'info_sign', { gid, why: cw, ignoreClear: true }); }
+  if (centre === 'tree') put = sb.putFoot(C + 'Tree_13', cx, cy + 16, 'tree', { gid, why: cw, ignoreClear: ['walkway'] });
+  if (!put) sb.putFoot(C + 'Tree_1', cx, cy + 12, 'tree', { gid, why: `${cw}（抽到的放不下，换成一棵小树）`, ignoreClear: true });
+  // the side trees at the lot's edges (a lot 5 cells wide at least), the bench on its bottom row
+  for (const sx of [-1, 1]) if (lx1 - lx0 >= 5 && rr.choose('island.sideTree', {}, { p: 0.7 })) sb.putFoot(rr.choose('island.sideTreeModel', {}, [C + 'Tree_11', C + 'Tree_13']), cx + sx * ((lx1 - lx0) / 2 - 1) * T, cy + rr.int(-8, 16), 'tree', { gid, why: '小广场两侧的树，局部对称', ignoreClear: ['walkway'] });
+  if (rr.choose('island.bench', {}, { p: 0.7 })) sb.putFoot(C + 'Bench_2', cx + rr.int(-20, 20), ly1 * T - 3, 'bench', { gid, why: '小广场南边的长椅，面朝观众一侧的街道', ignoreClear: ['walkway'] });
+  for (let i = 0; i < rr.count('island.people', {}, 1, 3); i++) {
+    const p = makePerson(rr, 'citizen');
+    sb.putChar(p.layers, frameFor(p, rr.choose('island.personPose', {}, ['stand', 'phone', 'walk'] as const), rr.choose('island.personDir', {}, ['down', 'left', 'right', 'up'] as const), rr), cx + rr.int(-30, 30), cy + rr.int(-10, 30), 'citizen', { gid, why: '在小广场上的人' });
   }
 }
 

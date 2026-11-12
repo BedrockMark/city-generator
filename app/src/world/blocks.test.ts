@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { cellBlocks, blockAt, blockById, lotOf, _clearBlockCache } from './blocks';
 import { cellRect } from './arterials';
-import { STREET_WIDTH, JOG_STEP, JOG_GAP } from './config';
+import { STREET_WIDTH, JOG_STEP, JOG_GAP, ISLAND_LOT, ISLAND_ARM } from './config';
 import type { BlockRec, Rect } from './types';
 
 const R = (a: number, b: number) => Array.from({ length: b - a + 1 }, (_, k) => a + k);
@@ -15,10 +15,15 @@ function bbox(rs: readonly Rect[]): Rect {
   return { x0: Math.min(...rs.map(r => r.x0)), y0: Math.min(...rs.map(r => r.y0)), x1: Math.max(...rs.map(r => r.x1)), y1: Math.max(...rs.map(r => r.y1)) };
 }
 
-// Lot bounding box (footprint bbox minus the sidewalk ring) must fit the generator: 18-40 wide, 13-28 high.
+// Lot bounding box (footprint bbox minus the sidewalk ring) must fit the generator: 18-40 wide, 13-28 high; a notch
+// island's lot is ISLAND_LOT.
 function checkLot(b: BlockRec) {
   const bb = bbox(b.foot);
   const w = bb.x1 - bb.x0 - 2 * b.sw, h = bb.y1 - bb.y0 - 2 * b.sw;
+  if (b.shape === 'island') {
+    assert.ok(w >= ISLAND_LOT.w[0] && w <= ISLAND_LOT.w[1] && h >= ISLAND_LOT.h[0] && h <= ISLAND_LOT.h[1], `${b.id} island lot ${w}x${h}`);
+    return;
+  }
   assert.ok(w >= 18 && w <= 40, `${b.id} lot width ${w}`);
   assert.ok(h >= 13 && h <= 28, `${b.id} lot height ${h}`);
   // lotOf agrees with the bbox for the rect case
@@ -95,7 +100,7 @@ test('every block touches a road on at least one side', () => {
 test('ids are stable and blockById / blockAt agree', () => {
   for (const s of R(1, 5).map(String)) for (const [i, j] of CELLS) {
     for (const b of cellBlocks(s, i, j)) {
-      assert.match(b.id, new RegExp(`^b${i},${j}/[LR]*$`));
+      assert.match(b.id, new RegExp(`^b${i},${j}/[LR]*I?$`));
       assert.deepEqual(b.cell, [i, j]);
       assert.deepEqual(blockById(s, b.id), b);
       for (const r of b.foot) for (const [x, y] of [[r.x0, r.y0], [r.x1 - 1, r.y1 - 1], [(r.x0 + r.x1) >> 1, (r.y0 + r.y1) >> 1]]) {
@@ -115,7 +120,9 @@ test('a jog block has two rects sharing an edge, and about JOG_CHANCE of cuts jo
     const bs = cellBlocks(s, i, j);
     cuts += bs.length - 1;                                   // binary cut tree: leaves - 1 cuts
     for (const b of bs) {
-      if (b.shape === 'rect') { assert.equal(b.foot.length, 1); continue; }
+      if (b.shape === 'island') cuts--;                       // a notch is no cut: the island is one more leaf
+      if (b.shape === 'rect' || b.shape === 'island') { assert.equal(b.foot.length, 1); continue; }
+      if (b.shape === 'notch') continue;                      // the notch test
       jogLeaves++;
       assert.equal(b.foot.length, 2);
       const [p, q] = b.foot;
@@ -184,4 +191,39 @@ test('a jogged street widens for JOG_GAP cells at the jog and never narrows belo
     }
     assert.equal(wide, JOG_GAP, `${s} ${b.id} widened rows`);
   }
+});
+
+test('a notch block is an L around its island, STREET_WIDTH away; the arms keep room for buildings', () => {
+  let rects = 0, notches = 0;
+  for (const s of SEEDS) for (const [i, j] of CELLS) {
+    const bs = cellBlocks(s, i, j);
+    for (const b of bs) {
+      if (b.shape === 'rect') rects++;
+      if (b.shape !== 'notch') continue;
+      notches++;
+      const isl = bs.find(o => o.id === b.id + 'I');
+      assert.ok(isl && isl.shape === 'island' && isl.foot.length === 1, `${b.id} has no island`);
+      assert.equal(b.foot.length, 2);
+      const r = bbox([...b.foot, ...isl.foot]), q = isl.foot[0];
+      // the island sits in a corner of the original rect, which is the notch block's bbox
+      assert.deepEqual(bbox(b.foot), r, `${b.id} bbox`);
+      assert.ok((q.x0 === r.x0 || q.x1 === r.x1) && (q.y0 === r.y0 || q.y1 === r.y1), `${b.id} island not in a corner`);
+      // the street around the island's inner sides: STREET_WIDTH cells, then the notch block
+      const east = q.x1 === r.x1, south = q.y1 === r.y1;
+      const gx = east ? q.x0 - 1 : q.x1, gy = south ? q.y0 - 1 : q.y1;
+      for (let k = 0; k < STREET_WIDTH; k++) {
+        assert.ok(!inFoot(b, east ? gx - k : gx + k, (q.y0 + q.y1) >> 1), `${b.id} street beside the island`);
+        assert.ok(!inFoot(b, (q.x0 + q.x1) >> 1, south ? gy - k : gy + k), `${b.id} street above / below the island`);
+      }
+      assert.ok(inFoot(b, east ? gx - STREET_WIDTH : gx + STREET_WIDTH, (q.y0 + q.y1) >> 1));
+      assert.ok(inFoot(b, (q.x0 + q.x1) >> 1, south ? gy - STREET_WIDTH : gy + STREET_WIDTH));
+      // arms: the lot beside the notch, both ways
+      const armW = (east ? q.x0 - STREET_WIDTH - r.x0 : r.x1 - q.x1 - STREET_WIDTH) - 2 * b.sw;
+      const armH = (south ? q.y0 - STREET_WIDTH - r.y0 : r.y1 - q.y1 - STREET_WIDTH) - 2 * b.sw;
+      assert.ok(armW >= ISLAND_ARM.w && armH >= ISLAND_ARM.h, `${b.id} arms ${armW} x ${armH}`);
+      assert.ok(isl.why.some(w => w.includes('小岛')) && b.why.some(w => w.includes('缺角')), `${b.id} why`);
+    }
+  }
+  const ratio = notches / (notches + rects);
+  assert.ok(ratio >= 0.03 && ratio <= 0.3, `notch ratio ${ratio.toFixed(3)} (${notches} of ${notches + rects} rect blocks)`);
 });

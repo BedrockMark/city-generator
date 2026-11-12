@@ -87,6 +87,18 @@ export function planMainBlock(L: Layout, r0: Rng, composite?: { r: Rng; p: numbe
     },
   }, r);
   const buildings: PlacedBuilding[] = placed.map(p => ({ plan: p.plan, cx: p.cx, cy: p.cy, side: (p.cy + p.plan.h - 1 === yb.get(p.cx) ? 'S' : 'N') as 'S' | 'N', why: p.why }));
+  // an alley breaks a facade: at its street end (its last 2 rows) a building's footprint stands right beside it, on
+  // one side at least. One the packer left standing in open ground leads nowhere a yard would not (0.8.1-hotfix1,
+  // user labels w1 b-2,3/RR L1, w345688 b3,5/LRL L2): its cells go back to the yard
+  const solid = (x: number, y: number) => buildings.some(b => x >= b.cx && x < b.cx + b.plan.w && y >= b.cy + b.plan.h - b.plan.foot && y < b.cy + b.plan.h);
+  for (const z of zones.filter(q => q.kind === 'alley')) {
+    let flanked = false;
+    for (let y = z.y1 - 2; y < z.y1; y++) if (solid(z.x0 - 1, y) || solid(z.x1, y)) flanked = true;
+    if (flanked) continue;
+    zones.splice(zones.indexOf(z), 1);
+    const kept = (x: number, y: number) => zones.some(q => x >= q.x0 && x < q.x1 && y >= q.y0 && y < q.y1);
+    for (let y = z.y0; y < z.y1; y++) for (let x = z.x0; x < z.x1; x++) if (L.inP[y]?.[x] && !kept(x, y)) yard[y][x] = true;
+  }
   return { buildings, zones, yard, yb, yt };
 }
 

@@ -6,7 +6,7 @@ import { planNeighbours } from './neighbours';
 import { SceneBuilder } from './place';
 import { resetIds } from './buildings';
 import { explainGround } from './explain';
-import { curbRuns, reserveWalkways, crossingVignettes, curbStrips, frontVignettes, zoneVignettes, islandSquares, busStop, cars, roadDetails, walkers } from './vignettes';
+import { curbRuns, reserveWalkways, crossingVignettes, curbStrips, frontVignettes, zoneVignettes, islandSquares, islandSquare, busStop, cars, roadDetails, walkers } from './vignettes';
 import { yardSpaces } from './yard';
 import { SHEETS, TILE, type Scene, type GenOptions } from './types';
 import { withDefaults, expStream, compositeChance, kitChance } from './exp';
@@ -19,7 +19,7 @@ import { PREFS } from './learn/prefs';
 import { markNovel } from './learn/novelty';
 import { planCampus, districtVignettes, isDistrict, resetDistrictIds } from './district';
 
-export const VERSION = '0.8.1';
+export const VERSION = '0.8.1-hotfix1';
 
 export function generate(seed: string, options: Partial<GenOptions> = {}): Scene {
   return generateBase(seed, withDefaults(options));
@@ -53,7 +53,10 @@ export function generateBase(seed: string, opts: GenOptions, win?: BlockWindow):
   const composite = { r: expStream(rng, EXP04, opts.novelty), p: compositeChance(opts.novelty) };
   // exp-05 (adopted): the packs' other building kits in place of a picked building, on its own stream
   const kits = { r: expStream(rng, EXP05, opts.novelty), p: kitChance(opts.novelty) };
-  const main = planMainBlock(L, rng, composite, kits, campus);
+  // city mode: a notch island (world/blocks.ts) is a little square, no buildings, no yard (0.8.1-hotfix1)
+  const island = win !== undefined && L.shape === 'island';
+  const main: BlockPlan = island ? { buildings: [], zones: [], yard: L.cls.map(row => row.map(() => false)), yb: new Map(), yt: new Map() }
+    : planMainBlock(L, rng, composite, kits, campus);
   const neigh: BlockPlan = win ? { buildings: [], zones: [], yard: L.cls.map(row => row.map(() => false)), yb: new Map(), yt: new Map() }
     : planNeighbours(L, rng, composite, kits);
   linkBuildings([main, neigh]);
@@ -67,7 +70,7 @@ export function generateBase(seed: string, opts: GenOptions, win?: BlockWindow):
   const on = (label: string, fn: (r: Rng) => void) => { const r = rng.fork(label); sb.inStream(r.stream, () => fn(r)); };
   // exp-06 (adopted): touching gardens share one path (decided on its own stream)
   const e06 = expStream(rng, 'exp-06', opts.novelty);
-  on('yard', r => yardSpaces(L, main, sb, r, e06));
+  if (!island) on('yard', r => yardSpaces(L, main, sb, r, e06));
   // exp-08: the campus grounds (driveways cut the curb, so before the curb runs)
   const lm = main.landmark;
   if (lm) on('district', r => districtVignettes(L, lm, sb, r));
@@ -76,14 +79,22 @@ export function generateBase(seed: string, opts: GenOptions, win?: BlockWindow):
   // city mode: only the block's own curb runs get furniture, cars, walkers (the neighbours' runs belong to their own
   // windows), so the draws do not depend on how much of the neighbours the window shows
   const own = win ? runs.filter(u => u.main) : runs;
-  // order = priority: things with a strong reason claim their space first
+  // order = priority: things with a strong reason claim their space first. A notch island's square is the island's
+  // only reason: before the crossings' poles (0.8.1-hotfix1, 482260: a pole on the island, its kiosk did not fit)
+  if (!win) on('island', r => islandSquares(L, neigh, sb, r));
+  if (island) on('island', r => {
+    const lot: [number, number][] = [];
+    for (let y = 0; y < L.rows; y++) for (let x = 0; x < L.cols; x++) if (L.inP[y][x]) lot.push([x, y]);
+    const w = L.bx1 - L.bx0, h = L.by1 - L.by0;
+    islandSquare(L, sb, r, { x0: L.bx0 - L.sw, y0: L.by0 - L.sw, x1: L.bx1 + L.sw, y1: L.by1 + L.sw }, lot, 'block',
+      `小岛街区（街角被一条短街切出来的小地块，地块 ${w}×${h}，放不下楼）：做成小广场`);
+  });
   on('cross', r => crossingVignettes(L, sb, r));
   on('zones', r => zoneVignettes(L, main, sb, r));
   on('bus', r => busStop(L, sb, r, own));
   on('fronts', r => frontVignettes(L, main, sb, r));
   if (!win) {
     on('nfronts', r => frontVignettes(L, { ...neigh, buildings: neigh.buildings.filter(b => b.side === 'S') }, sb, r));
-    on('island', r => islandSquares(L, neigh, sb, r));
   }
   on('curb', r => curbStrips(L, sb, r, own));
   on('cars', r => cars(L, sb, r, own));

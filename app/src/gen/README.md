@@ -35,7 +35,7 @@ RNG forking: `rng.fork(label)` seeds a new sfc32 stream from the original seed p
 | `district.ts` | Special districts: `DISTRICTS` table (school, hospital, police, fire, mall, hotel, gas, palace), `planCampus`, `placeCampus`, `districtVignettes`, `driveway` |
 | `palace.ts` | Palace garden district (`palacePlan`, `palaceCampus`, `palaceGrounds`: pool, maze, playground, greenhouse, hedged rooms); menu-only, called from `district.ts` |
 | `yard.ts` | `yardSpaces`: parking with driveways, gardens, forecourts, passages, green strips, service corners; `joinGardens`, `bestRect` |
-| `vignettes.ts` | Street-level groups with reasons: `curbRuns`, `reserveWalkways`, `crossingVignettes`, `curbStrips`, `frontVignettes`, `zoneVignettes`, `islandSquares`, `busStop`, `cars`, `roadDetails`, `walkers`, `person` |
+| `vignettes.ts` | Street-level groups with reasons: `curbRuns`, `reserveWalkways`, `crossingVignettes`, `curbStrips`, `frontVignettes`, `zoneVignettes`, `islandSquares` / `islandSquare` (one island square; city mode's notch islands use it too), `putClearOfDoors` / `hidesDoor` (C24 at placement: plaza centre pieces, garden trees), `busStop`, `cars`, `roadDetails`, `walkers`, `person` |
 | `rooftop.ts` | `rooftopAC`: AC units on modular flat roofs, drawn right after their building |
 | `people.ts` | Character composition `makePerson` (body, eyes, outfit, hair, accessory) and `frameFor` |
 | `place.ts` | `SceneBuilder`: placement by feet, footprint occupancy, keep-clear zones, `group()` / zones with reasons, `inStream()` attribution, `withExp()`, `finish()`; `rect`, `overlaps` |

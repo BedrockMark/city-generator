@@ -125,7 +125,7 @@ export function worldInfo(seed: string, x: number, y: number): WorldInfo {
   const why = [`分区：${ZONE_NAME[zone]}（z = ${z.toFixed(2)}）`];
   if (wc.block) {
     const b = blockById(seed, wc.block);
-    why.push(...b.why, `街区 ${b.id}：${b.shape === 'jog' ? 'jog' : 'rect'}，人行道 ${b.sw} 格，铺地 ${b.paving}`);
+    why.push(...b.why, `街区 ${b.id}：${b.shape}，人行道 ${b.sw} 格，铺地 ${b.paving}`);
   } else if (wc.arterial) {
     why.push(...arterialsAt(seed, x, y));
   } else {

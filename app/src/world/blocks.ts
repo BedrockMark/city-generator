@@ -4,7 +4,7 @@
 import { hash01, hashInt, hashPick } from './hash';
 import { cellRect, cellAt } from './arterials';
 import { zoneAt } from './zone';
-import { ZONES, STREET_WIDTH, JOG_CHANCE, JOG_STEP, JOG_AT, JOG_GAP, LEAF_CHANCE, CELL_CACHE } from './config';
+import { ZONES, STREET_WIDTH, JOG_CHANCE, JOG_STEP, JOG_AT, JOG_GAP, LEAF_CHANCE, CELL_CACHE, ISLAND_CHANCE, ISLAND_LOT, ISLAND_ARM } from './config';
 import type { BlockRec, Rect, ZoneKind } from './types';
 
 type Range = readonly [number, number];
@@ -49,13 +49,37 @@ interface LPiece { axis: Axis; lo: boolean; s: number; e: [number, number]; v0: 
 
 interface Ctx { seed: string; i: number; j: number; zone: ZoneKind; fw: Range; fh: Range; sw: 2 | 3; out: BlockRec[] }
 
-function leaf(c: Ctx, path: string, foot: Rect[], why: string[]): void {
+function leaf(c: Ctx, path: string, foot: Rect[], why: string[], shape: BlockRec['shape'] = foot.length > 1 ? 'jog' : 'rect'): void {
   const id = `b${c.i},${c.j}/${path}`;
   c.out.push({
     id, cell: [c.i, c.j], foot, sw: c.sw, zone: c.zone,
     paving: hashPick(c.seed, ZONES[c.zone].paving, 'blk', id),
-    shape: foot.length > 1 ? 'jog' : 'rect', why,
+    shape, why,
   });
+}
+
+/** A finished rect block, maybe with a corner cut off by a short L-shaped street (as single-block mode's notch shape,
+ *  user 0.8.1-hotfix1: 原本的岛台消失了): the corner becomes an island block `<path>I`, the rest an L-shaped block
+ *  whose arms keep room for buildings. False: no notch (not drawn, or the block is too small). */
+function notch(c: Ctx, r: Rect, path: string, why: string[]): boolean {
+  const { seed, i, j, sw } = c;
+  if (hash01(seed, 'cut', i, j, path, 'island') >= ISLAND_CHANCE) return false;
+  const w = r.x1 - r.x0, h = r.y1 - r.y0;
+  const lw = hashInt(seed, ISLAND_LOT.w[0], ISLAND_LOT.w[1], 'cut', i, j, path, 'islandw');
+  const lh = hashInt(seed, ISLAND_LOT.h[0], ISLAND_LOT.h[1], 'cut', i, j, path, 'islandh');
+  const iw = lw + 2 * sw, ih = lh + 2 * sw, nw = iw + STREET_WIDTH, nh = ih + STREET_WIDTH;
+  if (w - nw - 2 * sw < ISLAND_ARM.w || h - nh - 2 * sw < ISLAND_ARM.h) return false;
+  const corner = hashInt(seed, 0, 3, 'cut', i, j, path, 'islandcorner'), east = (corner & 1) === 1, south = (corner & 2) === 2;
+  const island: Rect = { x0: east ? r.x1 - iw : r.x0, x1: east ? r.x1 : r.x0 + iw, y0: south ? r.y1 - ih : r.y0, y1: south ? r.y1 : r.y0 + ih };
+  // the rest: the full-width band away from the island, and beside the notch the part it leaves (top to bottom)
+  const yc = south ? r.y1 - nh : r.y0 + nh;
+  const side: Rect = { x0: east ? r.x0 : r.x0 + nw, x1: east ? r.x1 - nw : r.x1, y0: south ? yc : r.y0, y1: south ? r.y1 : yc };
+  const band: Rect = { x0: r.x0, x1: r.x1, y0: south ? r.y0 : yc, y1: south ? yc : r.y1 };
+  const where = `${south ? '南' : '北'}${east ? '东' : '西'}角`;
+  const nwhy = `${sizeWhy(c, w, h)}；${where}被一条 ${STREET_WIDTH} 格的短街切出一块小岛（地块 ${lw}×${lh}，散列抽中，概率 ${ISLAND_CHANCE}）`;
+  leaf(c, path, south ? [band, side] : [side, band], [...why, `${nwhy}，其余成为缺角街区`], 'notch');
+  leaf(c, path + 'I', [island], [...why, `${nwhy}，这块小岛放不下楼，做成小广场`], 'island');
+  return true;
 }
 
 const sizeWhy = (c: Ctx, w: number, h: number) =>
@@ -73,7 +97,7 @@ function split(c: Ctx, r: Rect, path: string, why: string[]): void {
     h: cutPositions(h, fh, rest => feasible(rest, fh)),
   };
   if (inRange && ((!pos.v.length && !pos.h.length) || hash01(seed, 'cut', i, j, path, 'leaf') < LEAF_CHANCE)) {
-    leaf(c, path, [r], [...why, `${sizeWhy(c, w, h)}，成为街区`]);
+    if (!notch(c, r, path, why)) leaf(c, path, [r], [...why, `${sizeWhy(c, w, h)}，成为街区`]);
     return;
   }
   if (!pos.v.length && !pos.h.length) throw new Error(`world/blocks: cell ${i},${j} piece ${path || '(root)'} ${w}x${h} cannot be split`);

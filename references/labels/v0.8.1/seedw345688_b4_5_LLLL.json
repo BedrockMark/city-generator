@@ -1,0 +1,140 @@
+{
+ "version": "0.8.1",
+ "seed": "w345688_b4_5_LLLL",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-12T16:08:51.561Z",
+   "version": "0.8.1",
+   "seed": "345688/b4,5/LLLL",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "prune": true,
+    "pruneDraft": false,
+    "prefs": true
+   },
+   "scene": "seedw345688_b4_5_LLLL.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "挡路"
+   ],
+   "text": "可以，也应该移到右侧",
+   "target": {
+    "kind": "object",
+    "rect": {
+     "x0": 507,
+     "y0": 515,
+     "x1": 582,
+     "y1": 607
+    },
+    "objects": [
+     {
+      "id": "o64",
+      "key": "3_City_Props/Kiosk_Infopoint_1",
+      "cls": "kiosk",
+      "gid": "plaza#0",
+      "x": 502,
+      "y": 511
+     }
+    ],
+    "gids": [
+     "plaza#0"
+    ],
+    "zones": [
+     "k2",
+     "z8"
+    ]
+   },
+   "world": {
+    "seed": "345688",
+    "blockId": "b4,5/LLLL"
+   }
+  },
+  {
+   "id": "L2",
+   "created": "2026-11-12T16:08:54.706Z",
+   "version": "0.8.1",
+   "seed": "345688/b4,5/LLLL",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "prune": true,
+    "pruneDraft": false,
+    "prefs": true
+   },
+   "scene": "seedw345688_b4_5_LLLL.scene.json",
+   "verdict": "bad",
+   "tags": [
+    "没有存在理由"
+   ],
+   "text": "",
+   "target": {
+    "kind": "object",
+    "rect": {
+     "x0": 594,
+     "y0": 550,
+     "x1": 623,
+     "y1": 590
+    },
+    "objects": [
+     {
+      "id": "o43",
+      "key": "3_City_Props/Dumpster_6",
+      "cls": "trash",
+      "gid": "service#1",
+      "x": 593,
+      "y": 542
+     }
+    ],
+    "gids": [
+     "service#1"
+    ],
+    "zones": [
+     "z0",
+     "z4",
+     "k48"
+    ]
+   },
+   "world": {
+    "seed": "345688",
+    "blockId": "b4,5/LLLL"
+   }
+  },
+  {
+   "id": "L3",
+   "created": "2026-11-12T16:09:41.551Z",
+   "version": "0.8.1",
+   "seed": "345688/b4,5/LLLL",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "prune": true,
+    "pruneDraft": false,
+    "prefs": true
+   },
+   "scene": "seedw345688_b4_5_LLLL.scene.json",
+   "verdict": "bad",
+   "tags": [],
+   "text": "街区开口应该可以联通到内院，现在被内院的草挡住了",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 656,
+     "y0": 576,
+     "x1": 672,
+     "y1": 592
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "z7"
+    ]
+   },
+   "world": {
+    "seed": "345688",
+    "blockId": "b4,5/LLLL"
+   }
+  }
+ ]
+}

@@ -3,13 +3,13 @@
 export interface Rect { x0: number; y0: number; x1: number; y1: number }
 export type ZoneKind = 'downtown' | 'mixed' | 'residential';
 export interface BlockRec {
-  id: string;                  // `b${i},${j}/${path}`; path is made of 'L' / 'R' (or 'T' / 'B'), the root is ''
+  id: string;                  // `b${i},${j}/${path}`; path is made of 'L' / 'R', the root is ''; a notch island ends in 'I'
   cell: [number, number];
-  foot: Rect[];                // footprint (sidewalk ring + lot): 1 rect, 2 for a jog block
+  foot: Rect[];                // footprint (sidewalk ring + lot): 1 rect, 2 for a jog or notch block
   sw: 2 | 3;                   // sidewalk width
   zone: ZoneKind;
   paving: string;              // one of SIDEWALK_STYLES
-  shape: 'rect' | 'jog';
+  shape: 'rect' | 'jog' | 'notch' | 'island';   // notch: a corner cut off by a short street; island: that corner
   why: string[];
 }
 export type WorldCls = 'road' | 'walk' | 'lot';

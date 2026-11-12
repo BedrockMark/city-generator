@@ -16,6 +16,11 @@ export const JOG_STEP = [2, 4] as const;                   // jog offset range
 export const JOG_AT = [0.3, 0.7] as const;                 // where along the cut the jog happens, as a fraction of its length
 export const JOG_GAP = 3;                                  // the two sides of a jog step this many cells apart (>= one lane), the street widening in between
 export const LEAF_CHANCE = 0.5;                            // chance an in-range rect stops splitting even though it could split
+// notch islands (0.8.1-hotfix1, as single-block mode's notch shape): a finished rect block may have a corner cut off by a
+// short L-shaped street; the corner is a small island block made a little square, the rest an L-shaped block
+export const ISLAND_CHANCE = 0.6;                          // chance per rect block big enough for one
+export const ISLAND_LOT = { w: [4, 8], h: [3, 6] } as const;   // the island's lot (inside its sidewalk ring)
+export const ISLAND_ARM = { w: 10, h: 7 } as const;        // the L-shaped rest: lot width / height left beside the notch, at least
 export const CELL_CACHE = 256;                             // arterial cells whose block lists are cached
 export const ZONE_THRESHOLDS = { downtown: 0.62, residential: 0.38 } as const;   // z >= 0.62 downtown, z < 0.38 residential
 export const ZONE_OCTAVE = { scale: 3, weight: 0.5 } as const;   // second noise octave: relative scale and blend weight

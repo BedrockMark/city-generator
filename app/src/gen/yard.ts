@@ -9,7 +9,7 @@ import type { BlockPlan, PlacedBuilding } from './block';
 import { SceneBuilder, rect } from './place';
 import { spr, variants, hasSprite } from './assets';
 import { makePerson, frameFor } from './people';
-import { person } from './vignettes';
+import { person, hidesDoor } from './vignettes';
 import { TILE, type Anchor } from './types';
 
 const C = '3_City_Props/';
@@ -41,6 +41,11 @@ export function bestRect(cells: [number, number][], ok: (x: number, y: number) =
   return best;
 }
 
+/** cell (x, y) is a building's footprint */
+function footprint(plan: BlockPlan, x: number, y: number): boolean {
+  return plan.buildings.some(b => x >= b.cx && x < b.cx + b.plan.w && y >= b.cy + b.plan.h - b.plan.foot && y < b.cy + b.plan.h);
+}
+
 const cellsOf = (rc: CellRect) => { const o: [number, number][] = []; for (let y = rc.y; y < rc.y + rc.h; y++) for (let x = rc.x; x < rc.x + rc.w; x++) o.push([x, y]); return o; };
 
 export function yardSpaces(L: Layout, plan: BlockPlan, sb: SceneBuilder, r: Rng, e06: Rng) {
@@ -49,6 +54,7 @@ export function yardSpaces(L: Layout, plan: BlockPlan, sb: SceneBuilder, r: Rng,
   const free = plan.yard.map(row => [...row]);
   for (let y = 0; y < L.rows; y++) for (let x = 0; x < L.cols; x++) if (free[y][x]) L.base[y][x] = slab(yardStyle, x, y);
   const isWalk = (x: number, y: number) => L.cls[y]?.[x] === 'walk';
+  const plazaAt = (x: number, y: number) => plan.zones.some(z => z.kind === 'plaza' && x >= z.x0 && x < z.x1 && y >= z.y0 && y < z.y1);
   const used = { parking: 0, garden: 0, service: 0 };
   const rects: { rc: CellRect; kind: Kind; b?: PlacedBuilding; side?: 'N' | 'S' | 'E' | 'W'; why: string }[] = [];
   GRASS = L.cls.map(row => row.map(() => false));
@@ -60,10 +66,10 @@ export function yardSpaces(L: Layout, plan: BlockPlan, sb: SceneBuilder, r: Rng,
     const rc = bestRect(cells, avail);
     if (!rc || rc.w * rc.h < 2) break;
     for (const [x, y] of cellsOf(rc)) free[y][x] = false;
-    const sideFrac = (s: 'N' | 'S' | 'E' | 'W') => {
+    const sideFrac = (s: 'N' | 'S' | 'E' | 'W', ok: (x: number, y: number) => boolean = isWalk) => {
       const line = s === 'N' || s === 'S' ? Array.from({ length: rc.w }, (_, i) => [rc.x + i, s === 'N' ? rc.y - 1 : rc.y + rc.h] as const)
         : Array.from({ length: rc.h }, (_, i) => [s === 'W' ? rc.x - 1 : rc.x + rc.w, rc.y + i] as const);
-      return line.filter(([x, y]) => isWalk(x, y)).length / line.length;
+      return line.filter(([x, y]) => ok(x, y)).length / line.length;
     };
     const street = (['S', 'W', 'E', 'N'] as const).filter(s => sideFrac(s) > 0.5);
     // the building whose facade this rect lies in front of
@@ -75,11 +81,20 @@ export function yardSpaces(L: Layout, plan: BlockPlan, sb: SceneBuilder, r: Rng,
     else if (!used.parking && rc.w >= 9 && rc.h >= 7 && (parkTried = true) && r.choose('yard.parking', { w: rc.w, h: rc.h }, { p: 0.75 }) && parking(L, sb, sb.enter(r.fork(`park${rc.x + ox},${rc.y + oy}`, { w: rc.w, h: rc.h })), rc, plan, free)) { sb.enter(r); used.parking++; continue; }
     else if (Math.min(rc.w, rc.h) >= 3 && rc.w * rc.h >= 15 && used.garden < 2) { kind = 'garden'; used.garden++; why = `花园（${size}）：内院中最短边 ≥3、面积 ≥15 的空地（每街区至多 2 个）${parkTried ? '；没有做成停车场（未抽中或找不到车道）' : ''}`; }
     else if (Math.min(rc.w, rc.h) <= 2 && street.length > 0) {
-      kind = rc.w <= 2 && rc.h >= 3 && street.includes('S') && !street.includes('E') && !street.includes('W') ? 'passage' : 'strip';
+      // a passage runs between two buildings: at its street end a footprint on both sides; a strip beside open ground
+      // or beside an alley is a strip (0.8.1-hotfix1, user labels w1 b-2,3/RR L2: a second alley beside the first;
+      // 225713 L1: 已经有楼间道了，不需要再有小巷子了，应该二选一)
+      const bottom = rc.y + rc.h - 1, between = footprint(plan, rc.x - 1, bottom) && footprint(plan, rc.x + rc.w, bottom);
+      kind = rc.w <= 2 && rc.h >= 3 && street.includes('S') && !street.includes('E') && !street.includes('W') && between ? 'passage' : 'strip';
       why = kind === 'passage' ? `楼间过道（${size}）：1–2 格宽、只向南通到街上，保持通畅，最里面放垃圾桶` : `临街的细长空地（${size}）：绿化带或一排盆栽`;
     }
     else if (Math.max(rc.w, rc.h) >= 3 && Math.min(rc.w, rc.h) <= 3) { kind = 'strip'; why = `细长空地（${size}）：绿化带或一排盆栽`; }
-    else if (rc.w * rc.h >= 4 && used.service < 2) { kind = 'service'; used.service++; why = `杂物角（${size}）：不临街的小块空地，放垃圾箱和纸箱（每街区至多 2 个）`; }
+    // a junk corner is out of sight: not beside the street or a plaza (0.8.1-hotfix1, user label w345688 b4,5/LLLL L2:
+    // dumpsters facing the sidewalk next to the plaza). Beside an alley is fine: back of house (173387 L2, good)
+    else if (rc.w * rc.h >= 4 && used.service < 2 && !street.length && !(['S', 'W', 'E', 'N'] as const).some(s => sideFrac(s, plazaAt) > 0.5)) { kind = 'service'; used.service++; why = `杂物角（${size}）：不临街的小块空地，放垃圾箱和纸箱（每街区至多 2 个）`; }
+    // one in sight of the street is green instead of bare paving (热闹不空): lawn with shrubs and small trees; beside a
+    // plaza it stays paving, room for the plaza's centre piece to move off a door (w345688 b4,5/LLLL L1 应该移到右侧)
+    else if (rc.w * rc.h >= 4 && street.length && !(['S', 'W', 'E', 'N'] as const).some(s => sideFrac(s, plazaAt) > 0.5)) { kind = 'strip'; why = `临街的小块空地（${size}）：杂物角不放在看得见的地方，做成一小块草坪，种灌木和小树`; }
     else { kind = 'paved'; why = `零碎空地（${size}）：太小或同类已满，朴素铺地（宁删勿补）`; }
     rects.push({ rc, kind, b: fronted, side: street[0], why });
   }
@@ -335,7 +350,9 @@ function garden(L: Layout, sb: SceneBuilder, rr: Rng, rc: CellRect, side: Side |
   for (let i = 0, ok = 0; i < nT * 4 && ok < nT; i++) {
     const h = rr.choose('garden.treeHalf', {}, halves); if (h.w < 1 || h.h < 2) continue;
     const fx = (h.x + rr.range(0.5, h.w - 0.5)) * T, fy = (h.y + rr.int(2, h.h)) * T - rr.int(3, 10);
-    if (sb.putFoot(rr.choose('garden.treeModel', {}, trees), fx, fy, 'tree', { gid, why: `草坪上的小树（约每 12 格一棵，彼此留空）`, pad: 6 })) ok++;
+    // not in front of a door (C24; 0.8.1-hotfix1 w1 b-2,3/RR: a garden's tree hid the door behind it)
+    const key = rr.choose('garden.treeModel', {}, trees);
+    if (!hidesDoor(sb, key, fx, fy) && sb.putFoot(key, fx, fy, 'tree', { gid, why: `草坪上的小树（约每 12 格一棵，彼此留空）`, pad: 6 })) ok++;
   }
   for (let i = 0; i < rr.count('garden.flowers', {}, 0, 3); i++) { const h = rr.choose('garden.flowerHalf', {}, halves); if (h.w >= 2 && h.h >= 1) sb.putFoot(rr.choose('garden.flowerModel', {}, variants(C + 'Flower_Bush')), (h.x + rr.int(1, h.w - 1)) * T, (h.y + rr.int(1, h.h)) * T - 2, 'plant', { gid, why: '草坪上的花丛' }); }
   if (rr.choose('garden.kid', {}, { p: 0.4 })) { const p = makePerson(rr, 'kid', { kid: true }); const h = rr.choose('garden.kidHalf', {}, halves); if (h.w > 0 && h.h > 0) sb.putChar(p.layers, frameFor(p, 'stand', rr.choose('garden.kidDir', {}, ['down', 'left', 'right'] as const)), (h.x + rr.range(0.5, h.w - 0.5)) * T, (h.y + rr.int(1, h.h)) * T - 2, 'kid', { gid, why: '在草坪上玩的孩子' }); }

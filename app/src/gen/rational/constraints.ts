@@ -536,8 +536,8 @@ interface Way {
   z: ZoneRec; alley: boolean; own: Set<string>; cells: Cell[]; ends: End[];
   /** a path: its axis; the first / last cell not under a building's upper floors (-1: all hidden) */
   horiz?: boolean; vis?: [number, number];
-  /** an alley: its axis, its kept-clear corridor */
-  vert?: boolean; corridor?: PxRect;
+  /** an alley: its axis, its kept-clear corridor; one that leads somewhere through a side: its inner end, when lawn lies past it */
+  vert?: boolean; corridor?: PxRect; lawnEnd?: End;
 }
 
 function deadEnds(c: Constraint, cx: Ctx, reach: number): Violation[] {
@@ -642,10 +642,13 @@ function deadEnds(c: Constraint, cx: Ctx, reach: number): Violation[] {
       const through = w.doors.some(d => inRect(grow(z.rect, 8), d.x, d.y)) || side.some(([x, y]) => gr(x, y) !== 'walk' && place(x, y));
       // its ends, but one on the carriageway or off the map
       const row = (k: number): Cell[] => cells.filter(q => (vert ? q[1] : q[0]) === k);
-      const ends = through ? [] : ([[vert ? Y0 : X0, -1], [vert ? Y1 : X1, 1]] as const).map(([k, sg]) => ({ cells: row(k), d: (vert ? [0, sg] : [sg, 0]) as Cell }))
+      const all = ([[vert ? Y0 : X0, -1], [vert ? Y1 : X1, 1]] as const).map(([k, sg]) => ({ cells: row(k), d: (vert ? [0, sg] : [sg, 0]) as Cell }))
         .filter(e => !e.cells.some(([x, y]) => ['road', 'none'].includes(gr(x + e.d[0], y + e.d[1]))));
+      // one that leads somewhere through a side may still run into lawn at its inner end: the yard's way is there to be
+      // joined, not a dead end (0.8.1-hotfix1, user label w345688 b4,5/LLLL L3: 街区开口应该可以联通到内院，现在被内院的草挡住了)
+      const lawnEnd = through ? all.find(e => e.cells.every(([x, y]) => lawn(x + e.d[0], y + e.d[1]))) : undefined;
       const corridor = w.zones.find(q => q.layer === 'keepclear' && q.kind === 'alley' && q.gid === z.gid)?.rect;
-      ways.push({ z, alley: true, own, cells, ends, corridor, vert });
+      ways.push({ z, alley: true, own, cells, ends: through ? [] : all, corridor, vert, lawnEnd });
     }
   }
 
@@ -702,6 +705,29 @@ function deadEnds(c: Constraint, cx: Ctx, reach: number): Violation[] {
         const bins = gidMembers(cx, s.z.gid).filter(o => o.fp && !o.person && new RegExp(BINS).test(o.key) && rectsOverlap(o.fp, lane));
         if (bins.length) out.push({ c: c.id, target: `${s.z.id}/through`, objs: bins.map(o => o.id), rect: union(bins.map(o => o.fp!)),
           msg: `巷子（${s.z.gid ?? s.z.id}）通到里面：挡在通道上的 ${bins.map(o => o.key.split('/').pop()).join('、')} 删掉` });
+      }
+    }
+    // an alley that leads somewhere through a side, its inner end against lawn: continued straight on, as wide as the
+    // alley, over at most 3 cells of lawn to walkable ground one sees (the garden's path); else left as it is
+    const le = !dead.length ? s.lawnEnd : undefined;
+    if (le) {
+      const cells: Cell[] = [];
+      for (let k = 1; k <= 3; k++) {
+        const row = le.cells.map(([x, y]): Cell => [x + le.d[0] * k, y + le.d[1] * k]);
+        if (row.some(q => seen(...q))) {
+          if (!cells.length) break;
+          const name = placeName(...row.find(q => seen(...q))!);
+          const blockers = [...new Set(cells.flatMap(q => occupants(...q)))];
+          const msg = `巷子（${s.z.gid ?? s.z.id}）通进内院的一头被草坪挡住：往前接 ${k - 1} 格到${name}`;
+          const seg = union(cells.map(cellRect));
+          out.push({ c: c.id, target: `${s.z.id}/inner`, objs: blockers.map(o => o.id), rect: seg, msg,
+            pave: cells.map(q => ({ cell: q, src: (s.vert ? [q[0], le.cells[0][1]] : [le.cells[0][0], q[1]]) as Cell })),
+            clearLawn: cells.map(cellRect),
+            addZones: [{ layer: 'keepclear', kind: 'link', rect: s.vert ? { ...seg, x0: seg.x0 + 2, x1: seg.x1 - 2 } : { ...seg, y0: seg.y0 + 2, y1: seg.y1 - 2 }, reason: `断头路接上：${msg}`, gid: s.z.gid }] });
+          break;
+        }
+        if (row.some(q => gr(...q) !== 'lot' || wall(...q) || hidden(...q) || !lawn(...q) || occupants(...q).some(o => !movable(o)))) break;
+        cells.push(...row);
       }
     }
     if (!dead.length) continue;
@@ -877,7 +903,8 @@ function deadEnds(c: Constraint, cx: Ctx, reach: number): Violation[] {
       if (cut > 0) where.push(`接不上的一头剪到岔口（${cut} 格改成草坪）`);
       if (under) where.push(`伸进楼底下的 ${under} 格改成草坪`);
       const rect = union([...[...routes.values()].flatMap(rt => [...rt.cells, rt.from]), ...gone].map(cellRect));
-      const v: Violation = { c: c.id, target: s.z.id, objs: [], rect, msg: `${what}${dead.length > 1 ? '两头都' : '一头'}不通向任何地方：${where.join('；')}` };
+      const v: Violation = { c: c.id, target: s.z.id, objs: [], rect,
+        msg: `${what}${dead.length > 1 ? '两头都' : '一头'}不通向任何地方：${where.join('；')}` };
       if (pave.length) { v.pave = pave; v.clearLawn = [...routes.values()].flatMap(rt => [...rt.cells, ...rt.wide].map(cellRect)); }
       if (gone.length) {
         const goneSet = new Set(gone.map(q => ck(...q)));
