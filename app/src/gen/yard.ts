@@ -54,7 +54,9 @@ export function yardSpaces(L: Layout, plan: BlockPlan, sb: SceneBuilder, r: Rng,
   const free = plan.yard.map(row => [...row]);
   for (let y = 0; y < L.rows; y++) for (let x = 0; x < L.cols; x++) if (free[y][x]) L.base[y][x] = slab(yardStyle, x, y);
   const isWalk = (x: number, y: number) => L.cls[y]?.[x] === 'walk';
-  const plazaAt = (x: number, y: number) => plan.zones.some(z => z.kind === 'plaza' && x >= z.x0 && x < z.x1 && y >= z.y0 && y < z.y1);
+  // the big block's centre counts as a plaza too (v0.8.2; D88: no service corner beside it)
+  const plazas = [...plan.zones.filter(z => z.kind === 'plaza'), ...(plan.centre ? [plan.centre] : [])];
+  const plazaAt = (x: number, y: number) => plazas.some(z => x >= z.x0 && x < z.x1 && y >= z.y0 && y < z.y1);
   const used = { parking: 0, garden: 0, service: 0 };
   const rects: { rc: CellRect; kind: Kind; b?: PlacedBuilding; side?: 'N' | 'S' | 'E' | 'W'; why: string }[] = [];
   GRASS = L.cls.map(row => row.map(() => false));

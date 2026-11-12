@@ -468,8 +468,8 @@ function grounds(L: Layout, lm: Landmark, sb: SceneBuilder, r0: Rng) {
   }
 }
 
-/** a lawn over the area (the 9-slice the yard uses, 1_Terrains cols 0-2, rows 11-13) */
-function lawn(L: Layout, f: Feat) {
+/** a lawn over the area (cells, half-open; the 9-slice the yard uses, 1_Terrains cols 0-2, rows 11-13) */
+export function lawn(L: Layout, f: { x0: number; y0: number; x1: number; y1: number }): void {
   for (let y = f.y0; y < f.y1; y++) for (let x = f.x0; x < f.x1; x++)
     L.over[y][x] = ['terr', x === f.x0 ? 0 : x === f.x1 - 1 ? 2 : 1, y === f.y0 ? 11 : y === f.y1 - 1 ? 13 : 12];
 }

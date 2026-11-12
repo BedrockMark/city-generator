@@ -18,6 +18,7 @@ import { makeAdjust } from './learn/adjust';
 import { PREFS } from './learn/prefs';
 import { markNovel } from './learn/novelty';
 import { planCampus, campusFor, districtVignettes, isDistrict, resetDistrictIds } from './district';
+import { centreVignettes } from './centre';
 
 export const VERSION = '0.8.1-hotfix1';
 
@@ -75,6 +76,8 @@ export function generateBase(seed: string, opts: GenOptions, win?: BlockWindow):
   // exp-06 (adopted): touching gardens share one path (decided on its own stream)
   const e06 = expStream(rng, 'exp-06', opts.novelty);
   if (!island) on('yard', r => yardSpaces(L, main, sb, r, e06));
+  // v0.8.2 city mode: the big block's centre plaza / garden (never with a campus)
+  if (main.centre) on('centre', r => centreVignettes(L, main, sb, r));
   // exp-08: the campus grounds (driveways cut the curb, so before the curb runs)
   const lm = main.landmark;
   if (lm) on('district', r => districtVignettes(L, lm, sb, r));
@@ -117,6 +120,7 @@ export function generateBase(seed: string, opts: GenOptions, win?: BlockWindow):
     ground: [L.base, L.over], objects: sb.objects, cells: L.cls, notes: [],
     options: opts, groups: [...sb.groups.values()], buildings: sb.buildings, zones: sb.zones, trace: trace.toJSON(),
   };
+  if (main.centreNote) scene.notes.push(main.centreNote);
   // stage 7: objects drawn from a never-used sprite (novelty); before the audit, which may delete some of them
   markNovel(scene, trace.novel);
   // stage 5: constraint audit; repairs by deletion with the confirmed constraints, dead ends continued or removed

@@ -7,9 +7,38 @@ import { SLAB_PERIOD, WINDOW_MARGIN, ZONES } from './config';
 import { TILE } from '../gen/types';
 import type { BlockRec } from './types';
 import { campusFor, DISTRICTS } from '../gen/district';
+import { centreReachable } from '../gen/centre';
+import { rectsOverlap } from '../gen/rational/world';
 
 const SEED = 'w1';
 const BLOCKS = cellBlocks(SEED, 0, 0);
+
+/** blocks with a centre (seeds 1..10 x cells [-2,2]^2), at most n of each kind, in search order */
+function centreBlocks(n: number): [string, BlockRec][] {
+  const out: [string, BlockRec][] = [];
+  const count = (k: string) => out.filter(([, b]) => b.centre === k).length;
+  for (let s = 1; s <= 10; s++) for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++) {
+    for (const b of cellBlocks(String(s), i, j)) if (b.centre && count(b.centre) < n) out.push([String(s), b]);
+  }
+  return out;
+}
+
+/** the first district block in search order (seeds 1..20 x cells [-2,2]^2) */
+function firstDistrict(): [string, BlockRec] | undefined {
+  for (let s = 1; s <= 20; s++) for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++) {
+    const b = cellBlocks(String(s), i, j).find(o => o.district);
+    if (b) return [String(s), b];
+  }
+  return undefined;
+}
+
+// the margin test's blocks: seed w1's cell (0,0), plus the first centre plaza, centre garden and district block
+// (v0.8.2: their centre / passages / campus must not depend on the margin either)
+const MARGIN_CASES: [string, BlockRec][] = [
+  ...BLOCKS.map(b => [SEED, b] as [string, BlockRec]),
+  ...(['plaza', 'garden'] as const).map(k => centreBlocks(1).find(([, b]) => b.centre === k)!),
+  firstDistrict()!,
+];
 
 test('blockLayout: inP is exactly the block lot; cls agrees with worldCell', () => {
   for (const b of BLOCKS.slice(0, 3)) {
@@ -81,8 +110,8 @@ test('generateBlock is deterministic and cache-independent', () => {
 // coordinates (Layout.org) and the generator's random subsystems only see what the block owns (its curb runs, the
 // stretches of road it owns, the crossings it touches). Margins 5 and 9 larger are not multiples of the slab period.
 test('a block does not depend on the window margin: buildings, objects and zones; the ownership filter holds', () => {
-  for (const b of BLOCKS) {
-    const run = (margin: number) => generateInWindow(SEED, b, blockLayout(SEED, b, margin));
+  for (const [seed, b] of MARGIN_CASES) {
+    const run = (margin: number) => generateInWindow(seed, b, blockLayout(seed, b, margin));
     const base = run(WINDOW_MARGIN);
     const blds = (r: ReturnType<typeof run>) =>
       (r.scene.buildings ?? []).map(x => `${x.label}@${x.rect.x0 + r.ox * TILE},${x.rect.y0 + r.oy * TILE}`).sort();
@@ -97,7 +126,7 @@ test('a block does not depend on the window margin: buildings, objects and zones
     }
     for (const o of big.scene.objects) {
       const [cx, cy] = ownerCell(o);
-      assert.equal(ownerOf(SEED, big.ox + cx, big.oy + cy), b.id, `${b.id} margin+9: ${o.id} ${o.key} at ${cx},${cy}`);
+      assert.equal(ownerOf(seed, big.ox + cx, big.oy + cy), b.id, `${b.id} margin+9: ${o.id} ${o.key} at ${cx},${cy}`);
     }
   }
 });
@@ -187,5 +216,23 @@ test('a world block hands its zone parameters to the generator', () => {
     const ds = generateBlock('1', b!.id).scene.trace!.decisions as { label: string; w?: number[]; p?: number }[];
     assert.deepEqual(ds.find(d => d.label === 'block.mix')!.w, [...ZONES[zone].gen.mix]);
     assert.equal(ds.find(d => d.label === 'block.plaza')!.p, ZONES[zone].gen.plaza);
+  }
+});
+
+test('centre blocks: a centre zone reachable from the sidewalk', () => {
+  const cases = centreBlocks(6);
+  assert.ok(cases.some(([, b]) => b.centre === 'plaza') && cases.some(([, b]) => b.centre === 'garden'), 'plaza and garden blocks found');
+  for (const [s, b] of cases) {
+    const { scene } = generateBlock(s, b.id);
+    const zs = scene.zones ?? [];
+    const centre = zs.filter(z => z.kind === 'centre');
+    assert.equal(centre.length, 1, `${s} ${b.id} centre zones`);
+    assert.equal(centre[0].layer, 'block');
+    assert.ok(centre[0].reason.includes('中心'), centre[0].reason);
+    const ways = zs.filter(z => z.layer === 'block' && z.kind === 'alley' && z.reason.includes('通往中心'));
+    assert.ok(ways.length >= 2, `${s} ${b.id} passages: ${ways.length}`);
+    for (const bl of scene.buildings ?? []) for (const z of [...centre, ...ways])
+      assert.ok(!rectsOverlap(bl.solid, z.rect), `${s} ${b.id}: ${bl.id} stands on ${z.kind} ${z.reason}`);
+    assert.ok(centreReachable(scene), `${s} ${b.id}: centre not reachable from the street`);
   }
 });

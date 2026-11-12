@@ -8,11 +8,13 @@ import { pack } from './pack';
 import { SceneBuilder, rect } from './place';
 import { TILE, type CityParams } from './types';
 import { placeCampus, type Campus, type Landmark } from './district';
+import { planCentre, type CentreArea } from './centre';
 
 const PART_NAMES: Record<string, string> = { roof: '屋顶', mid: '中间层', ground: '底层', whole: '整体精灵', link: '链接条（盖住与邻楼相接的墙缝）', entrance: '入口门廊（宫殿的模块化入口，exp-09）' };
 
 export interface PlacedBuilding { plan: BuildingPlan; cx: number; cy: number; side: 'S' | 'N'; /** why the packer put it here */ why: string }
-export interface Zone { kind: 'alley' | 'plaza' | 'pocket'; x0: number; y0: number; x1: number; y1: number; why: string }   // cells, half-open
+export interface Zone { kind: 'alley' | 'plaza' | 'pocket'; x0: number; y0: number; x1: number; y1: number; why: string;   // cells, half-open
+  /** a passage to the block's centre (v0.8.2): exempt from the D87 flank check, no bins */ toCentre?: boolean }
 
 export interface BlockPlan {
   buildings: PlacedBuilding[];
@@ -24,6 +26,10 @@ export interface BlockPlan {
   yb: Map<number, number>; yt: Map<number, number>;
   /** exp-08: the special district's campus (its buildings are the block's buildings) */
   landmark?: Landmark;
+  /** v0.8.2: the big block's centre plaza / garden (city mode) */
+  centre?: CentreArea;
+  /** why no centre was carved */
+  centreNote?: string;
 }
 
 /** the rows behind slide north (pack.ts spread, exp-03 adopted) */
@@ -49,12 +55,27 @@ export function planMainBlock(L: Layout, r0: Rng, composite?: { r: Rng; p: numbe
   // ---- frontage openings carved before packing: alleys through the block, at most one small plaza ----
   const xs = [...yb.keys()].sort((p, q) => p - q);
   const W = xs.length;
+  // v0.8.2 city mode: a big block's centre and its passages, before the alleys (on the block stream's 'centre' sub-stream)
+  let centre: CentreArea | undefined, centreNote: string | undefined;
+  if (city?.centre) {
+    const c = planCentre(L, city.centre, r.fork('centre'));
+    if ('note' in c) centreNote = c.note;
+    else {
+      centre = c.area;
+      for (let y = centre.y0; y < centre.y1; y++) for (let x = centre.x0; x < centre.x1; x++) carved[y][x] = true;
+      for (const z of c.passages) carve(z);
+    }
+  }
+  // an ordinary alley grown by 1 cell must not touch the centre or a passage
+  const nearCentre = (x0: number, y0: number, x1: number, y1: number) =>
+    [...(centre ? [centre] : []), ...zones.filter(q => q.toCentre)].some(q => q.x0 < x1 + 1 && x0 - 1 < q.x1 && q.y0 < y1 + 1 && y0 - 1 < q.y1);
   const nAlley = r.choose('block.alleys', { W }, { weights: [[0, 3], [1, 4], [2, 1]] as const });
   for (let i = 0; i < nAlley; i++) {
     const w = r.int(1, 2), x = xs[r.int(Math.floor(W * 0.2), Math.floor(W * 0.8))];
     const y1 = (yb.get(x) ?? L.by1 - 1) + 1;
     // the inner end stays inside the block (notched blocks are short in some columns)
     const y0 = Math.max(y1 - r.int(5, Math.max(5, Math.floor((L.by1 - L.by0) * 0.6))), ...[x, x + w - 1].map(c => yt.get(c) ?? L.by0));
+    if (nearCentre(x, y0, x + w, y1)) continue;
     carve({ kind: 'alley', x0: x, y0, x1: x + w, y1, why: `穿过南侧临街面的巷子（本街区抽到 ${nAlley} 条）：通往内院，打断连续立面` });
   }
   const plazaP = city?.gen.plaza ?? 0.45;
@@ -104,6 +125,8 @@ export function planMainBlock(L: Layout, r0: Rng, composite?: { r: Rng; p: numbe
   // user labels w1 b-2,3/RR L1, w345688 b3,5/LRL L2): its cells go back to the yard
   const solid = (x: number, y: number) => buildings.some(b => x >= b.cx && x < b.cx + b.plan.w && y >= b.cy + b.plan.h - b.plan.foot && y < b.cy + b.plan.h);
   for (const z of zones.filter(q => q.kind === 'alley')) {
+    // a passage to the centre plaza: it need not run beside a building
+    if (z.toCentre) continue;
     let flanked = false;
     for (let y = z.y1 - 2; y < z.y1; y++) if (solid(z.x0 - 1, y) || solid(z.x1, y)) flanked = true;
     if (flanked) continue;
@@ -111,7 +134,10 @@ export function planMainBlock(L: Layout, r0: Rng, composite?: { r: Rng; p: numbe
     const kept = (x: number, y: number) => zones.some(q => x >= q.x0 && x < q.x1 && y >= q.y0 && y < q.y1);
     for (let y = z.y0; y < z.y1; y++) for (let x = z.x0; x < z.x1; x++) if (L.inP[y]?.[x] && !kept(x, y)) yard[y][x] = true;
   }
-  return { buildings, zones, yard, yb, yt };
+  // the centre and its passages are not the courtyard's
+  if (centre) for (const q of [centre, ...zones.filter(z => z.toCentre)])
+    for (let y = q.y0; y < q.y1; y++) for (let x = q.x0; x < q.x1; x++) if (yard[y]?.[x] !== undefined) yard[y][x] = false;
+  return { buildings, zones, yard, yb, yt, ...(centre ? { centre } : {}), ...(centreNote ? { centreNote } : {}) };
 }
 
 /** emit building sprites; the solid footprint is the bottom `foot` rows; doors keep a clear path to the street */

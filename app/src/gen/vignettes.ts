@@ -360,7 +360,9 @@ export function zoneVignettes(L: Layout, plan: BlockPlan, sb: SceneBuilder, r: R
     const w = (z.x1 - z.x0) * T, x0 = z.x0 * T, y0 = z.y0 * T, y1 = z.y1 * T;
     const gid = sb.group(z.kind, z.why, { anchor: { kind: 'zone', ref: `${z.kind}@${z.x0},${z.y0}`, x: x0 + w / 2, y: y1 } });
     sb.zone('block', z.kind, rect(x0, y0, x0 + w, y1), z.why, gid);
-    if (z.kind === 'alley') {
+    if (z.kind === 'alley' && z.toCentre) {
+      // a passage to the centre plaza (v0.8.2): kept clear by the centre's group; no bins, laundry or callers
+    } else if (z.kind === 'alley') {
       // the way through stays clear; bins stand against the wall at the far (inner) end
       sb.clear(rect(x0 + (w >= 32 ? 18 : 2), y0 + 2 * T, x0 + w - 2, y1 + L.sw * T), 'alley', '巷子的通行道：从街上进巷子的路保持畅通', gid);
       const n = rr.count('alley.bins', {}, 1, 2);
