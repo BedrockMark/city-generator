@@ -8,16 +8,20 @@ import { TILE } from '../gen/types';
 import type { BlockRec } from './types';
 import { campusFor, DISTRICTS } from '../gen/district';
 import { centreReachable } from '../gen/centre';
+import { SCHOOL_TOYS } from '../gen/district';
+import { slab } from '../gen/layout';
+import { isGrassTile } from '../gen/rational/world';
+import type { Scene } from '../gen/types';
 import { rectsOverlap } from '../gen/rational/world';
 
 const SEED = 'w1';
 const BLOCKS = cellBlocks(SEED, 0, 0);
 
-/** blocks with a centre (seeds 1..10 x cells [-2,2]^2), at most n of each kind, in search order */
-function centreBlocks(n: number): [string, BlockRec][] {
+/** blocks with a centre (seeds 1..seeds x cells [-2,2]^2), at most n of each kind, in search order */
+function centreBlocks(n: number, seeds = 10): [string, BlockRec][] {
   const out: [string, BlockRec][] = [];
   const count = (k: string) => out.filter(([, b]) => b.centre === k).length;
-  for (let s = 1; s <= 10; s++) for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++) {
+  for (let s = 1; s <= seeds && (count('plaza') < n || count('garden') < n); s++) for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++) {
     for (const b of cellBlocks(String(s), i, j)) if (b.centre && count(b.centre) < n) out.push([String(s), b]);
   }
   return out;
@@ -234,5 +238,62 @@ test('centre blocks: a centre zone reachable from the sidewalk', () => {
     for (const bl of scene.buildings ?? []) for (const z of [...centre, ...ways])
       assert.ok(!rectsOverlap(bl.solid, z.rect), `${s} ${b.id}: ${bl.id} stands on ${z.kind} ${z.reason}`);
     assert.ok(centreReachable(scene), `${s} ${b.id}: centre not reachable from the street`);
+  }
+});
+
+// v0.8.2 Task 5: what stands in the centre. Plazas are rare: the search runs over seeds 1..40
+const CONTENT_CASES = centreBlocks(6, 40);
+
+/** the centre zone (window cells), its group's objects and the passages (window cells) */
+function centreOf(scene: Scene) {
+  const zs = scene.zones ?? [];
+  const cell = (r: { x0: number; y0: number; x1: number; y1: number }) => ({ x0: r.x0 / TILE, y0: r.y0 / TILE, x1: r.x1 / TILE, y1: r.y1 / TILE });
+  const z = zs.find(q => q.kind === 'centre')!;
+  const objs = scene.objects.filter(o => o.gid === z.gid);
+  const ways = zs.filter(q => q.layer === 'block' && q.kind === 'alley' && q.reason.includes('通往中心')).map(q => cell(q.rect));
+  return { a: cell(z.rect), px: z.rect, objs, ways };
+}
+
+test('a centre plaza: paved, a centre piece with benches facing it, corner trees, people', () => {
+  const cases = CONTENT_CASES.filter(([, b]) => b.centre === 'plaza');
+  assert.ok(cases.length >= 2, `only ${cases.length} plaza blocks found`);
+  for (const [s, b] of cases) {
+    const { scene } = generateBlock(s, b.id);
+    const { a, px, objs } = centreOf(scene);
+    const tag = `${s} ${b.id}`;
+    assert.ok(objs.some(o => (o.reason ?? '').includes('中心物')), `${tag}: no centre piece`);
+    assert.ok(objs.filter(o => o.cls === 'bench').length >= 1, `${tag}: no bench`);
+    assert.ok(objs.filter(o => o.cls === 'tree').length >= 2, `${tag}: trees ${objs.filter(o => o.cls === 'tree').length}`);
+    assert.ok(objs.some(o => o.kind === 'char'), `${tag}: no people`);
+    const paving = blockById(s, b.id)!.paving;
+    for (let y = a.y0; y < a.y1; y++) for (let x = a.x0; x < a.x1; x++)
+      assert.deepEqual(scene.ground[0][y][x], slab(paving, x, y), `${tag}: ground at ${x},${y}`);
+    for (const o of objs) {
+      const fx = o.fp ? (o.fp.x0 + o.fp.x1) / 2 : o.x + o.w / 2;
+      assert.ok(fx >= px.x0 - TILE && fx <= px.x1 + TILE && o.foot >= px.y0 - TILE && o.foot <= px.y1 + TILE, `${tag}: ${o.key} at ${fx},${o.foot} outside the centre`);
+    }
+    assert.ok(centreReachable(scene), `${tag}: centre not reachable from the street`);
+  }
+});
+
+test('a centre garden: lawn, a cross path to the passages, trees, benches, a playground corner', () => {
+  const cases = CONTENT_CASES.filter(([, b]) => b.centre === 'garden');
+  assert.ok(cases.length >= 2, `only ${cases.length} garden blocks found`);
+  for (const [s, b] of cases) {
+    const { scene } = generateBlock(s, b.id);
+    const { a, objs, ways } = centreOf(scene);
+    const tag = `${s} ${b.id}`;
+    let grass = 0;
+    for (let y = a.y0; y < a.y1; y++) for (let x = a.x0; x < a.x1; x++) if (isGrassTile(scene.ground[1]?.[y]?.[x])) grass++;
+    assert.ok(grass >= 0.5 * (a.x1 - a.x0) * (a.y1 - a.y0), `${tag}: grass ${grass}`);
+    // each passage continued through the centre is path
+    for (const w of ways) {
+      const vertical = w.x0 >= a.x0 && w.x1 <= a.x1;
+      for (let y = vertical ? a.y0 : w.y0; y < (vertical ? a.y1 : w.y1); y++) for (let x = vertical ? w.x0 : a.x0; x < (vertical ? w.x1 : a.x1); x++)
+        assert.ok(!isGrassTile(scene.ground[1]?.[y]?.[x]), `${tag}: grass on the path at ${x},${y}`);
+    }
+    assert.ok(objs.some(o => SCHOOL_TOYS.includes(o.key)), `${tag}: no playground toy`);
+    assert.ok(objs.filter(o => o.cls === 'tree').length >= 2, `${tag}: trees ${objs.filter(o => o.cls === 'tree').length}`);
+    assert.ok(centreReachable(scene), `${tag}: centre not reachable from the street`);
   }
 });

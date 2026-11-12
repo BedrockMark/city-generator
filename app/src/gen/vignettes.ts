@@ -256,24 +256,11 @@ function frontOf(L: Layout, pb: PlacedBuilding, sb: SceneBuilder, r: Rng) {
   const side = rr.choose('front.side', {}, { p: 0.5 }) ? 1 : -1;
   const base = bottom + 10;          // foot line hugging the facade
   const put = (key: string, fx: number, fy: number, cls: string, why: string) => sb.putFoot(key, fx, fy, cls, { gid: g, why, depth: 9 });
-  const tableAnchor = (tx: number, ty: number, i: number): Anchor => ({ kind: 'object', ref: `${g}/table${i}`, x: tx, y: ty });
   switch (b.front) {
     case 'cafe': case 'bakery': {
       if (b.front === 'cafe' && b.label.startsWith('Ice_Cream') && hasSprite('5_Floor_Modular_Building/Ground_Floor_Ice_Cream_Shop_Props_3'))
         put('5_Floor_Modular_Building/Ground_Floor_Ice_Cream_Shop_Props_3', dx + (door > 56 ? -48 : 44), base + 12, 'table', '冰淇淋店配套的门口道具');
-      // tables only where the pavement leaves room for them (the walkway check rejects the rest)
-      const table = rr.choose('front.tableModel', {}, variants(V + 'Street_Food_Table'));
-      for (let i = 0; i < rr.count('front.tables', {}, 1, 3); i++) {
-        const tx = x0 + 12 + rr.int(0, 6) + i * 34;
-        if (Math.abs(tx - dx) < 22) continue;
-        const ty = bottom + 20;
-        if (!sb.putFoot(table, tx, ty, 'table', { gid: g, why: '露天座位的桌子：贴着立面、避开门前通道' })) continue;
-        for (const [sx, dir] of [[-12, 'right'], [12, 'left']] as const) {
-          const anchor = tableAnchor(tx, ty, i);
-          if (rr.choose('front.seatTaken', {}, { p: 0.55 })) { if (!sb.putChar(...seated(rr, tx + sx, ty - 1, dir), 'customer', { gid: g, why: '坐在桌旁的顾客，面朝桌子', anchor })) sb.putFoot(V + 'Street_Food_Chair_1', tx + sx, ty - 2, 'chair', { gid: g, why: '桌旁的椅子', anchor }); }
-          else sb.putFoot(V + 'Street_Food_Chair_1', tx + sx, ty - 2, 'chair', { gid: g, why: '桌旁的空椅子', anchor });
-        }
-      }
+      cafeTables(sb, rr, g, x0, dx, bottom + 20);
       put(rr.choose('front.signModel', {}, signs()), dx + side * 22, base, 'info_sign', '店招立牌，放在门的一侧');
       if (rr.choose('front.customer', {}, { p: 0.6 })) person(sb, rr, dx + side * rr.int(10, 30), base + rr.int(6, 12), 'stand', 'up', 'customer', g, '在店门口张望的顾客，面朝店门');
       break;
@@ -320,6 +307,24 @@ function frontOf(L: Layout, pb: PlacedBuilding, sb: SceneBuilder, r: Rng) {
       if (rr.choose('front.litter', {}, { p: 0.6 })) for (let i = 0; i < rr.count('front.litterBags', {}, 1, 3); i++) put(rr.choose('front.litterModel', {}, variants(C + 'Trash')), dx + side * rr.int(20, 44), base, 'trash', '歇业店门口堆积的垃圾袋');
       if (rr.choose('front.cardboard', {}, { p: 0.3 })) put(rr.choose('front.cardboardModel', {}, variants(C + 'Cardboard_Trash')), dx - side * rr.int(20, 36), base, 'trash', '歇业店门口的废纸箱');
       break;
+    }
+  }
+}
+
+/** a cafe's outdoor tables in group g along a facade: x0 = the facade's left px, dx = the door px (tables keep 22 px
+ *  from it), ty = the tables' foot y; a chair or a seated customer either side of each table */
+export function cafeTables(sb: SceneBuilder, rr: Rng, g: string, x0: number, dx: number, ty: number): void {
+  const tableAnchor = (tx: number, ty: number, i: number): Anchor => ({ kind: 'object', ref: `${g}/table${i}`, x: tx, y: ty });
+  // tables only where the pavement leaves room for them (the walkway check rejects the rest)
+  const table = rr.choose('front.tableModel', {}, variants(V + 'Street_Food_Table'));
+  for (let i = 0; i < rr.count('front.tables', {}, 1, 3); i++) {
+    const tx = x0 + 12 + rr.int(0, 6) + i * 34;
+    if (Math.abs(tx - dx) < 22) continue;
+    if (!sb.putFoot(table, tx, ty, 'table', { gid: g, why: '露天座位的桌子：贴着立面、避开门前通道' })) continue;
+    for (const [sx, dir] of [[-12, 'right'], [12, 'left']] as const) {
+      const anchor = tableAnchor(tx, ty, i);
+      if (rr.choose('front.seatTaken', {}, { p: 0.55 })) { if (!sb.putChar(...seated(rr, tx + sx, ty - 1, dir), 'customer', { gid: g, why: '坐在桌旁的顾客，面朝桌子', anchor })) sb.putFoot(V + 'Street_Food_Chair_1', tx + sx, ty - 2, 'chair', { gid: g, why: '桌旁的椅子', anchor }); }
+      else sb.putFoot(V + 'Street_Food_Chair_1', tx + sx, ty - 2, 'chair', { gid: g, why: '桌旁的空椅子', anchor });
     }
   }
 }

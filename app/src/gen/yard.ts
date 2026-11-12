@@ -304,7 +304,7 @@ export function joinGardens(L: Layout, gs: { rc: CellRect; side?: Side }[], own:
   return null;
 }
 
-const SMALL_TREES = [C + 'Tree_1', C + 'Tree_2', C + 'Tree_3', C + 'Tree_4', C + 'Tree_8'];
+export const SMALL_TREES = [C + 'Tree_1', C + 'Tree_2', C + 'Tree_3', C + 'Tree_4', C + 'Tree_8'];
 
 /** a little park: grass split by a path from the street gate, benches facing the path, trees on the grass */
 function garden(L: Layout, sb: SceneBuilder, rr: Rng, rc: CellRect, side: Side | undefined, plan: BlockPlan, gid: string, join?: Join) {

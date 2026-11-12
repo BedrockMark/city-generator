@@ -26,6 +26,8 @@ const T = TILE;
 const C = '3_City_Props/';
 const V = '10_Vehicles/';
 const SC = '13_School/';
+/** the school yard toys that have a sprite (slides, swings, climbing frames ...); also the centre garden's playground */
+export const SCHOOL_TOYS: string[] = [2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 18, 19].map(i => `${SC}School_Yard_Toy_${i}`).filter(hasSprite);
 const PS = '15_Police_Station/';
 
 export type DistrictKind = 'school' | 'hospital' | 'police' | 'fire' | 'mall' | 'hotel' | 'gas' | 'palace';
@@ -369,8 +371,7 @@ function grounds(L: Layout, lm: Landmark, sb: SceneBuilder, r0: Rng) {
         // v0.7.8: lawn with the school yard toys, the railing on its street side, children playing
         more(() => {
           lawn(L, f);
-          const toys = [2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 18, 19].map(i => `${SC}School_Yard_Toy_${i}`).filter(hasSprite);
-          scatter(toys, Math.max(3, Math.round((f.x1 - f.x0) * (f.y1 - f.y0) / 14)), 'playground', '学校游乐场里的游乐设施（滑梯、秋千、攀爬架等）', { x0: x0 + 4, y0: y0 + 4, x1: x1 - 4, y1: y1 - 4 }, 6);
+          scatter(SCHOOL_TOYS, Math.max(3, Math.round((f.x1 - f.x0) * (f.y1 - f.y0) / 14)), 'playground', '学校游乐场里的游乐设施（滑梯、秋千、攀爬架等）', { x0: x0 + 4, y0: y0 + 4, x1: x1 - 4, y1: y1 - 4 }, 6);
           if (campusRow(f.y1, f.x0, f.x1)) railing(x0, x1, y1, '游乐场临街一边的学校围栏');
           people(rx.int(3, 5), 'citizen', '在游乐场玩的小学生', { kid: 0.95, rr: rx });
         });
