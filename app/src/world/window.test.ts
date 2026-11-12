@@ -7,7 +7,7 @@ import { SLAB_PERIOD, WINDOW_MARGIN, ZONES } from './config';
 import { TILE } from '../gen/types';
 import type { BlockRec } from './types';
 import { campusFor, DISTRICTS } from '../gen/district';
-import { centreReachable } from '../gen/centre';
+import { centreReachable, CENTRE_OVERHANG } from '../gen/centre';
 import { SCHOOL_TOYS } from '../gen/district';
 import { slab } from '../gen/layout';
 import { isGrassTile } from '../gen/rational/world';
@@ -295,5 +295,16 @@ test('a centre garden: lawn, a cross path to the passages, trees, benches, a pla
     assert.ok(objs.some(o => SCHOOL_TOYS.includes(o.key)), `${tag}: no playground toy`);
     assert.ok(objs.filter(o => o.cls === 'tree').length >= 2, `${tag}: trees ${objs.filter(o => o.cls === 'tree').length}`);
     assert.ok(centreReachable(scene), `${tag}: centre not reachable from the street`);
+  }
+});
+
+test('the buildings south of a centre reach at most CENTRE_OVERHANG rows into it', () => {
+  for (const [s, b] of CONTENT_CASES) {
+    const { scene } = generateBlock(s, b.id);
+    const c = scene.zones!.find(q => q.kind === 'centre')!.rect;
+    for (const bl of scene.buildings ?? []) {
+      if (bl.solid.y0 < c.y1 || bl.solid.x1 <= c.x0 || bl.solid.x0 >= c.x1) continue;
+      assert.ok(bl.rect.y0 / TILE >= c.y1 / TILE - CENTRE_OVERHANG, `${s} ${b.id}: ${bl.id} (${bl.label}) top row ${bl.rect.y0 / TILE}, centre bottom ${c.y1 / TILE}`);
+    }
   }
 });

@@ -36,6 +36,9 @@ export interface PackOpts {
   kits?: { r: Rng; p: number };
   /** city mode (spec 4): a building sprite's top row may not be above topLimit(x), for every column x it covers */
   topLimit?: (x: number) => number;
+  /** v0.8.2 city mode: like topLimit, for a building whose facade bottom row is `bottom`; it also bounds the height
+   *  picked for a spot (the overhang over a block's centre plaza / garden) */
+  topCap?: (x: number, bottom: number) => number;
 }
 
 export interface Packed { plan: BuildingPlan; cx: number; cy: number; why: string; /** rows slid north by `spread` */ moved?: number;
@@ -51,7 +54,7 @@ export function pack(o: PackOpts, r: Rng): { placed: Packed[]; yard: boolean[][]
   const over = (x: number, y: number) => inside(x, y) ? o.canopy(x, y) : !!o.overflow?.(x, y);
   const placed: Packed[] = [];
   const fits = (b: BuildingPlan, x0: number, bottom: number) => {
-    if (!underTop(o, x0, b.w, bottom - b.h + 1)) return false;
+    if (!underTop(o, x0, b.w, bottom - b.h + 1, bottom)) return false;
     for (let y = bottom - b.foot + 1; y <= bottom; y++) for (let x = x0; x < x0 + b.w; x++) if (!ok(x, y)) return false;
     for (let y = bottom - b.h + 1; y <= bottom - b.foot; y++) for (let x = x0; x < x0 + b.w; x++) if (!over(x, y)) return false;
     // front clearance: the 2 rows below must not be building
@@ -78,6 +81,8 @@ export function pack(o: PackOpts, r: Rng): { placed: Packed[]; yard: boolean[][]
       // as unlimited; whether the footprint itself is free is checked by fits()
       let avail = 0;
       for (let y = yS; (y === yS || over(x, y)) && avail < 40; y--) avail++;
+      const capped = !!o.topCap && yS - o.topCap(x, yS) + 1 < avail;
+      if (capped) avail = yS - o.topCap!(x, yS) + 1;
       let bp: BuildingPlan | null = null;
       if (rem >= 5 && avail >= (o.minH ?? 8)) {
         for (let t = 0; t < 8 && !bp; t++) {
@@ -104,7 +109,7 @@ export function pack(o: PackOpts, r: Rng): { placed: Packed[]; yard: boolean[][]
         if (k && fits(k.plan, x, yS) && (!allowK || allowK.includes(k.plan.front))) { bp = k.plan; note = `；${k.why}`; }
       }
       const allowed = o.frontFilter ? o.frontFilter(x, bp.w, yS) : null;
-      const first: Packed = { plan: bp, cx: x, cy: yS - bp.h + 1, why: `打包：第 ${yS} 行是最低的空行，放在空段 ${a}–${b - 1} 的 x=${x} 处，底边对齐；${!o.frontFilter ? '' : allowed ? '立面不临街 → 只能是住宅；' : '立面临街 → 可为店铺；'}可用高度 ${avail} 格${note}` };
+      const first: Packed = { plan: bp, cx: x, cy: yS - bp.h + 1, why: `打包：第 ${yS} 行是最低的空行，放在空段 ${a}–${b - 1} 的 x=${x} 处，底边对齐；${!o.frontFilter ? '' : allowed ? '立面不临街 → 只能是住宅；' : '立面临街 → 可为店铺；'}可用高度 ${avail} 格${capped ? '（限高：楼的上部不能挡住后面的中心广场 / 中庭）' : ''}${note}` };
       placed.push(first);
       mark(bp, x, yS);
       x += bp.w;
@@ -148,10 +153,11 @@ export function pack(o: PackOpts, r: Rng): { placed: Packed[]; yard: boolean[][]
   return { placed, yard };
 }
 
-/** the sprite's top row `top` over columns x0..x0+w-1 is not above `topLimit` (no limit: always true) */
-function underTop(o: PackOpts, x0: number, w: number, top: number): boolean {
-  if (!o.topLimit) return true;
-  for (let x = x0; x < x0 + w; x++) if (top < o.topLimit(x)) return false;
+/** the sprite's top row `top` over columns x0..x0+w-1 is not above `topLimit` nor `topCap` (for the facade bottom row
+ *  `bottom`); no limit: always true */
+function underTop(o: PackOpts, x0: number, w: number, top: number, bottom: number): boolean {
+  if (o.topLimit) for (let x = x0; x < x0 + w; x++) if (top < o.topLimit(x)) return false;
+  if (o.topCap) for (let x = x0; x < x0 + w; x++) if (top < o.topCap(x, bottom)) return false;
   return true;
 }
 
@@ -245,7 +251,7 @@ function spreadNorth(o: PackOpts, placed: Packed[], bld: boolean[][], free: bool
   };
   const fitsAt = (p: Packed, bot: number) => {
     const b = p.plan, x0 = p.cx;
-    if (!underTop(o, x0, b.w, bot - b.h + 1)) return false;
+    if (!underTop(o, x0, b.w, bot - b.h + 1, bot)) return false;
     for (let y = bot - b.foot + 1; y <= bot; y++) for (let x = x0; x < x0 + b.w; x++) {
       if (!inside(x, y) || !o.buildable(x, y) || bld[y][x]) return false;
       // the footprint must not stand in the 2 rows in front of another facade

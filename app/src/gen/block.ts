@@ -8,7 +8,7 @@ import { pack } from './pack';
 import { SceneBuilder, rect } from './place';
 import { TILE, type CityParams } from './types';
 import { placeCampus, type Campus, type Landmark } from './district';
-import { planCentre, type CentreArea } from './centre';
+import { planCentre, CENTRE_OVERHANG, type CentreArea } from './centre';
 
 const PART_NAMES: Record<string, string> = { roof: '屋顶', mid: '中间层', ground: '底层', whole: '整体精灵', link: '链接条（盖住与邻楼相接的墙缝）', entrance: '入口门廊（宫殿的模块化入口，exp-09）' };
 
@@ -112,6 +112,9 @@ export function planMainBlock(L: Layout, r0: Rng, composite?: { r: Rng; p: numbe
     cols: L.cols, rows: L.rows, buildable: (x, y) => L.inP[y][x] && !carved[y][x], canopy: (x, y) => L.inP[y][x], mix, minH: 8,
     gapAfter: [[0, 6], [1, 2], [2, 1]], pairChance: 0.4, spread: true, composite: composite && { r: composite.r.fork('main'), p: composite.p },
     kits: kits && { r: kits.r.fork('main'), p: kits.p }, topLimit: L.topLimit,
+    // v0.8.2: a building south of the centre (over its columns) reaches at most CENTRE_OVERHANG rows into it, so the
+    // plaza / garden stays in sight; the packer picks a lower one or leaves the spot to the yard
+    ...(centre ? { topCap: (x: number, bottom: number) => x >= centre!.x0 && x < centre!.x1 && bottom >= centre!.y1 ? centre!.y1 - CENTRE_OVERHANG : -Infinity } : {}),
     // only buildings that face the street (sidewalk right below the facade) may be shops
     frontFilter: (x0, w, bottom) => {
       let street = true;

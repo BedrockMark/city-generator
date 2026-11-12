@@ -17,6 +17,8 @@ import { worldFromScene } from './rational/world';
 
 /** lot cells kept for buildings on each side */
 export const CENTRE_INSET = { s: 14, n: 10, e: 10, w: 10 } as const;
+/** rows a building south of the centre may reach into it with its upper floors (the rest stays in sight) */
+export const CENTRE_OVERHANG = 3;
 /** smaller: no centre */
 export const CENTRE_MIN_AREA = { w: 12, h: 8 } as const;
 
@@ -84,7 +86,8 @@ const T = TILE, C = '3_City_Props/', G = '17_Garden/';
 function plazaContents(plan: BlockPlan, sb: SceneBuilder, r: Rng, a: CentreArea, gid: string) {
   const X0 = a.x0 * T, X1 = a.x1 * T, Y0 = a.y0 * T, Y1 = a.y1 * T, w = a.x1 - a.x0;
   const head = '大街区的中心广场';
-  const cx = (X0 + X1) / 2, cy = (Y0 + Y1) / 2;
+  // the middle of the part in sight: buildings south of the centre may cover its last CENTRE_OVERHANG rows
+  const Yv = (a.y1 - CENTRE_OVERHANG) * T, cx = (X0 + X1) / 2, cy = (Y0 + Yv) / 2;
   const width = (k: string) => spr(k).bb[2] - spr(k).bb[0];
   const fountains = [...variants(C + 'Fountain'), G + 'Fountain_1_1', G + 'Fountain_2_1', G + 'Fountain_3_1'].filter(hasSprite);
   const statues = [G + 'Angel_Statue_1', G + 'Angel_Statue_2', G + 'Grey_Statue', G + 'Light_Brown_Statue'].filter(hasSprite);
@@ -114,7 +117,7 @@ function plazaContents(plan: BlockPlan, sb: SceneBuilder, r: Rng, a: CentreArea,
     const l = sb.putFoot(r.choose('centre.benchLeftModel', {}, [C + 'Bench_4', C + 'Bench_6']), cxp - off, by, 'bench', { gid, why: `${head}：中心物左侧的长椅，面朝中心，隔一格（D21）`, anchor });
     const rgt = l && sb.putFoot(r.choose('centre.benchRightModel', {}, [C + 'Bench_3', C + 'Bench_5']), cxp + off, by, 'bench', { gid, why: `${head}：中心物右侧的长椅，面朝中心，隔一格（D21）`, anchor });
     if (l && !rgt) { sb.objects.splice(sb.objects.indexOf(l), 1); sb.feet.pop(); }
-    if (!l || !rgt) sb.putFoot(C + 'Bench_7', cxp, Y1 - 3, 'bench', { gid, why: `${head}：两侧放不下长椅，中心物南面一条背对观众、面朝中心的长椅`, anchor });
+    if (!l || !rgt) sb.putFoot(C + 'Bench_7', cxp, Yv - 3, 'bench', { gid, why: `${head}：两侧放不下长椅，中心物南面一条背对观众、面朝中心的长椅`, anchor });
   }
   // a tree in each corner, a cell in, with a flower bed on its inner side; off the doors (D89), moved toward the middle
   for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const) {
@@ -161,8 +164,9 @@ function gardenContents(L: Layout, sb: SceneBuilder, r: Rng, a: CentreArea, pass
   const pw = Math.min(8, Math.floor((W - 2) / 2)), ph = Math.min(6, Math.floor((H - 2) / 2));
   const cornerRect = (c: string) => { const x0 = c.includes('W') ? a.x0 : a.x1 - pw, y0 = c.includes('N') ? a.y0 : a.y1 - ph; return { x0, y0, x1: x0 + pw, y1: y0 + ph }; };
   const clearOfPath = (c: string) => { const q = cornerRect(c); for (let y = q.y0; y < q.y1; y++) for (let x = q.x0; x < q.x1; x++) if (onPath(x, y)) return false; return true; };
-  const corners = ['NW', 'NE', 'SW', 'SE'], free = corners.filter(clearOfPath);
-  const pc = cornerRect(r.choose('centre.playCorner', {}, free.length ? free : corners));
+  // the north corners first: the south ones lie partly behind the buildings south of the centre (CENTRE_OVERHANG)
+  const corners = ['NW', 'NE', 'SW', 'SE'], free = corners.filter(clearOfPath), north = free.filter(c => c.includes('N'));
+  const pc = cornerRect(r.choose('centre.playCorner', {}, north.length ? north : free.length ? free : corners));
   const pr = rect(pc.x0 * T, pc.y0 * T, pc.x1 * T, pc.y1 * T);
   // 3-5 toys, each kind once, 6 px apart; the ones no wider than half the corner when there are 3 such kinds
   const fits = (f: number) => SCHOOL_TOYS.filter(k => spr(k).bb[2] - spr(k).bb[0] <= (pr.x1 - pr.x0) * f - 4);
