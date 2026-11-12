@@ -1,8 +1,13 @@
 // World-layer block statistics. Usage: npx tsx scripts/blockstats.ts <cmd> [--seeds a,b,...]
 //   zone: zoneValue at arterial-cell centres (seeds 1..30, cells -3..3 each way) and the three-way split
+//   districts: special districts by zone (city regression seeds city_seeds.json, cells -2..2 each way): blocks per cell
+//     (islands not counted), the share of blocks that are districts, drawn / placed, and placed / drawn by kind
+import { readFileSync } from 'node:fs';
 import { cellRect } from '../src/world/arterials';
 import { zoneValue } from '../src/world/zone';
-import { ZONE_THRESHOLDS } from '../src/world/config';
+import { cellBlocks, cellDistrict, cellLotRange } from '../src/world/blocks';
+import { ZONE_THRESHOLDS, DISTRICT_CHANCE } from '../src/world/config';
+import type { ZoneKind } from '../src/world/types';
 
 const args = process.argv.slice(2);
 const cmd = args[0];
@@ -22,5 +27,35 @@ function zone(): void {
   console.log(`zone value at ${n} cell centres: p5 ${q(0.05)} p50 ${q(0.5)} p95 ${q(0.95)}; downtown ${a} mixed ${n - a - c} residential ${c}`);
 }
 
+function districts(): void {
+  const ss: string[] = si >= 0 ? seeds : JSON.parse(readFileSync(new URL('./city_seeds.json', import.meta.url), 'utf8'));
+  const st = new Map<ZoneKind, { cells: number; blocks: number; districts: number; drawn: number; placed: number; kinds: Map<string, [number, number]> }>();
+  for (const s of ss) for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++) {
+    const { zone } = cellLotRange(s, i, j);
+    let z = st.get(zone);
+    if (!z) st.set(zone, z = { cells: 0, blocks: 0, districts: 0, drawn: 0, placed: 0, kinds: new Map() });
+    const bs = cellBlocks(s, i, j).filter(b => b.shape !== 'island');
+    const kind = cellDistrict(s, i, j, zone), placed = bs.some(b => b.district);
+    z.cells++;
+    z.blocks += bs.length;
+    if (kind) {
+      const k = z.kinds.get(kind) ?? [0, 0];
+      k[1]++;
+      z.drawn++;
+      if (placed) { k[0]++; z.placed++; z.districts++; }
+      z.kinds.set(kind, k);
+    }
+  }
+  for (const zone of ['downtown', 'mixed', 'residential'] as const) {
+    const z = st.get(zone);
+    if (!z) { console.log(`${zone}: 0 cells`); continue; }
+    const kinds = [...z.kinds].map(([k, [p, d]]) => `${k} ${p}/${d}`).join(', ');
+    console.log(`${zone}: ${z.cells} cells (chance ${DISTRICT_CHANCE[zone]}), blocks/cell ${(z.blocks / z.cells).toFixed(2)}, `
+      + `districts ${z.districts}/${z.blocks} (${(z.districts / z.blocks).toFixed(3)}), drawn ${z.drawn} placed ${z.placed}`
+      + `${z.drawn ? ` (s ${(z.placed / z.drawn).toFixed(2)})` : ''}${kinds ? `; ${kinds}` : ''}`);
+  }
+}
+
 if (cmd === 'zone') zone();
-else { console.error('usage: blockstats.ts zone [--seeds a,b,...]'); process.exit(1); }
+else if (cmd === 'districts') districts();
+else { console.error('usage: blockstats.ts zone|districts [--seeds a,b,...]'); process.exit(1); }

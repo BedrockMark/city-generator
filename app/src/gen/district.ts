@@ -94,6 +94,13 @@ export interface Landmark {
   cells: [number, number][];
 }
 
+/** the campus of a world district block: planCampus on a plain Rng(blockSeed) (no trace, no preference hook), so
+ *  the world layer and the generator get the same size whatever prefs / novelty are. blockSeed = `${worldSeed}/${blockId}`
+ *  (its `landmark` fork is the generator's, `${blockSeed}/landmark`) */
+export function campusFor(blockSeed: string, kind: DistrictKind): Campus {
+  return planCampus(kind, new Rng(blockSeed));
+}
+
 /** the campus of a district, block-local (decided before the layout: the block is sized to it). Stream `landmark` */
 export function planCampus(kind: DistrictKind, rng: Rng): Campus {
   const r = rng.fork('landmark', { district: kind });

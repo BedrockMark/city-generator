@@ -1,10 +1,12 @@
 // Street cuts and blocks: each arterial cell is split recursively by 5-cell streets until every piece is a block
 // whose lot fits the zone's target size. Every random draw is hash*(seed, 'cut', i, j, path, ...), so a cell's
-// blocks depend only on (seed, i, j) and can be computed locally in any order.
+// blocks depend only on (seed, i, j) and can be computed locally in any order. A special district (hash*(seed, 'district',
+// i, j, ...)) first takes a corner of the cell, its footprint sized by campusFor (v0.8.2).
 import { hash01, hashInt, hashPick } from './hash';
 import { cellRect, cellAt } from './arterials';
 import { zoneAt, zoneValue } from './zone';
-import { ZONES, LOT_RANGE, P_LO, P_HI, CENTRE_MIN, STREET_WIDTH, JOG_CHANCE, JOG_STEP, JOG_AT, JOG_GAP, LEAF_CHANCE, CELL_CACHE, ISLAND_CHANCE, ISLAND_LOT, ISLAND_ARM } from './config';
+import { ZONES, LOT_RANGE, P_LO, P_HI, CENTRE_MIN, DISTRICT_CHANCE, DISTRICT_WEIGHTS, STREET_WIDTH, JOG_CHANCE, JOG_STEP, JOG_AT, JOG_GAP, LEAF_CHANCE, CELL_CACHE, ISLAND_CHANCE, ISLAND_LOT, ISLAND_ARM } from './config';
+import { campusFor, DISTRICTS, type DistrictKind } from '../gen/district';
 import type { BlockRec, Rect, ZoneKind } from './types';
 
 export type Range = readonly [number, number];
@@ -49,15 +51,18 @@ interface LPiece { axis: Axis; lo: boolean; s: number; e: [number, number]; v0: 
 
 interface Ctx { seed: string; i: number; j: number; zone: ZoneKind; fw: Range; fh: Range; sw: 2 | 3; out: BlockRec[] }
 
-function leaf(c: Ctx, path: string, foot: Rect[], why: string[], shape: BlockRec['shape'] = foot.length > 1 ? 'jog' : 'rect'): void {
+function leaf(c: Ctx, path: string, foot: Rect[], why: string[], shape: BlockRec['shape'] = foot.length > 1 ? 'jog' : 'rect',
+  extra?: { district?: DistrictKind }): void {
   const id = `b${c.i},${c.j}/${path}`;
   const rec: BlockRec = {
     id, cell: [c.i, c.j], foot, sw: c.sw, zone: c.zone,
     paving: hashPick(c.seed, ZONES[c.zone].paving, 'blk', id),
     shape, why,
   };
-  // a big plain rect block keeps its middle for a plaza (garden in residential areas; downtown counts as mixed)
-  if (shape === 'rect') {
+  if (extra?.district) rec.district = extra.district;
+  // a big plain rect block keeps its middle for a plaza (garden in residential areas; downtown counts as mixed); a
+  // district block is its campus, all of it
+  if (shape === 'rect' && !rec.district) {
     const w = foot[0].x1 - foot[0].x0 - 2 * c.sw, h = foot[0].y1 - foot[0].y0 - 2 * c.sw;
     if (w >= CENTRE_MIN.w && h >= CENTRE_MIN.h) {
       rec.centre = c.zone === 'residential' ? 'garden' : 'plaza';
@@ -182,6 +187,79 @@ function splitL(c: Ctx, p: LPiece, path: string, why: string[]): void {
   }
 }
 
+export type Corner = 'NW' | 'NE' | 'SW' | 'SE';
+const CORNERS: readonly Corner[] = ['NW', 'NE', 'SW', 'SE'];
+const CORNER_NAME: Record<Corner, string> = { NW: '西北', NE: '东北', SW: '西南', SE: '东南' };
+
+/** A special district's footprint reserved in a corner of a cell by two streets. */
+export interface Reservation {
+  corner: Corner; axis: Axis;                 // axis of the first cut (v: a band of the footprint's width)
+  path: string;                               // two letters; the district id is `b<i>,<j>/${path}D`
+  foot: Rect;                                 // the district footprint (campus lot + 2 sw each way)
+  bandRest: { r: Rect; path: string };        // the band beside it
+  rest: { r: Rect; path: string };            // the rest of the cell
+}
+
+/** first of the 8 (corner, axis) ways, starting at `start` (0..7, k -> corner k >> 1 in NW NE SW SE, axis k & 1 ? 'h' : 'v'),
+ *  whose band rest and rest are feasible in both directions for fw / fh; `size(path)` = footprint w, h for that id */
+export function reserveCorner(cell: Rect, fw: Range, fh: Range, size: (path: string) => { w: number; h: number }, start: number): Reservation | null {
+  const S = STREET_WIDTH;
+  const fits = (r: Rect) => feasible(r.x1 - r.x0, fw) && feasible(r.y1 - r.y0, fh);
+  for (let n = 0; n < 8; n++) {
+    const k = (start + n) % 8, corner = CORNERS[k >> 1], axis: Axis = k & 1 ? 'h' : 'v';
+    const west = corner.endsWith('W'), north = corner.startsWith('N');
+    // u: across the first cut, v: along it; the band is on the low-u side for a west (v) / north (h) corner
+    const [lowU, lowV] = axis === 'v' ? [west, north] : [north, west];
+    const bandPath = lowU ? 'L' : 'R';
+    const path = bandPath + (lowV ? 'L' : 'R');
+    const { w, h } = size(path);
+    const [du, dv] = axis === 'v' ? [w, h] : [h, w];
+    const [u0, u1, v0, v1] = axis === 'v' ? [cell.x0, cell.x1, cell.y0, cell.y1] : [cell.y0, cell.y1, cell.x0, cell.x1];
+    const [b0, b1] = lowU ? [u0, u0 + du] : [u1 - du, u1];               // the band
+    const [r0, r1] = lowU ? [u0 + du + S, u1] : [u0, u1 - du - S];       // the rest of the cell
+    const [f0, f1] = lowV ? [v0, v0 + dv] : [v1 - dv, v1];               // the footprint, along the band
+    const [q0, q1] = lowV ? [v0 + dv + S, v1] : [v0, v1 - dv - S];       // the band's rest
+    if (du <= 0 || dv <= 0 || r1 <= r0 || q1 <= q0) continue;
+    const bandRest = mk(axis, b0, b1, q0, q1), rest = mk(axis, r0, r1, v0, v1);
+    if (!fits(bandRest) || !fits(rest)) continue;
+    return { corner, axis, path, foot: mk(axis, b0, b1, f0, f1),
+      bandRest: { r: bandRest, path: bandPath + (lowV ? 'R' : 'L') }, rest: { r: rest, path: lowU ? 'R' : 'L' } };
+  }
+  return null;
+}
+
+/** The special district drawn for arterial cell (i, j) in `zone`, or null (most cells have none). */
+export function cellDistrict(seed: string, i: number, j: number, zone: ZoneKind): DistrictKind | null {
+  if (hash01(seed, 'district', i, j) >= DISTRICT_CHANCE[zone]) return null;
+  const ws = (Object.entries(DISTRICT_WEIGHTS[zone]) as [DistrictKind, number][]).filter(([, w]) => w > 0);
+  return ws.length ? hashPick(seed, ws, 'district', i, j, 'kind') : null;
+}
+
+/** Reserves a corner of cell r for district `kind` and splits what is left; false when no way of the 8 fits. */
+function placeDistrict(c: Ctx, r: Rect, kind: DistrictKind, root: string[]): boolean {
+  const { seed, i, j, sw } = c;
+  const res = reserveCorner(r, c.fw, c.fh, path => {
+    const k = campusFor(`${seed}/b${i},${j}/${path}D`, kind);
+    return { w: k.W + 2 * sw, h: k.H + 2 * sw };
+  }, hashInt(seed, 0, 7, 'district', i, j, 'way'));
+  if (!res) return false;
+  const { foot, bandRest, rest, axis } = res;
+  const name = DISTRICTS[kind].name, where = CORNER_NAME[res.corner], reason = `为特色街区${name}预留${where}角`;
+  const axis2: Axis = axis === 'v' ? 'h' : 'v';
+  // each street starts where the lower of its two pieces ends
+  const end = (a: Axis, p: Rect) => (a === 'v' ? p.x1 : p.y1);
+  const cw1 = cutWhy(c, '', axis, Math.min(end(axis, foot), end(axis, rest.r)), reason);
+  const cw2 = cutWhy(c, res.path[0], axis2, Math.min(end(axis2, foot), end(axis2, bandRest.r)), reason);
+  const fw = foot.x1 - foot.x0, fh = foot.y1 - foot.y0;
+  const cuts = axis === 'v' ? `先竖切出宽 ${fw} 的带，再横切出高 ${fh} 的一块` : `先横切出高 ${fh} 的带，再竖切出宽 ${fw} 的一块`;
+  leaf(c, res.path + 'D', [foot], [...root, cw1, cw2,
+    `特色街区：${name}（散列抽中，概率 ${DISTRICT_CHANCE[c.zone]}），园区地块 ${fw - 2 * sw}×${fh - 2 * sw}，预留在格的${where}角（${cuts}）`],
+  'rect', { district: kind });
+  split(c, bandRest.r, bandRest.path, [...root, cw1, cw2]);
+  split(c, rest.r, rest.path, [...root, cw1]);
+  return true;
+}
+
 function deepFreeze<T>(o: T): T {
   if (o && typeof o === 'object' && !Object.isFrozen(o)) {
     Object.freeze(o);
@@ -248,10 +326,16 @@ export function cellBlocks(seed: string, i: number, j: number): readonly BlockRe
     seed, i, j, zone, sw, out: [],
     fw: [lotW[0] + 2 * sw, lotW[1] + 2 * sw], fh: [lotH[0] + 2 * sw, lotH[1] + 2 * sw],
   };
-  split(c, r, '', [
+  const root = [
     `繁荣度 ${p.toFixed(2)}（${ZONE_NAME[zone]}），地块目标 ${lotW[0]}–${lotW[1]} × ${lotH[0]}–${lotH[1]}${note}`,
     `主干道格 (${i},${j}) 中心 (${cx},${cy}) 的分区是${ZONE_NAME[zone]}，人行道宽 ${sw} 格`,
-  ]);
+  ];
+  // a special district first takes a corner of the cell (spec 2.2); the rest splits as usual
+  const kind = cellDistrict(seed, i, j, zone);
+  if (!kind || !placeDistrict(c, r, kind, root)) {
+    if (kind) root.push(`抽到特色街区${DISTRICTS[kind].name}，但园区在 8 种预留方式下都切不开剩下的部分，不放`);
+    split(c, r, '', root);
+  }
   const out = deepFreeze(c.out) as readonly BlockRec[];
   if (cache.size >= CELL_CACHE) cache.delete(cache.keys().next().value!);
   cache.set(key, out);

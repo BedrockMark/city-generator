@@ -120,7 +120,7 @@ export function generateInWindow(seed: string, b: BlockRec, win: BlockWindowLayo
   const city: CityOptions = {};
   if (opts.prune !== undefined) city.prune = opts.prune;
   if (opts.prefs !== undefined) city.prefs = opts.prefs;
-  const scene = generateBase(`${seed}/${b.id}`, withDefaults({ novelty: CITY_NOVELTY, ...city }),
+  const scene = generateBase(`${seed}/${b.id}`, withDefaults({ novelty: CITY_NOVELTY, ...city, ...(b.district ? { district: b.district } : {}) }),
     { layout, params: { world: { seed, blockId: b.id, zone: b.zone, offset: [ox, oy] } } });
   const owner = ownerRaster(seed, { x0: ox, y0: oy, x1: ox + layout.cols, y1: oy + layout.rows });
   const owns = (x: number, y: number) =>

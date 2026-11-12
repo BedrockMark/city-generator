@@ -17,7 +17,7 @@ import { rationalize } from './rational/rationalize';
 import { makeAdjust } from './learn/adjust';
 import { PREFS } from './learn/prefs';
 import { markNovel } from './learn/novelty';
-import { planCampus, districtVignettes, isDistrict, resetDistrictIds } from './district';
+import { planCampus, campusFor, districtVignettes, isDistrict, resetDistrictIds } from './district';
 
 export const VERSION = '0.8.1-hotfix1';
 
@@ -46,7 +46,9 @@ export function generateBase(seed: string, opts: GenOptions, win?: BlockWindow):
   // (0.7.8.2): no option = 普通街区, never drawn here (the viewer's random mix is src/viewer/mix.ts)
   if (opts.district !== undefined && !isDistrict(opts.district)) throw new Error(`unknown district: ${String(opts.district)}`);
   const district = opts.district;
-  const campus = district && planCampus(district, rng);
+  // city mode (a window): the campus the world layer reserved the footprint for (campusFor, no preference hook);
+  // single-block mode keeps planCampus on the generator's stream
+  const campus = district && (win ? campusFor(seed, district) : planCampus(district, rng));
   const L = win ? cloneLayout(win.layout) : makeLayout(rng, campus && { w: campus.W, h: campus.H });
   const sb = new SceneBuilder(L.cols, L.rows, L.cls);
   // exp-04 (adopted): composite buildings on its own stream; touching neighbours switch to their linked state (no random numbers)

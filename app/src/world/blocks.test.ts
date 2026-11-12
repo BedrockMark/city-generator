@@ -1,9 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cellBlocks, blockAt, blockById, lotOf, _clearBlockCache, lotRange, widenToFit, feasible, cellLotRange } from './blocks';
+import { cellBlocks, blockAt, blockById, lotOf, _clearBlockCache, lotRange, widenToFit, feasible, cellLotRange, reserveCorner } from './blocks';
+import { campusFor, DISTRICTS } from '../gen/district';
 import { cellRect } from './arterials';
-import { STREET_WIDTH, JOG_STEP, JOG_GAP, ISLAND_LOT, ISLAND_ARM, LOT_RANGE, P_LO, P_HI, CENTRE_MIN } from './config';
-import type { BlockRec, Rect } from './types';
+import { STREET_WIDTH, JOG_STEP, JOG_GAP, ISLAND_LOT, ISLAND_ARM, LOT_RANGE, P_LO, P_HI, CENTRE_MIN, DISTRICT_WEIGHTS } from './config';
+import type { BlockRec, Rect, ZoneKind } from './types';
 
 const R = (a: number, b: number) => Array.from({ length: b - a + 1 }, (_, k) => a + k);
 const SEEDS = R(1, 30).map(String);
@@ -24,6 +25,7 @@ function checkLot(seed: string, b: BlockRec) {
     assert.ok(w >= ISLAND_LOT.w[0] && w <= ISLAND_LOT.w[1] && h >= ISLAND_LOT.h[0] && h <= ISLAND_LOT.h[1], `${b.id} island lot ${w}x${h}`);
     return;
   }
+  if (b.district) return;                                    // campus-sized: the district test
   const { lotW, lotH } = cellLotRange(seed, b.cell[0], b.cell[1]);
   assert.ok(w >= lotW[0] && w <= lotW[1], `${b.id} lot width ${w} not in ${lotW}`);
   assert.ok(h >= lotH[0] && h <= lotH[1], `${b.id} lot height ${h} not in ${lotH}`);
@@ -44,39 +46,42 @@ test('every cell splits and every lot is within its cell range', () => {
   }
 });
 
-test('blocks and streets tile the cell: no overlap, every non-block cell is street', () => {
-  for (const s of R(1, 5).map(String)) for (const [i, j] of CELLS) {
-    const c = cellRect(s, i, j), bs = cellBlocks(s, i, j);
-    for (const b of bs) for (const r of b.foot) {
-      assert.ok(r.x0 >= c.x0 && r.y0 >= c.y0 && r.x1 <= c.x1 && r.y1 <= c.y1, `${b.id} outside the cell`);
-    }
-    const W = c.x1 - c.x0, H = c.y1 - c.y0;
-    const own = new Int32Array(W * H).fill(-1);
-    bs.forEach((b, k) => {
-      for (const r of b.foot) for (let y = r.y0; y < r.y1; y++) for (let x = r.x0; x < r.x1; x++) {
-        const n = (y - c.y0) * W + (x - c.x0);
-        assert.equal(own[n], -1, `${s} ${x},${y} in two blocks`);
-        own[n] = k;
-      }
-    });
-    // Integral image of block cells: blocks(x0, y0, x1, y1) counts block cells in the clipped half-open window.
-    const sum = new Int32Array((W + 1) * (H + 1));
-    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-      sum[(y + 1) * (W + 1) + x + 1] = (own[y * W + x] >= 0 ? 1 : 0) + sum[y * (W + 1) + x + 1] + sum[(y + 1) * (W + 1) + x] - sum[y * (W + 1) + x];
-    }
-    const blocks = (x0: number, y0: number, x1: number, y1: number) => {
-      x0 = Math.max(0, x0); y0 = Math.max(0, y0); x1 = Math.min(W, x1); y1 = Math.min(H, y1);
-      return x1 <= x0 || y1 <= y0 ? 0 : sum[y1 * (W + 1) + x1] - sum[y0 * (W + 1) + x1] - sum[y1 * (W + 1) + x0] + sum[y0 * (W + 1) + x0];
-    };
-    // A street cell lies in a STREET_WIDTH band, so a block is within STREET_WIDTH cells (Chebyshev: at a crossing the
-    // nearest block is diagonal), and no (STREET_WIDTH + 1)^2 square is free of blocks (no leftover land).
-    const S = STREET_WIDTH;
-    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-      if (own[y * W + x] >= 0) continue;
-      if (!blocks(x - S, y - S, x + S + 1, y + S + 1)) assert.fail(`${s} cell ${i},${j}: ${x + c.x0},${y + c.y0} is neither block nor street`);
-      if (x + S < W && y + S < H && !blocks(x, y, x + S + 1, y + S + 1)) assert.fail(`${s} cell ${i},${j}: block-free square at ${x + c.x0},${y + c.y0}`);
-    }
+// Blocks and streets tile cell (i, j): no overlap, every non-block cell is street.
+function checkTiling(s: string, i: number, j: number) {
+  const c = cellRect(s, i, j), bs = cellBlocks(s, i, j);
+  for (const b of bs) for (const r of b.foot) {
+    assert.ok(r.x0 >= c.x0 && r.y0 >= c.y0 && r.x1 <= c.x1 && r.y1 <= c.y1, `${b.id} outside the cell`);
   }
+  const W = c.x1 - c.x0, H = c.y1 - c.y0;
+  const own = new Int32Array(W * H).fill(-1);
+  bs.forEach((b, k) => {
+    for (const r of b.foot) for (let y = r.y0; y < r.y1; y++) for (let x = r.x0; x < r.x1; x++) {
+      const n = (y - c.y0) * W + (x - c.x0);
+      assert.equal(own[n], -1, `${s} ${x},${y} in two blocks`);
+      own[n] = k;
+    }
+  });
+  // Integral image of block cells: blocks(x0, y0, x1, y1) counts block cells in the clipped half-open window.
+  const sum = new Int32Array((W + 1) * (H + 1));
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    sum[(y + 1) * (W + 1) + x + 1] = (own[y * W + x] >= 0 ? 1 : 0) + sum[y * (W + 1) + x + 1] + sum[(y + 1) * (W + 1) + x] - sum[y * (W + 1) + x];
+  }
+  const blocks = (x0: number, y0: number, x1: number, y1: number) => {
+    x0 = Math.max(0, x0); y0 = Math.max(0, y0); x1 = Math.min(W, x1); y1 = Math.min(H, y1);
+    return x1 <= x0 || y1 <= y0 ? 0 : sum[y1 * (W + 1) + x1] - sum[y0 * (W + 1) + x1] - sum[y1 * (W + 1) + x0] + sum[y0 * (W + 1) + x0];
+  };
+  // A street cell lies in a STREET_WIDTH band, so a block is within STREET_WIDTH cells (Chebyshev: at a crossing the
+  // nearest block is diagonal), and no (STREET_WIDTH + 1)^2 square is free of blocks (no leftover land).
+  const S = STREET_WIDTH;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (own[y * W + x] >= 0) continue;
+    if (!blocks(x - S, y - S, x + S + 1, y + S + 1)) assert.fail(`${s} cell ${i},${j}: ${x + c.x0},${y + c.y0} is neither block nor street`);
+    if (x + S < W && y + S < H && !blocks(x, y, x + S + 1, y + S + 1)) assert.fail(`${s} cell ${i},${j}: block-free square at ${x + c.x0},${y + c.y0}`);
+  }
+}
+
+test('blocks and streets tile the cell: no overlap, every non-block cell is street', () => {
+  for (const s of R(1, 5).map(String)) for (const [i, j] of CELLS) checkTiling(s, i, j);
 });
 
 test('every block touches a road on at least one side', () => {
@@ -274,4 +279,66 @@ test('big rect blocks are marked centre by zone', () => {
     assert.ok(b.why.some(x => x.includes('中心留出')), `${b.id} why lacks 中心留出`);
   }
   assert.ok(marked > 0, 'no block marked');
+});
+
+const area = (r: Rect) => (r.x1 - r.x0) * (r.y1 - r.y0);
+const disjoint = (a: Rect, b: Rect) => a.x1 <= b.x0 || b.x1 <= a.x0 || a.y1 <= b.y0 || b.y1 <= a.y0;
+
+test('reserveCorner: the footprint sits in the corner, two 5-cell streets, pieces tile the cell', () => {
+  const cell: Rect = { x0: 0, y0: 0, x1: 100, y1: 80 };
+  const fw = [24, 44] as const, fh = [18, 32] as const;
+  for (let start = 0; start < 8; start++) {
+    const res = reserveCorner(cell, fw, fh, () => ({ w: 30, h: 22 }), start);
+    assert.ok(res, `start ${start}`);
+    const { foot, bandRest, rest } = res;
+    assert.equal(foot.x1 - foot.x0, 30);
+    assert.equal(foot.y1 - foot.y0, 22);
+    assert.ok(foot.x0 === cell.x0 || foot.x1 === cell.x1, `start ${start}: foot not on a side edge`);
+    assert.ok(foot.y0 === cell.y0 || foot.y1 === cell.y1, `start ${start}: foot not on a top / bottom edge`);
+    assert.equal(foot.x0 === cell.x0, res.corner.endsWith('W'));
+    assert.equal(foot.y0 === cell.y0, res.corner.startsWith('N'));
+    assert.ok(disjoint(foot, bandRest.r) && disjoint(foot, rest.r) && disjoint(bandRest.r, rest.r), `start ${start}: overlap`);
+    const streets = res.axis === 'v' ? STREET_WIDTH * 80 + STREET_WIDTH * 30 : STREET_WIDTH * 100 + STREET_WIDTH * 22;
+    assert.equal(area(foot) + area(bandRest.r) + area(rest.r) + streets, area(cell), `start ${start}: areas`);
+    for (const r of [bandRest.r, rest.r]) assert.ok(feasible(r.x1 - r.x0, fw) && feasible(r.y1 - r.y0, fh), `start ${start}: rest not feasible`);
+    assert.match(res.path, /^[LR]{2}$/);
+    assert.match(bandRest.path, /^[LR]{2}$/);
+    assert.match(rest.path, /^[LR]$/);
+  }
+});
+
+test('reserveCorner returns null when nothing fits', () => {
+  assert.equal(reserveCorner({ x0: 0, y0: 0, x1: 100, y1: 80 }, [24, 44], [18, 32], () => ({ w: 200, h: 200 }), 0), null);
+  assert.equal(reserveCorner({ x0: 0, y0: 0, x1: 110, y1: 70 }, [22, 36], [18, 28], () => ({ w: 48, h: 33 }), 0), null);
+});
+
+test('district blocks: footprint = campus + sidewalk ring, id ends in D, no notch, no centre', () => {
+  const zones = new Set<ZoneKind>();
+  for (const s of R(1, 20).map(String)) for (const [i, j] of CELLS) for (const b of cellBlocks(s, i, j)) {
+    if (!b.district) continue;
+    zones.add(b.zone);
+    assert.match(b.id, /^b-?\d+,-?\d+\/[LR]{2}D$/);
+    assert.equal(b.shape, 'rect');
+    assert.equal(b.foot.length, 1);
+    assert.equal(b.centre, undefined, `${b.id} centre`);
+    const c = campusFor(`${s}/${b.id}`, b.district), f = b.foot[0];
+    assert.equal(f.x1 - f.x0, c.W + 2 * b.sw, `${s} ${b.id} width`);
+    assert.equal(f.y1 - f.y0, c.H + 2 * b.sw, `${s} ${b.id} height`);
+    assert.ok(b.why.some(w => w.includes(DISTRICTS[b.district!].name) && w.includes('预留')), `${b.id} why`);
+    assert.ok(DISTRICT_WEIGHTS[b.zone][b.district] > 0, `${b.id} ${b.district} in ${b.zone}`);
+  }
+  for (const z of ['downtown', 'mixed', 'residential'] as const) {
+    if (Object.values(DISTRICT_WEIGHTS[z]).some(w => w > 0)) assert.ok(zones.has(z), `no district in ${z}`);
+  }
+});
+
+test('a cell that draws an unplaceable district still splits, with the reason', () => {
+  let found: [string, number, number] | undefined;
+  for (const s of R(1, 30).map(String)) for (const [i, j] of CELLS) {
+    if (found) break;
+    if (cellBlocks(s, i, j).some(b => b.why.slice(0, 3).some(w => w.includes('都切不开')))) found = [s, i, j];
+  }
+  assert.ok(found, 'no cell with an unplaceable district');
+  checkTiling(...found);
+  assert.ok(!cellBlocks(...found).some(b => b.district));
 });

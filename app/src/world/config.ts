@@ -1,5 +1,6 @@
 // Every tunable of the world layer lives here as a named constant (spec 3.8); other files must not hold these numbers.
 import type { ZoneKind } from './types';
+import type { DistrictKind } from '../gen/district';
 
 export const CHUNK = 64;                                   // chunk edge in cells; reserved (spec 3.8 name; used from v0.8.1)
 export const ARTERIAL_SPACING = { x: 120, y: 88 };         // nominal arterial grid pitch
@@ -29,6 +30,17 @@ export const LOT_RANGE = { lo: { w: [28, 56], h: [20, 40] }, hi: { w: [16, 30], 
 export const P_LO = 0.18;                                  // measured: zoneValue at 30 seeds x 7 x 7 cell centres, 5th / 95th percentile
 export const P_HI = 0.81;
 export const CENTRE_MIN = { w: 44, h: 32 } as const;       // a rect block with a lot at least this big gets a centre plaza / garden; h = 14 + 10 + 8, not the spec's 30
+// special districts (v0.8.2): an arterial cell has one with chance DISTRICT_CHANCE[zone], its kind drawn by DISTRICT_WEIGHTS
+// (the palace is menu-only, weight 0 everywhere, as D72); it takes a corner of the cell (blocks.ts reserveCorner)
+// calibrated on city_seeds x [-2,2]^2 for about 1/8 of blocks: blocks/cell 9.38 / 7.89 / 5.87 (downtown / mixed /
+// residential, chance 0); at min(1, B / 8) = 1 / 0.99 / 0.73 placed / drawn 0.69 / 0.71 / 0.74; at min(1, B / 8 / s) =
+// 1 / 1 / 0.99 the district share is 0.074 / 0.091 / 0.121 (downtown and mixed stay below 1/8 at chance 1: at most one per cell)
+export const DISTRICT_CHANCE: Record<ZoneKind, number> = { downtown: 1, mixed: 1, residential: 0.99 };
+export const DISTRICT_WEIGHTS: Record<ZoneKind, Record<DistrictKind, number>> = {
+  downtown:    { mall: 3, hotel: 3, police: 2, hospital: 1, school: 0, fire: 0, gas: 0, palace: 0 },
+  mixed:       { hospital: 2, school: 2, fire: 2, gas: 2, police: 1, mall: 0, hotel: 0, palace: 0 },
+  residential: { school: 3, gas: 2, fire: 2, hospital: 0, police: 0, mall: 0, hotel: 0, palace: 0 },
+};
 export const ZONES: Record<ZoneKind, { sw: 2 | 3; paving: readonly (readonly [string, number])[] }> = {
   downtown:    { sw: 3, paving: [['sidewalk_lightgrey', 3], ['sidewalk_grey', 2], ['sidewalk_beige', 1]] },
   mixed:       { sw: 2, paving: [['sidewalk_lightbeige', 2], ['sidewalk_beige', 2], ['sidewalk_lightgrey', 1], ['sidewalk_brown', 1]] },

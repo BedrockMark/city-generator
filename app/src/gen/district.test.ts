@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { generate } from './generate';
-import { DISTRICT_KINDS, type DistrictKind } from './district';
+import { DISTRICT_KINDS, planCampus, campusFor, type DistrictKind } from './district';
+import { Rng } from './rng';
 import { overlaps } from './place';
 
 /** what each district must have besides its landmark (user 2026-11-07) */
@@ -66,4 +67,15 @@ test('0.7.8.2: the generator never draws a district; no option = 普通街区, a
     assert.ok(!sc.buildings!.some(b => b.front === 'landmark'), `seed ${i}: no landmark`);
   }
   for (const bad of ['none', 'constructor', 'toString', 'castle']) assert.throws(() => generate('1', { district: bad as never }), /unknown district/, bad);
+});
+
+test('campusFor is planCampus on a plain Rng, the same on every call', () => {
+  for (const k of DISTRICT_KINDS.filter(d => d !== 'palace')) for (const s of ['w1/b0,0/LLD', 'w2/b-1,3/RRD']) {
+    const c = campusFor(s, k), p = planCampus(k, new Rng(s));
+    assert.equal(c.W, p.W, `${k} ${s} W`);
+    assert.equal(c.H, p.H, `${k} ${s} H`);
+    assert.equal(c.items[0].plan.label, p.items[0].plan.label, `${k} ${s} label`);
+    const d = campusFor(s, k);
+    assert.deepEqual({ W: d.W, H: d.H }, { W: c.W, H: c.H });
+  }
 });

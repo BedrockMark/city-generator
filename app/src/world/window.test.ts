@@ -6,6 +6,7 @@ import { worldCell, ownerOf, blockRaster } from './cells';
 import { SLAB_PERIOD, WINDOW_MARGIN } from './config';
 import { TILE } from '../gen/types';
 import type { BlockRec } from './types';
+import { campusFor, DISTRICTS } from '../gen/district';
 
 const SEED = 'w1';
 const BLOCKS = cellBlocks(SEED, 0, 0);
@@ -157,4 +158,23 @@ test('a notch island block is a little square: no buildings, its centre piece an
     }
   }
   assert.ok(n >= 2, `only ${n} island blocks found`);
+});
+
+test('a district block generates its landmark on a lot of exactly the campus size', () => {
+  const picked: [string, BlockRec][] = [];
+  for (let s = 1; s <= 20 && picked.length < 2; s++) for (let i = -2; i <= 2 && picked.length < 2; i++) for (let j = -2; j <= 2 && picked.length < 2; j++) {
+    for (const b of cellBlocks(String(s), i, j)) {
+      if (b.district && picked.length < 2 && !picked.some(([, o]) => o.district === b.district)) picked.push([String(s), b]);
+    }
+  }
+  assert.equal(picked.length, 2, 'two district blocks of different kinds');
+  for (const [s, b] of picked) {
+    const kind = b.district!, c = campusFor(`${s}/${b.id}`, kind);
+    for (const prefs of [true, false]) {
+      const { scene } = generateBlock(s, b.id, { prefs });
+      assert.equal(scene.params.district, kind, `${s} ${b.id}`);
+      assert.deepEqual(scene.params.interior, [c.W, c.H], `${s} ${b.id} prefs ${prefs}`);
+      assert.ok(scene.buildings!.some(o => o.front === 'landmark' && o.label === DISTRICTS[kind].name), `${s} ${b.id} landmark`);
+    }
+  }
 });
