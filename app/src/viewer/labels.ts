@@ -40,8 +40,13 @@ export interface Label {
 
 /** file stem of a scene: seed plus the options that differ from the defaults */
 export function sceneStem(sc: Scene): string {
+  return `seed${sc.seed}${optionSuffix(sc)}`.replace(/[^\w.-]/g, '_');
+}
+
+/** the options that differ from the defaults, as a file name suffix */
+function optionSuffix(sc: Scene): string {
   const o = sc.options;
-  let s = `seed${sc.seed}`;
+  let s = '';
   if (o) {
     if (o.novelty !== DEFAULT_OPTIONS.novelty) s += `_n${o.novelty.toFixed(2)}`;
     if (o.prune === false) s += '_p0';
@@ -49,7 +54,13 @@ export function sceneStem(sc: Scene): string {
     if (o.prefs === false) s += '_l0';
     if (o.district) s += `_d${o.district}`;   // 0.7.8.2: seed 1 and seed 1 as a school are different scenes
   }
-  return s.replace(/[^\w.-]/g, '_');
+  return s;
+}
+
+/** s when it has at most max chars, else its first max - 9 chars + '_' + 8 hex digits of a hash of `full` */
+function capName(s: string, max: number, full: string): string {
+  if (s.length <= max) return s;
+  return `${s.slice(0, max - 9)}_${Math.floor(hash01('label-key', full) * 2 ** 32).toString(16).padStart(8, '0')}`;
 }
 
 /** the label file key of a scene: its seed for a single block; `w<world seed>_<block id>` for a city block, made
@@ -57,9 +68,17 @@ export function sceneStem(sc: Scene): string {
 export function storeKey(sc: Scene): string {
   const w = sc.params?.world as { seed: string; blockId: string } | undefined;
   if (!w) return sc.seed;
-  const full = `w${w.seed}_${w.blockId}`, k = full.replace(/[^\w.-]/g, '_');
-  if (k.length <= 80) return k;
-  return `${k.slice(0, 71)}_${Math.floor(hash01('label-key', full) * 2 ** 32).toString(16).padStart(8, '0')}`;
+  const full = `w${w.seed}_${w.blockId}`;
+  return capName(full.replace(/[^\w.-]/g, '_'), 80, full);
+}
+
+/** the file a label's scene is saved to: `<sceneStem>.scene.json` for a single block; for a city block named from
+ *  storeKey (seedw…, cannot meet a single-block name) plus the option suffix, capped so the whole name fits the dev
+ *  server's 80 chars */
+export function labelSceneName(sc: Scene): string {
+  if (!sc.params?.world) return `${sceneStem(sc)}.scene.json`;
+  const stem = `seed${storeKey(sc)}${optionSuffix(sc)}`.replace(/[^\w.-]/g, '_');
+  return `${capName(stem, 80 - '.scene.json'.length, stem)}.scene.json`;
 }
 
 const LS = (version: string, seed: string) => `citygen-labels/${version}/${seed}`;
@@ -90,14 +109,14 @@ export class LabelStore {
 
   private async persist(scene: Scene) {
     localStorage.setItem(LS(this.version, this.seed), JSON.stringify(this.labels));
-    const stem = sceneStem(scene);
+    const name = labelSceneName(scene);
     const body: Record<string, unknown> = { version: this.version, seed: this.seed, labels: this.labels };
-    if (!this.savedScenes.has(stem) && this.labels.some(l => l.scene === `${stem}.scene.json`)) body.scene = { name: `${stem}.scene.json`, data: scene };
+    if (!this.savedScenes.has(name) && this.labels.some(l => l.scene === name)) body.scene = { name, data: scene };
     try {
       const r = await fetch('/api/labels', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
       if (!r.ok) throw new Error(await r.text());
       this.mode = 'server';
-      if (body.scene) this.savedScenes.add(stem);
+      if (body.scene) this.savedScenes.add(name);
     } catch (e) {
       this.mode = 'local';
       console.warn('labels: dev server unavailable, kept in localStorage', e);

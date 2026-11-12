@@ -9,7 +9,7 @@ import { VERSION } from './gen/generate';
 import { DEFAULT_OPTIONS, withDefaults } from './gen/exp';
 import type { Scene as GenScene, GenOptions, Placed, PxRect } from './gen/types';
 import { NOVEL_COLOR, drawOverlay, pick, zonesAt, objBox, hiddenObjects, buildingOf, typeColor, zoneColor, zoneKey, intersects, ZONE_LAYER_NAMES, type OverlayState, type Sel } from './viewer/overlay';
-import { LabelStore, GOOD_TAGS, BAD_TAGS, sceneStem, storeKey, type Label, type LabelTarget } from './viewer/labels';
+import { LabelStore, GOOD_TAGS, BAD_TAGS, sceneStem, storeKey, labelSceneName, type Label, type LabelTarget } from './viewer/labels';
 import type { Decision } from './gen/rng';
 import { PREFS } from './gen/learn/prefs';
 import { DISTRICTS, DISTRICT_KINDS, isDistrict, type DistrictKind } from './gen/district';
@@ -143,7 +143,7 @@ class CityView extends Phaser.Scene {
         if (k === 'f') this.fit();
         if (k === 'e') this.city!.exportShot();
         if (k === 'enter') this.city!.enterSelected();
-        if (k === 'escape') this.city!.clearSelection();
+        if (k === 'escape') { ++this.blockReq; this.city!.clearSelection(); this.city!.show(); }   // also cancels entering a block
         return;
       }
       if (k === 'r' && !this.blockView) $('regen').click();
@@ -582,7 +582,7 @@ class CityView extends Phaser.Scene {
     if (!sc || !s || !this.store) { toast('先单击或框选要标注的物件 / 区域'); return; }
     if (!this.verdict) { toast('先选“好”或“坏”'); return; }
     const o = sc.options ?? withDefaults();
-    const l: Label = { id: this.store.nextId(), created: new Date().toISOString(), version: sc.version, seed: sc.seed, novelty: o.novelty, options: o, scene: `${sceneStem(sc)}.scene.json`,
+    const l: Label = { id: this.store.nextId(), created: new Date().toISOString(), version: sc.version, seed: sc.seed, novelty: o.novelty, options: o, scene: labelSceneName(sc),
       verdict: this.verdict, tags: [...this.tags], text: $<HTMLTextAreaElement>('lblText').value.trim(), target: this.target(s) };
     const w = sc.params?.world as { seed: string; blockId: string } | undefined;
     if (w) l.world = { seed: w.seed, blockId: w.blockId };

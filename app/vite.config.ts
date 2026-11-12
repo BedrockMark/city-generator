@@ -27,10 +27,11 @@ function labelsApi(): Plugin {
             try {
               const b = JSON.parse(raw);
               if (!safe(b.version) || !safe(b.seed) || !Array.isArray(b.labels)) return send(400, { error: 'bad body' });
+              if (b.scene && !safe(b.scene.name)) return send(400, { error: 'bad scene name' });
               const dir = join(LABEL_ROOT, `v${b.version}`);
               mkdirSync(dir, { recursive: true });
               writeFileSync(join(dir, `seed${b.seed}.json`), JSON.stringify({ version: b.version, seed: b.seed, labels: b.labels }, null, 1));
-              if (b.scene && safe(b.scene.name)) writeFileSync(join(dir, b.scene.name), JSON.stringify(b.scene.data));
+              if (b.scene) writeFileSync(join(dir, b.scene.name), JSON.stringify(b.scene.data));
               send(200, { ok: true, n: b.labels.length });
             } catch (e) { send(500, { error: String(e) }); }
           });
