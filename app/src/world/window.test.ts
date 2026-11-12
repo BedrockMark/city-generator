@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { blockLayout, generateBlock, generateInWindow, ownerCell, _clearWindowCache } from './window';
 import { blockById, cellBlocks, _clearBlockCache } from './blocks';
 import { worldCell, ownerOf, blockRaster } from './cells';
-import { SLAB_PERIOD, WINDOW_MARGIN } from './config';
+import { SLAB_PERIOD, WINDOW_MARGIN, ZONES } from './config';
 import { TILE } from '../gen/types';
 import type { BlockRec } from './types';
 import { campusFor, DISTRICTS } from '../gen/district';
@@ -176,5 +176,16 @@ test('a district block generates its landmark on a lot of exactly the campus siz
       assert.deepEqual(scene.params.interior, [c.W, c.H], `${s} ${b.id} prefs ${prefs}`);
       assert.ok(scene.buildings!.some(o => o.front === 'landmark' && o.label === DISTRICTS[kind].name), `${s} ${b.id} landmark`);
     }
+  }
+});
+
+test('a world block hands its zone parameters to the generator', () => {
+  for (const zone of ['residential', 'downtown'] as const) {
+    let b: BlockRec | undefined;
+    for (let i = -3; i <= 3 && !b; i++) for (let j = -3; j <= 3 && !b; j++) b = cellBlocks('1', i, j).find(q => q.zone === zone && !q.district && q.shape !== 'island');
+    assert.ok(b, `a ${zone} block of seed 1`);
+    const ds = generateBlock('1', b!.id).scene.trace!.decisions as { label: string; w?: number[]; p?: number }[];
+    assert.deepEqual(ds.find(d => d.label === 'block.mix')!.w, [...ZONES[zone].gen.mix]);
+    assert.equal(ds.find(d => d.label === 'block.plaza')!.p, ZONES[zone].gen.plaza);
   }
 });

@@ -1,6 +1,7 @@
 // Every tunable of the world layer lives here as a named constant (spec 3.8); other files must not hold these numbers.
 import type { ZoneKind } from './types';
 import type { DistrictKind } from '../gen/district';
+import type { ZoneGen } from '../gen/types';
 
 export const CHUNK = 64;                                   // chunk edge in cells; reserved (spec 3.8 name; used from v0.8.1)
 export const ARTERIAL_SPACING = { x: 120, y: 88 };         // nominal arterial grid pitch
@@ -41,10 +42,14 @@ export const DISTRICT_WEIGHTS: Record<ZoneKind, Record<DistrictKind, number>> = 
   mixed:       { hospital: 2, school: 2, fire: 2, gas: 2, police: 1, mall: 0, hotel: 0, palace: 0 },
   residential: { school: 3, gas: 2, fire: 2, hospital: 0, police: 0, mall: 0, hotel: 0, palace: 0 },
 };
-export const ZONES: Record<ZoneKind, { sw: 2 | 3; paving: readonly (readonly [string, number])[] }> = {
-  downtown:    { sw: 3, paving: [['sidewalk_lightgrey', 3], ['sidewalk_grey', 2], ['sidewalk_beige', 1]] },
-  mixed:       { sw: 2, paving: [['sidewalk_lightbeige', 2], ['sidewalk_beige', 2], ['sidewalk_lightgrey', 1], ['sidewalk_brown', 1]] },
-  residential: { sw: 2, paving: [['sidewalk_lightbeige', 2], ['sidewalk_brown', 2], ['sidewalk_blue', 1]] },
+// gen: the generator's zone parameters (gen/types.ts ZoneGen); initial values, tuned in v0.8.2 task 7
+export const ZONES: Record<ZoneKind, { sw: 2 | 3; paving: readonly (readonly [string, number])[]; gen: ZoneGen }> = {
+  downtown:    { sw: 3, paving: [['sidewalk_lightgrey', 3], ['sidewalk_grey', 2], ['sidewalk_beige', 1]],
+                 gen: { mix: [2, 1, 4], shopFront: 1, composite: 1, kit: 1.5, plaza: 0.6 } },
+  mixed:       { sw: 2, paving: [['sidewalk_lightbeige', 2], ['sidewalk_beige', 2], ['sidewalk_lightgrey', 1], ['sidewalk_brown', 1]],
+                 gen: { mix: [2, 1, 1], shopFront: 1, composite: 1, kit: 1, plaza: 0.45 } },
+  residential: { sw: 2, paving: [['sidewalk_lightbeige', 2], ['sidewalk_brown', 2], ['sidewalk_blue', 1]],
+                 gen: { mix: [1, 4, 1], shopFront: 0.3, composite: 1.5, kit: 1, plaza: 0.3 } },
 };
 export const CROSSING_CHANCE = { arterial: 0.9, street: 0.9 } as const;   // chance of a crosswalk per junction arm
 export const CROSSING_MIN_RUN = 8;                         // minimum straight road run (cells) for a crosswalk

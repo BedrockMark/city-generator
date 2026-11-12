@@ -6,7 +6,7 @@ import type { Layout } from './layout';
 import type { BuildingPlan } from './buildings';
 import { pack } from './pack';
 import { SceneBuilder, rect } from './place';
-import { TILE } from './types';
+import { TILE, type CityParams } from './types';
 import { placeCampus, type Campus, type Landmark } from './district';
 
 const PART_NAMES: Record<string, string> = { roof: '屋顶', mid: '中间层', ground: '底层', whole: '整体精灵', link: '链接条（盖住与邻楼相接的墙缝）', entrance: '入口门廊（宫殿的模块化入口，exp-09）' };
@@ -27,7 +27,7 @@ export interface BlockPlan {
 }
 
 /** the rows behind slide north (pack.ts spread, exp-03 adopted) */
-export function planMainBlock(L: Layout, r0: Rng, composite?: { r: Rng; p: number }, kits?: { r: Rng; p: number }, campus?: Campus): BlockPlan {
+export function planMainBlock(L: Layout, r0: Rng, composite?: { r: Rng; p: number }, kits?: { r: Rng; p: number }, campus?: Campus, city?: CityParams): BlockPlan {
   const r = r0.fork('block');
   const yb = new Map<number, number>(), yt = new Map<number, number>();
   for (let x = L.bx0; x < L.bx1; x++) {
@@ -57,7 +57,8 @@ export function planMainBlock(L: Layout, r0: Rng, composite?: { r: Rng; p: numbe
     const y0 = Math.max(y1 - r.int(5, Math.max(5, Math.floor((L.by1 - L.by0) * 0.6))), ...[x, x + w - 1].map(c => yt.get(c) ?? L.by0));
     carve({ kind: 'alley', x0: x, y0, x1: x + w, y1, why: `穿过南侧临街面的巷子（本街区抽到 ${nAlley} 条）：通往内院，打断连续立面` });
   }
-  if (r.choose('block.plaza', {}, { p: 0.45 })) {
+  const plazaP = city?.gen.plaza ?? 0.45;
+  if (r.choose('block.plaza', {}, { p: plazaP })) {
     const w0 = r.int(5, 8), x0 = xs[r.int(0, Math.max(0, W - w0))];
     const y1 = (yb.get(x0) ?? L.by1 - 1) + 1;
     if (!zones.some(z => z.x0 < x0 + w0 + 1 && x0 - 1 < z.x1)) {
@@ -70,11 +71,22 @@ export function planMainBlock(L: Layout, r0: Rng, composite?: { r: Rng; p: numbe
       while (inside(b) && b < x0 + w0) b++;
       const w = Math.min(w0, b - a), x = Math.max(a, Math.min(x0, b - w));
       if (w >= 5 && !zones.some(z => z.x0 < x + w + 1 && x - 1 < z.x1))
-        carve({ kind: 'plaza', x0: x, y0, x1: x + w, y1, why: '临街小广场（45% 的街区有）：立面后退形成的公共空间' });
+        carve({ kind: 'plaza', x0: x, y0, x1: x + w, y1, why: `临街小广场（${Math.round(plazaP * 100)}% 的街区有）：立面后退形成的公共空间` });
     }
   }
   // ---- pack buildings: south frontage first, then rows behind, side streets, north edge ----
-  const mix = r.choose('block.mix', {}, { weights: [[{ modular: 3, single: 2 }, 2], [{ modular: 1, single: 2 }, 1], [{ modular: 3, single: 1 }, 1]] as const });
+  const mix = r.choose('block.mix', {}, {
+    weights: [[{ modular: 3, single: 2 }, city?.gen.mix[0] ?? 2], [{ modular: 1, single: 2 }, city?.gen.mix[1] ?? 1], [{ modular: 3, single: 1 }, city?.gen.mix[2] ?? 1]] as const,
+  });
+  // city mode: a street-facing facade is a shop with chance shopFront; drawn once per facade's left column, in packing order
+  const shopFront = city && city.gen.shopFront < 1 ? city.gen.shopFront : null;
+  const rs = shopFront !== null ? r.fork('shop') : null;
+  const shops = new Map<number, boolean>();
+  const shopAt = (x0: number) => {
+    let v = shops.get(x0);
+    if (v === undefined) { v = rs!.choose('block.shop', {}, { p: shopFront! }); shops.set(x0, v); }
+    return v;
+  };
   const { placed, yard } = pack({
     cols: L.cols, rows: L.rows, buildable: (x, y) => L.inP[y][x] && !carved[y][x], canopy: (x, y) => L.inP[y][x], mix, minH: 8,
     gapAfter: [[0, 6], [1, 2], [2, 1]], pairChance: 0.4, spread: true, composite: composite && { r: composite.r.fork('main'), p: composite.p },
@@ -83,7 +95,7 @@ export function planMainBlock(L: Layout, r0: Rng, composite?: { r: Rng; p: numbe
     frontFilter: (x0, w, bottom) => {
       let street = true;
       for (let x = x0; x < x0 + w; x++) if (L.cls[bottom + 1]?.[x] !== 'walk' && !(L.cls[bottom + 2]?.[x] === 'walk' && L.inP[bottom + 1]?.[x])) street = false;
-      return street ? null : ['condo', 'house'];
+      return street && (shopFront === null || shopAt(x0)) ? null : ['condo', 'house'];
     },
   }, r);
   const buildings: PlacedBuilding[] = placed.map(p => ({ plan: p.plan, cx: p.cx, cy: p.cy, side: (p.cy + p.plan.h - 1 === yb.get(p.cx) ? 'S' : 'N') as 'S' | 'N', why: p.why }));

@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { generateBase, type BlockWindow } from './generate';
-import { withDefaults } from './exp';
+import { withDefaults, compositeChance, kitChance } from './exp';
 import { chebDist, findSegs, paintWalkCell, type Layout } from './layout';
-import type { CellClass } from './types';
+import type { CellClass, CityParams, ZoneGen } from './types';
 
 // Hand-built window: 40 x 30 cells, a 24 x 16 lot in the middle, a 2-cell sidewalk ring, a 5-cell road ring, and the
 // leftover border cells (columns 0 and 39) as neighbouring blocks' sidewalk.
@@ -93,3 +93,47 @@ test('topLimit binds: a limit at the lot top keeps every sprite on the lot', () 
 });
 
 // no window: generate(seed) unchanged -> covered by the 200-seed regression (scripts/regress.ts compare)
+
+// ---- city parameters (spec 3.1) ----
+const CITY: CityParams = { zone: 'mixed', gen: { mix: [2, 1, 1], shopFront: 1, composite: 1, kit: 1, plaza: 0.45 } };
+type Dec = { s: string; label: string; p?: number; w?: number[]; ctx?: Record<string, unknown> };
+const cityScene = (seed: string, gen: Partial<ZoneGen> | null) => {
+  const win = testWindow(seed);
+  if (gen) win.city = { ...CITY, gen: { ...CITY.gen, ...gen } };
+  return generateBase(seed, withDefaults({}), win);
+};
+const decisions = (sc: ReturnType<typeof generateBase>) => sc.trace!.decisions as Dec[];
+
+test('city.gen.plaza drives the street plaza', () => {
+  const count = (p: number) => {
+    let n = 0;
+    for (let s = 1; s <= 12; s++) if (cityScene(String(s), { plaza: p }).zones!.some(z => z.kind === 'plaza' && z.layer === 'block')) n++;
+    return n;
+  };
+  assert.ok(count(1) >= 9, 'plaza 1: most scenes have one');
+  assert.equal(count(0), 0);
+});
+
+test('city.gen.shopFront 0: no shop on the block', () => {
+  for (let s = 1; s <= 12; s++) {
+    const sc = cityScene(String(s), { shopFront: 0 });
+    for (const b of sc.buildings!.filter(q => q.block === 'main')) assert.ok(b.front === 'condo' || b.front === 'house', `seed ${s}: ${b.id} is ${b.front}`);
+  }
+});
+
+test('city.gen.mix, composite and kit reach their draws', () => {
+  const ds = decisions(cityScene('3', { mix: [0, 0, 1], composite: 2, kit: 3 }));
+  assert.deepEqual(ds.find(d => d.label === 'block.mix')!.w, [0, 0, 1]);
+  const comp = ds.filter(d => d.label === 'composite.swap'), kit = ds.filter(d => d.label === 'kit.swap');
+  assert.ok(comp.length > 0 && kit.length > 0);
+  const pc = Math.min(1, compositeChance(0.1) * 2), pk = Math.min(1, kitChance(0.1) * 3);
+  for (const d of comp) assert.equal(d.p, pc);
+  for (const d of kit) assert.ok(d.p === pk || d.p === pk / 2, `kit.swap p ${d.p}`);
+});
+
+test('without city the draws are the old ones', () => {
+  const ds = decisions(cityScene('3', null));
+  assert.deepEqual(ds.find(d => d.label === 'block.mix')!.w, [2, 1, 1]);
+  assert.equal(ds.find(d => d.label === 'block.plaza')!.p, 0.45);
+  assert.ok(!ds.some(d => d.s === 'block/shop'));
+});

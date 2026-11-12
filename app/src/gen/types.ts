@@ -137,3 +137,21 @@ export interface GenOptions {
    *  caller's choice: the generator never draws one (0.7.8.2; the viewer's random mix: src/viewer/mix.ts). Unknown = error */
   district?: import('./district').DistrictKind;
 }
+
+/** a world block's zone kind (= world ZoneKind; gen does not import world) */
+export type CityZone = 'downtown' | 'mixed' | 'residential';
+/** the zone's generator parameters (world/config.ts ZONES[zone].gen) */
+export interface ZoneGen {
+  /** weights of block.mix's 3 options, in their order */
+  mix: readonly [number, number, number];
+  /** chance a street-facing facade may be a shop */
+  shopFront: number;
+  /** multiplier of compositeChance (capped at 1) */
+  composite: number;
+  /** multiplier of kitChance (capped at 1) */
+  kit: number;
+  /** chance of the street plaza (block.plaza) */
+  plaza: number;
+}
+/** city mode: what the world layer tells the generator about the block */
+export interface CityParams { zone: CityZone; gen: ZoneGen; centre?: 'plaza' | 'garden' }

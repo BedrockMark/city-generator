@@ -8,7 +8,7 @@ import { resetIds } from './buildings';
 import { explainGround } from './explain';
 import { curbRuns, reserveWalkways, crossingVignettes, curbStrips, frontVignettes, zoneVignettes, islandSquares, islandSquare, busStop, cars, roadDetails, walkers } from './vignettes';
 import { yardSpaces } from './yard';
-import { SHEETS, TILE, type Scene, type GenOptions } from './types';
+import { SHEETS, TILE, type Scene, type GenOptions, type CityParams } from './types';
 import { withDefaults, expStream, compositeChance, kitChance } from './exp';
 import { linkBuildings, EXP04 } from './terrace';
 import { EXP05, resetKitIds } from './kits';
@@ -30,6 +30,8 @@ export interface BlockWindow {
   layout: Layout;
   /** merged into scene.params (world: { seed, blockId, zone, offset }) */
   params: Record<string, unknown>;
+  /** the zone's generator parameters and the block's centre (spec 3.1); absent = single-block draws */
+  city?: CityParams;
 }
 
 /** the generator proper, constraint repairs included (stage 5). With `win`: the window's layout instead of makeLayout,
@@ -52,13 +54,13 @@ export function generateBase(seed: string, opts: GenOptions, win?: BlockWindow):
   const L = win ? cloneLayout(win.layout) : makeLayout(rng, campus && { w: campus.W, h: campus.H });
   const sb = new SceneBuilder(L.cols, L.rows, L.cls);
   // exp-04 (adopted): composite buildings on its own stream; touching neighbours switch to their linked state (no random numbers)
-  const composite = { r: expStream(rng, EXP04, opts.novelty), p: compositeChance(opts.novelty) };
+  const composite = { r: expStream(rng, EXP04, opts.novelty), p: Math.min(1, compositeChance(opts.novelty) * (win?.city?.gen.composite ?? 1)) };
   // exp-05 (adopted): the packs' other building kits in place of a picked building, on its own stream
-  const kits = { r: expStream(rng, EXP05, opts.novelty), p: kitChance(opts.novelty) };
+  const kits = { r: expStream(rng, EXP05, opts.novelty), p: Math.min(1, kitChance(opts.novelty) * (win?.city?.gen.kit ?? 1)) };
   // city mode: a notch island (world/blocks.ts) is a little square, no buildings, no yard (0.8.1-hotfix1)
   const island = win !== undefined && L.shape === 'island';
   const main: BlockPlan = island ? { buildings: [], zones: [], yard: L.cls.map(row => row.map(() => false)), yb: new Map(), yt: new Map() }
-    : planMainBlock(L, rng, composite, kits, campus);
+    : planMainBlock(L, rng, composite, kits, campus, win?.city);
   const neigh: BlockPlan = win ? { buildings: [], zones: [], yard: L.cls.map(row => row.map(() => false)), yb: new Map(), yt: new Map() }
     : planNeighbours(L, rng, composite, kits);
   linkBuildings([main, neigh]);

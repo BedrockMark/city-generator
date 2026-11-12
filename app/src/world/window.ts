@@ -3,7 +3,7 @@
 import { blockById } from './blocks';
 import { classRaster, blockRaster, crossingsIn, ownerOf, ownerRaster } from './cells';
 import { paintGround } from './ground';
-import { BLOCK_CACHE, CITY_NOVELTY, CROSSING_LEN, ROAD_WIDTHS, SLAB_PERIOD, STREET_WIDTH, WINDOW_MARGIN, WINDOW_SW2 } from './config';
+import { BLOCK_CACHE, CITY_NOVELTY, CROSSING_LEN, ROAD_WIDTHS, SLAB_PERIOD, STREET_WIDTH, WINDOW_MARGIN, WINDOW_SW2, ZONES } from './config';
 import { chebDist, findSegs, type Crossing, type Layout, type Seg } from '../gen/layout';
 
 const floorTo = (n: number, m: number) => Math.floor(n / m) * m;
@@ -121,7 +121,8 @@ export function generateInWindow(seed: string, b: BlockRec, win: BlockWindowLayo
   if (opts.prune !== undefined) city.prune = opts.prune;
   if (opts.prefs !== undefined) city.prefs = opts.prefs;
   const scene = generateBase(`${seed}/${b.id}`, withDefaults({ novelty: CITY_NOVELTY, ...city, ...(b.district ? { district: b.district } : {}) }),
-    { layout, params: { world: { seed, blockId: b.id, zone: b.zone, offset: [ox, oy] } } });
+    { layout, params: { world: { seed, blockId: b.id, zone: b.zone, offset: [ox, oy] } },
+      city: { zone: b.zone, gen: ZONES[b.zone].gen, ...(b.centre ? { centre: b.centre } : {}) } });
   const owner = ownerRaster(seed, { x0: ox, y0: oy, x1: ox + layout.cols, y1: oy + layout.rows });
   const owns = (x: number, y: number) =>
     (x >= 0 && y >= 0 && x < layout.cols && y < layout.rows ? owner[y][x] : ownerOf(seed, ox + x, oy + y)) === b.id;
