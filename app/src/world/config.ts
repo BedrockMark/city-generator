@@ -24,10 +24,15 @@ export const ISLAND_ARM = { w: 10, h: 7 } as const;        // the L-shaped rest:
 export const CELL_CACHE = 256;                             // arterial cells whose block lists are cached
 export const ZONE_THRESHOLDS = { downtown: 0.62, residential: 0.38 } as const;   // z >= 0.62 downtown, z < 0.38 residential
 export const ZONE_OCTAVE = { scale: 3, weight: 0.5 } as const;   // second noise octave: relative scale and blend weight
-export const ZONES: Record<ZoneKind, { lotW: [number, number]; lotH: [number, number]; sw: 2 | 3; paving: readonly (readonly [string, number])[] }> = {
-  downtown:    { lotW: [18, 34], lotH: [13, 25], sw: 3, paving: [['sidewalk_lightgrey', 3], ['sidewalk_grey', 2], ['sidewalk_beige', 1]] },
-  mixed:       { lotW: [20, 36], lotH: [14, 26], sw: 2, paving: [['sidewalk_lightbeige', 2], ['sidewalk_beige', 2], ['sidewalk_lightgrey', 1], ['sidewalk_brown', 1]] },
-  residential: { lotW: [22, 40], lotH: [15, 28], sw: 2, paving: [['sidewalk_lightbeige', 2], ['sidewalk_brown', 2], ['sidewalk_blue', 1]] },
+// Lot size (inside the sidewalk ring) by prosperity t = clamp((p - P_LO) / (P_HI - P_LO), 0, 1): t = 0 is the low end, t = 1 the high end
+export const LOT_RANGE = { lo: { w: [28, 56], h: [20, 40] }, hi: { w: [16, 30], h: [12, 22] } } as const;
+export const P_LO = 0.18;                                  // measured: zoneValue at 30 seeds x 7 x 7 cell centres, 5th / 95th percentile
+export const P_HI = 0.81;
+export const CENTRE_MIN = { w: 44, h: 32 } as const;       // a rect block with a lot at least this big gets a centre plaza / garden; h = 14 + 10 + 8, not the spec's 30
+export const ZONES: Record<ZoneKind, { sw: 2 | 3; paving: readonly (readonly [string, number])[] }> = {
+  downtown:    { sw: 3, paving: [['sidewalk_lightgrey', 3], ['sidewalk_grey', 2], ['sidewalk_beige', 1]] },
+  mixed:       { sw: 2, paving: [['sidewalk_lightbeige', 2], ['sidewalk_beige', 2], ['sidewalk_lightgrey', 1], ['sidewalk_brown', 1]] },
+  residential: { sw: 2, paving: [['sidewalk_lightbeige', 2], ['sidewalk_brown', 2], ['sidewalk_blue', 1]] },
 };
 export const CROSSING_CHANCE = { arterial: 0.9, street: 0.9 } as const;   // chance of a crosswalk per junction arm
 export const CROSSING_MIN_RUN = 8;                         // minimum straight road run (cells) for a crosswalk

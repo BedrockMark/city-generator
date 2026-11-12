@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cellBlocks, blockAt, blockById, lotOf, _clearBlockCache } from './blocks';
+import { cellBlocks, blockAt, blockById, lotOf, _clearBlockCache, lotRange, widenToFit, feasible, cellLotRange } from './blocks';
 import { cellRect } from './arterials';
-import { STREET_WIDTH, JOG_STEP, JOG_GAP, ISLAND_LOT, ISLAND_ARM } from './config';
+import { STREET_WIDTH, JOG_STEP, JOG_GAP, ISLAND_LOT, ISLAND_ARM, LOT_RANGE, P_LO, P_HI, CENTRE_MIN } from './config';
 import type { BlockRec, Rect } from './types';
 
 const R = (a: number, b: number) => Array.from({ length: b - a + 1 }, (_, k) => a + k);
@@ -15,17 +15,18 @@ function bbox(rs: readonly Rect[]): Rect {
   return { x0: Math.min(...rs.map(r => r.x0)), y0: Math.min(...rs.map(r => r.y0)), x1: Math.max(...rs.map(r => r.x1)), y1: Math.max(...rs.map(r => r.y1)) };
 }
 
-// Lot bounding box (footprint bbox minus the sidewalk ring) must fit the generator: 18-40 wide, 13-28 high; a notch
-// island's lot is ISLAND_LOT.
-function checkLot(b: BlockRec) {
+// Lot bounding box (footprint bbox minus the sidewalk ring) must lie in the cell's prosperity range (lotW x lotH); a notch
+// island's lot is ISLAND_LOT. `seed` is needed for the range.
+function checkLot(seed: string, b: BlockRec) {
   const bb = bbox(b.foot);
   const w = bb.x1 - bb.x0 - 2 * b.sw, h = bb.y1 - bb.y0 - 2 * b.sw;
   if (b.shape === 'island') {
     assert.ok(w >= ISLAND_LOT.w[0] && w <= ISLAND_LOT.w[1] && h >= ISLAND_LOT.h[0] && h <= ISLAND_LOT.h[1], `${b.id} island lot ${w}x${h}`);
     return;
   }
-  assert.ok(w >= 18 && w <= 40, `${b.id} lot width ${w}`);
-  assert.ok(h >= 13 && h <= 28, `${b.id} lot height ${h}`);
+  const { lotW, lotH } = cellLotRange(seed, b.cell[0], b.cell[1]);
+  assert.ok(w >= lotW[0] && w <= lotW[1], `${b.id} lot width ${w} not in ${lotW}`);
+  assert.ok(h >= lotH[0] && h <= lotH[1], `${b.id} lot height ${h} not in ${lotH}`);
   // lotOf agrees with the bbox for the rect case
   if (b.shape === 'rect') {
     assert.ok(lotOf(b, bb.x0 + b.sw, bb.y0 + b.sw));
@@ -35,11 +36,11 @@ function checkLot(b: BlockRec) {
   }
 }
 
-test('every block lot is within the generator range 18-40 x 13-28', () => {
+test('every cell splits and every lot is within its cell range', () => {
   for (const s of SEEDS) for (const [i, j] of CELLS) {
     const bs = cellBlocks(s, i, j);
     assert.ok(bs.length >= 2, `${s} ${i},${j}: ${bs.length} blocks`);
-    for (const b of bs) checkLot(b);
+    for (const b of bs) checkLot(s, b);
   }
 });
 
@@ -100,7 +101,7 @@ test('every block touches a road on at least one side', () => {
 test('ids are stable and blockById / blockAt agree', () => {
   for (const s of R(1, 5).map(String)) for (const [i, j] of CELLS) {
     for (const b of cellBlocks(s, i, j)) {
-      assert.match(b.id, new RegExp(`^b${i},${j}/[LR]*I?$`));
+      assert.match(b.id, new RegExp(`^b${i},${j}/[LR]*[ID]?$`));
       assert.deepEqual(b.cell, [i, j]);
       assert.deepEqual(blockById(s, b.id), b);
       for (const r of b.foot) for (const [x, y] of [[r.x0, r.y0], [r.x1 - 1, r.y1 - 1], [(r.x0 + r.x1) >> 1, (r.y0 + r.y1) >> 1]]) {
@@ -149,7 +150,7 @@ test('negative cells split like positive ones', () => {
   for (const s of SEEDS) {
     const bs = cellBlocks(s, -2, -3);
     assert.ok(bs.length > 0);
-    for (const b of bs) checkLot(b);
+    for (const b of bs) checkLot(s, b);
     for (const b of bs) assert.equal(blockAt(s, b.foot[0].x0, b.foot[0].y0)?.id, b.id);
   }
 });
@@ -226,4 +227,51 @@ test('a notch block is an L around its island, STREET_WIDTH away; the arms keep 
   }
   const ratio = notches / (notches + rects);
   assert.ok(ratio >= 0.03 && ratio <= 0.3, `notch ratio ${ratio.toFixed(3)} (${notches} of ${notches + rects} rect blocks)`);
+});
+
+test('lotRange is monotonic in p and hits LOT_RANGE at both ends', () => {
+  const lo = { w: LOT_RANGE.lo.w, h: LOT_RANGE.lo.h }, hi = { w: LOT_RANGE.hi.w, h: LOT_RANGE.hi.h };
+  assert.deepEqual(lotRange(P_LO), lo);
+  assert.deepEqual(lotRange(0), lo);
+  assert.deepEqual(lotRange(P_HI), hi);
+  assert.deepEqual(lotRange(1), hi);
+  for (let k = 0; k < 100; k++) {
+    const p = k / 100, a = lotRange(p), b = lotRange(p + 0.01);
+    for (const key of ['w', 'h'] as const) for (const e of [0, 1]) assert.ok(b[key][e] <= a[key][e], `p ${p} ${key}[${e}]`);
+  }
+});
+
+test('widenToFit raises the upper bound until the length is feasible', () => {
+  assert.deepEqual(widenToFit(48, [24, 44]), [24, 48]);
+  assert.deepEqual(widenToFit(60, [24, 44]), [24, 44]);
+  for (let len = 30; len <= 200; len++) for (const r of [[24, 44], [32, 60], [18, 28], [22, 36]] as const) {
+    if (len < r[0]) { assert.throws(() => widenToFit(len, r)); continue; }   // below the lower bound no widening helps
+    const w = widenToFit(len, r);
+    assert.ok(feasible(len, w), `${len} ${r}`);
+    assert.equal(w[0], r[0]);
+  }
+});
+
+test('the first why line gives prosperity and the target range', () => {
+  for (const s of SEEDS) for (const [i, j] of CELLS) {
+    const { widened } = cellLotRange(s, i, j);
+    for (const b of cellBlocks(s, i, j)) {
+      assert.match(b.why[0], /^繁荣度 \d\.\d\d（(闹市|混合|住宅)），地块目标 \d+–\d+ × \d+–\d+/);
+      if (widened) assert.ok(b.why[0].includes('放宽'), `${b.id} why[0] lacks 放宽`);
+    }
+  }
+});
+
+test('big rect blocks are marked centre by zone', () => {
+  let marked = 0;
+  for (const s of SEEDS) for (const [i, j] of CELLS) for (const b of cellBlocks(s, i, j)) {
+    const bb = bbox(b.foot), w = bb.x1 - bb.x0 - 2 * b.sw, h = bb.y1 - bb.y0 - 2 * b.sw;
+    const big = b.shape === 'rect' && !b.district && w >= CENTRE_MIN.w && h >= CENTRE_MIN.h;
+    assert.equal(b.centre !== undefined, big, `${b.id} centre ${b.centre} lot ${w}x${h}`);
+    if (!b.centre) continue;
+    marked++;
+    assert.equal(b.centre, b.zone === 'residential' ? 'garden' : 'plaza');
+    assert.ok(b.why.some(x => x.includes('中心留出')), `${b.id} why lacks 中心留出`);
+  }
+  assert.ok(marked > 0, 'no block marked');
 });

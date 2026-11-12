@@ -3,11 +3,11 @@
 // blocks depend only on (seed, i, j) and can be computed locally in any order.
 import { hash01, hashInt, hashPick } from './hash';
 import { cellRect, cellAt } from './arterials';
-import { zoneAt } from './zone';
-import { ZONES, STREET_WIDTH, JOG_CHANCE, JOG_STEP, JOG_AT, JOG_GAP, LEAF_CHANCE, CELL_CACHE, ISLAND_CHANCE, ISLAND_LOT, ISLAND_ARM } from './config';
+import { zoneAt, zoneValue } from './zone';
+import { ZONES, LOT_RANGE, P_LO, P_HI, CENTRE_MIN, STREET_WIDTH, JOG_CHANCE, JOG_STEP, JOG_AT, JOG_GAP, LEAF_CHANCE, CELL_CACHE, ISLAND_CHANCE, ISLAND_LOT, ISLAND_ARM } from './config';
 import type { BlockRec, Rect, ZoneKind } from './types';
 
-type Range = readonly [number, number];
+export type Range = readonly [number, number];
 type Axis = 'v' | 'h';                 // 'v' = vertical street (splits the width), 'h' = horizontal street
 
 export const ZONE_NAME: Record<ZoneKind, string> = { downtown: '闹市', mixed: '混合', residential: '住宅' };
@@ -15,7 +15,7 @@ export const ZONE_NAME: Record<ZoneKind, string> = { downtown: '闹市', mixed: 
 const inR = (n: number, r: Range) => n >= r[0] && n <= r[1];
 
 /** Can a length be filled by n >= 1 pieces in range r separated by (n - 1) streets? */
-function feasible(len: number, r: Range): boolean {
+export function feasible(len: number, r: Range): boolean {
   for (let n = 1; n * r[0] + (n - 1) * STREET_WIDTH <= len; n++) {
     if (len <= n * r[1] + (n - 1) * STREET_WIDTH) return true;
   }
@@ -51,11 +51,20 @@ interface Ctx { seed: string; i: number; j: number; zone: ZoneKind; fw: Range; f
 
 function leaf(c: Ctx, path: string, foot: Rect[], why: string[], shape: BlockRec['shape'] = foot.length > 1 ? 'jog' : 'rect'): void {
   const id = `b${c.i},${c.j}/${path}`;
-  c.out.push({
+  const rec: BlockRec = {
     id, cell: [c.i, c.j], foot, sw: c.sw, zone: c.zone,
     paving: hashPick(c.seed, ZONES[c.zone].paving, 'blk', id),
     shape, why,
-  });
+  };
+  // a big plain rect block keeps its middle for a plaza (garden in residential areas; downtown counts as mixed)
+  if (shape === 'rect') {
+    const w = foot[0].x1 - foot[0].x0 - 2 * c.sw, h = foot[0].y1 - foot[0].y0 - 2 * c.sw;
+    if (w >= CENTRE_MIN.w && h >= CENTRE_MIN.h) {
+      rec.centre = c.zone === 'residential' ? 'garden' : 'plaza';
+      why.push(`地块 ${w}×${h} ≥ ${CENTRE_MIN.w}×${CENTRE_MIN.h}，中心留出${rec.centre === 'garden' ? '中庭' : '广场'}`);
+    }
+  }
+  c.out.push(rec);
 }
 
 /** A finished rect block, maybe with a corner cut off by a short L-shaped street (as single-block mode's notch shape,
@@ -186,6 +195,46 @@ const cache = new Map<string, readonly BlockRec[]>();
 /** Clears the per-cell block cache (tests use it to check results do not depend on the cache). */
 export function _clearBlockCache(): void { cache.clear(); }
 
+/** Prosperity t in [0, 1] from the zone value p: 0 at P_LO and below, 1 at P_HI and above. */
+export function prosperityT(p: number): number {
+  return Math.min(1, Math.max(0, (p - P_LO) / (P_HI - P_LO)));
+}
+
+/** Target lot ranges (inside the sidewalk ring) at zone value p: LOT_RANGE.lo at t = 0 to LOT_RANGE.hi at t = 1. */
+export function lotRange(p: number): { w: Range; h: Range } {
+  const t = prosperityT(p);
+  const lerp = (a: Range, b: Range): Range => [Math.round(a[0] + (b[0] - a[0]) * t), Math.round(a[1] + (b[1] - a[1]) * t)];
+  return { w: lerp(LOT_RANGE.lo.w, LOT_RANGE.hi.w), h: lerp(LOT_RANGE.lo.h, LOT_RANGE.hi.h) };
+}
+
+/** r with its upper bound raised by 1 until a length can be filled (feasible). */
+export function widenToFit(len: number, r: Range): Range {
+  let hi = r[1];
+  while (!feasible(len, [r[0], hi])) {
+    hi++;
+    if (hi > len) throw new Error(`world/blocks: length ${len} cannot be filled with pieces from ${r[0]}`);
+  }
+  return [r[0], hi];
+}
+
+/** The lot ranges of arterial cell (i, j): interpolated from the prosperity at the cell centre, then widened where the
+ *  cell's footprint extent cannot be filled by pieces in range. lotW / lotH are the widened ranges. */
+export function cellLotRange(seed: string, i: number, j: number):
+  { p: number; t: number; zone: ZoneKind; lotW: Range; lotH: Range; widened: boolean; note: string } {
+  const r = cellRect(seed, i, j);
+  const cx = Math.floor((r.x0 + r.x1) / 2), cy = Math.floor((r.y0 + r.y1) / 2);
+  const p = zoneValue(seed, cx, cy), zone = zoneAt(seed, cx, cy), sw = ZONES[zone].sw;
+  const base = lotRange(p);
+  const fw = widenToFit(r.x1 - r.x0, [base.w[0] + 2 * sw, base.w[1] + 2 * sw]);
+  const fh = widenToFit(r.y1 - r.y0, [base.h[0] + 2 * sw, base.h[1] + 2 * sw]);
+  const lotW: Range = [fw[0] - 2 * sw, fw[1] - 2 * sw], lotH: Range = [fh[0] - 2 * sw, fh[1] - 2 * sw];
+  const notes: string[] = [];
+  if (lotW[1] !== base.w[1]) notes.push(`宽 ${r.x1 - r.x0}，上限放宽到 ${lotW[1]}`);
+  if (lotH[1] !== base.h[1]) notes.push(`高 ${r.y1 - r.y0}，上限放宽到 ${lotH[1]}`);
+  return { p, t: prosperityT(p), zone, lotW, lotH, widened: notes.length > 0,
+    note: notes.length ? `（按原插值切不开格的${notes.join('；')}）` : '' };
+}
+
 /** The blocks of arterial cell (i, j), frozen and cached. */
 export function cellBlocks(seed: string, i: number, j: number): readonly BlockRec[] {
   const key = `${seed}|${i},${j}`;
@@ -193,13 +242,16 @@ export function cellBlocks(seed: string, i: number, j: number): readonly BlockRe
   if (hit) return hit;
   const r = cellRect(seed, i, j);
   const cx = Math.floor((r.x0 + r.x1) / 2), cy = Math.floor((r.y0 + r.y1) / 2);
-  const zone = zoneAt(seed, cx, cy);
-  const { lotW, lotH, sw } = ZONES[zone];
+  const { p, zone, lotW, lotH, note } = cellLotRange(seed, i, j);
+  const { sw } = ZONES[zone];
   const c: Ctx = {
     seed, i, j, zone, sw, out: [],
     fw: [lotW[0] + 2 * sw, lotW[1] + 2 * sw], fh: [lotH[0] + 2 * sw, lotH[1] + 2 * sw],
   };
-  split(c, r, '', [`主干道格 (${i},${j}) 中心 (${cx},${cy}) 的分区是${ZONE_NAME[zone]}，人行道宽 ${sw} 格`]);
+  split(c, r, '', [
+    `繁荣度 ${p.toFixed(2)}（${ZONE_NAME[zone]}），地块目标 ${lotW[0]}–${lotW[1]} × ${lotH[0]}–${lotH[1]}${note}`,
+    `主干道格 (${i},${j}) 中心 (${cx},${cy}) 的分区是${ZONE_NAME[zone]}，人行道宽 ${sw} 格`,
+  ]);
   const out = deepFreeze(c.out) as readonly BlockRec[];
   if (cache.size >= CELL_CACHE) cache.delete(cache.keys().next().value!);
   cache.set(key, out);

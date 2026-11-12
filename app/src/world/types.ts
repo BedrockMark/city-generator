@@ -1,5 +1,7 @@
 // Shared types of the world layer. Rects are half-open [x0, x1) x [y0, y1) in world cells.
 
+import type { DistrictKind } from '../gen/district';
+
 export interface Rect { x0: number; y0: number; x1: number; y1: number }
 export type ZoneKind = 'downtown' | 'mixed' | 'residential';
 export interface BlockRec {
@@ -11,6 +13,8 @@ export interface BlockRec {
   paving: string;              // one of SIDEWALK_STYLES
   shape: 'rect' | 'jog' | 'notch' | 'island';   // notch: a corner cut off by a short street; island: that corner
   why: string[];
+  district?: DistrictKind;     // set by the district pass (v0.8.2 Task 2)
+  centre?: 'plaza' | 'garden'; // a big rect block keeps its middle for a plaza (downtown / mixed) or garden (residential)
 }
 export type WorldCls = 'road' | 'walk' | 'lot';
 export interface WorldCell { cls: WorldCls; block?: string; arterial?: boolean }
