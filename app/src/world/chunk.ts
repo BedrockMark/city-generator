@@ -103,12 +103,16 @@ function arterialsAt(seed: string, x: number, y: number): string[] {
   const i0 = Math.floor(x / ARTERIAL_SPACING.x), j0 = Math.floor(y / ARTERIAL_SPACING.y);
   for (let i = i0 - 2; i <= i0 + 2; i++) for (let j = j0 - 2; j <= j0 + 2; j++) {
     // segment j of vertical line i lies between the horizontal lines j and j + 1 (either neighbouring cell column)
-    const ya = Math.min(hLine(seed, j, i - 1).y0, hLine(seed, j, i).y0), yb = Math.min(hLine(seed, j + 1, i - 1).y0, hLine(seed, j + 1, i).y0);
+    // loose y range of the segment: from the upper edge of horizontal line j to the lower edge of line j + 1 in either
+    // neighbouring cell column (jogs move the two columns apart; the x band test below keeps this exact enough)
+    const [t0, t1, b0, b1] = [hLine(seed, j, i - 1), hLine(seed, j, i), hLine(seed, j + 1, i - 1), hLine(seed, j + 1, i)];
+    const ya = Math.min(t0.y0, t1.y0), yb = Math.max(b0.y0 + b0.h, b1.y0 + b1.h);
     const v = vLine(seed, i, j);
     if (y >= ya && y < yb && x >= v.x0 && x < v.x0 + v.w) out.push(arterialWhy(seed, 'v', i));
   }
   for (let j = j0 - 2; j <= j0 + 2; j++) for (let i = i0 - 2; i <= i0 + 2; i++) {
-    const xa = Math.min(vLine(seed, i, j - 1).x0, vLine(seed, i, j).x0), xb = Math.min(vLine(seed, i + 1, j - 1).x0, vLine(seed, i + 1, j).x0);
+    const [l0, l1, r0, r1] = [vLine(seed, i, j - 1), vLine(seed, i, j), vLine(seed, i + 1, j - 1), vLine(seed, i + 1, j)];
+    const xa = Math.min(l0.x0, l1.x0), xb = Math.max(r0.x0 + r0.w, r1.x0 + r1.w);
     const h = hLine(seed, j, i);
     if (x >= xa && x < xb && y >= h.y0 && y < h.y0 + h.h) out.push(arterialWhy(seed, 'h', j));
   }

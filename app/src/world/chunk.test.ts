@@ -98,7 +98,7 @@ test('worldInfo explains lots, sidewalks, streets and arterials', () => {
     return i;
   };
   for (const k of ['lot', 'walk']) {
-    const i = check(k), b = blockById(SEED, blocksIn(SEED, { x0: found[k][0], y0: found[k][1], x1: found[k][0] + 1, y1: found[k][1] + 1 }).find(id => id === worldCell(SEED, ...found[k]).block)!);
+    const i = check(k), b = blockById(SEED, worldCell(SEED, ...found[k]).block!);
     assert.equal(i.cls, k);
     assert.equal(i.blockId, b.id);
     for (const l of b.why) assert.ok(i.why.includes(l));
@@ -110,7 +110,8 @@ test('worldInfo explains lots, sidewalks, streets and arterials', () => {
   const s = check('street');
   assert.equal(s.cls, 'road');
   assert.ok(s.why.some(l => l.includes('支路')));
-  // every arterial cell of a sample gets an arterial line
-  for (let y = -100; y < 100; y += 7) for (let x = -130; x < 130; x += 7)
-    if (worldCell(SEED, x, y).arterial) assert.ok(worldInfo(SEED, x, y).why.some(l => /主干道 -?\d+/.test(l)), `${x},${y}`);
+  // every arterial cell of two regions gets an arterial line (exhaustive)
+  for (const [seed, x0, y0] of [[SEED, -30, -200], [SEED, 190, -20], ['7', -60, -60]] as const)
+    for (let y = y0; y < y0 + 100; y++) for (let x = x0; x < x0 + 100; x++)
+      if (worldCell(seed, x, y).arterial) assert.ok(worldInfo(seed, x, y).why.some(l => /主干道 -?\d+/.test(l)), `${seed} ${x},${y}`);
 });
