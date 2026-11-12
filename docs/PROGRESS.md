@@ -136,7 +136,7 @@
 - `window.ts`：街区窗口 `blockLayout`、`generateInWindow`（归属过滤）、`generateBlock`（缓存）（D75、D82）。`region.ts`：`blocksIn`、`assembleRegion`（一片区域拼成一个 Scene）。
 
 ## 下一步
-- **等用户看 v0.8.0-hotfix2**（车道间距）。用户确认后写 v0.8.1 的计划（`getChunk` / `getBlock` / `worldInfo`、Worker 池、查看器城市模式）。
+- 用户 2026-11-11 确认 v0.8.0-hotfix2：“现在这样就很好”（横向主干道不加 17 格）。**v0.8.1 的计划**：`docs/superpowers/plans/2026-11-11-v081-chunks-viewer.md`（`getChunk` / `getBlock` / `worldInfo`、Worker 池、查看器城市模式、街区标注、世界回归），等用户审阅后执行。
 - **v0.8.2 新增（用户 2026-11-11）**：繁荣度决定街区大小、范围放宽、大街区中心广场（方案见 hotfix1 报告第 5 节）；主干道路口的环岛。已写进 spec 第 10 节的里程碑表。
 - **v1.0.0 城市生成**（2026-11-11 开始）：spec `docs/superpowers/specs/2026-11-11-v1-city-design.md`。已审（2026-11-11）。v0.8.0 已按计划 `docs/superpowers/plans/2026-11-11-v080-world-layer.md` 完成（subagent 逐任务执行）；之后每个里程碑审完再写下一个计划。按 spec 第 10 节的里程碑 v0.8.0 → v1.0.0 做，每个里程碑停下等确认。
   - 用户已定：无限世界、按需流式生成；分区噪声 + 两级路网；查看器漫游 + `getChunk` API；方案 A（世界路网层 + 街区窗口复用现有生成器）；要运河、桥、高度（参考 `town_near_river`）。
