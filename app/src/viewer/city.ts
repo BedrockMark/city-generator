@@ -88,7 +88,7 @@ export class CityMode {
       if (!ids) this.memo.set(k, ids = blocksIn(this.seed, chunkRect(cx, cy)));
       return ids;
     });
-    $('cityEnter').onclick = () => this.enterSelected();
+    $('cityEnter').onclick = () => { this.enterSelected(); };
   }
 
   /** start (or restart with a new seed / position) the city view */
@@ -200,8 +200,11 @@ export class CityMode {
 
   get selection(): string | undefined { return this.selected; }
 
-  enterSelected(): void {
-    if (this.active && !this.hidden && this.selected) this.onEnterBlock(this.seed, this.selected);
+  /** returns whether a block was handed to onEnterBlock */
+  enterSelected(): boolean {
+    if (!(this.active && !this.hidden && this.selected)) return false;
+    this.onEnterBlock(this.seed, this.selected);
+    return true;
   }
 
   clearSelection(): boolean {

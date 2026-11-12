@@ -142,7 +142,7 @@ class CityView extends Phaser.Scene {
         if (k === 'r') $('regen').click();
         if (k === 'f') this.fit();
         if (k === 'e') this.city!.exportShot();
-        if (k === 'enter') this.city!.enterSelected();
+        if (k === 'enter' && this.city!.enterSelected()) e.preventDefault();   // else a focused toolbar button would be clicked too
         if (k === 'escape') { ++this.blockReq; this.city!.clearSelection(); this.city!.show(); }   // also cancels entering a block
         return;
       }
@@ -352,6 +352,8 @@ class CityView extends Phaser.Scene {
     c.getContext('2d')!.clearRect(0, 0, c.width, c.height);
     this.lastView = ''; this.dirty = true;
     $('info').textContent = '';
+    // the caller shows a dropped file (or the scene shown before is one): no single-block URL describes it, but ?city=1 must go
+    if (!reload || this.source) history.replaceState(null, '', location.pathname);
     if (!reload) return;
     const sc = this.current;
     if (!sc) { this.load_($<HTMLInputElement>('seed').value.trim() || randomSeed()); return; }   // opened in city mode: the world seed

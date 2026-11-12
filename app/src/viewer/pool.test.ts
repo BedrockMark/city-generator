@@ -61,6 +61,16 @@ test('a crashed worker is replaced and its job rejected', async () => {
   assert.equal(pool.free, 1);
 });
 
+test('terminate rejects in-flight and queued jobs, later run() rejects', async () => {
+  const { ws, pool } = make(1);
+  const a = pool.run({ n: 1 }); const b = pool.run({ n: 2 });
+  pool.terminate();
+  await assert.rejects(a, /terminated/);
+  await assert.rejects(b, /terminated/);
+  assert.ok(ws[0].terminated);
+  await assert.rejects(pool.run({ n: 3 }), /terminated/);
+});
+
 test('poolSize', () => {
   assert.equal(poolSize(16), 8);
   assert.equal(poolSize(4), 3);

@@ -67,9 +67,9 @@ export class WorkerPool {
       w.onmessage = w.onerror = null;
       w.terminate();
       if (this.dead) return;
+      job?.reject(new Error(e.message ?? 'worker crashed'));   // settle the job before spawn() can throw
       slot.w = this.spawn();
       this.attach(slot);
-      job?.reject(new Error(e.message ?? 'worker crashed'));
       this.pump();
     };
   }
