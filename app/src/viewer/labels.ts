@@ -1,10 +1,11 @@
 // Good / bad labels on generated scenes. Saved through the vite dev server (vite.config.ts, /api/labels) to
-//   references/labels/v<version>/seed<seed>.json         { version, seed, labels: Label[] }
+//   references/labels/v<version>/seed<key>.json          { version, seed, labels: Label[] }   key = storeKey(scene)
 //   references/labels/v<version>/<scene file>.scene.json  the labelled scene (with explanations and trace)
 // so later stages (constraint tests, critic training, learning) can read them without regenerating.
 // Without the dev server the labels fall back to localStorage (and still go out with every export).
 import type { GenOptions, PxRect, Scene } from '../gen/types';
 import { DEFAULT_OPTIONS } from '../gen/exp';
+import { hash01 } from '../world/hash';
 
 export const GOOD_TAGS = ['关系合理 / 有叙事', '热闹不空', '自然有机', '有特色', '留白恰当', '布局合理'];
 export const BAD_TAGS = ['没有存在理由', '不通向任何地方', '挡路', '位置不合理', '朝向错误', '重叠 / 穿插', '太空', '太挤', '重复 / 复制感', '方正呆板', '比例不对', '遮挡 / 露出错误'];
@@ -33,6 +34,8 @@ export interface Label {
   tags: string[];
   text: string;
   target: LabelTarget;
+  /** city block (v0.8.1): the world seed and block id it was generated from (labeltests replays it with getBlock) */
+  world?: { seed: string; blockId: string };
 }
 
 /** file stem of a scene: seed plus the options that differ from the defaults */
@@ -47,6 +50,16 @@ export function sceneStem(sc: Scene): string {
     if (o.district) s += `_d${o.district}`;   // 0.7.8.2: seed 1 and seed 1 as a school are different scenes
   }
   return s.replace(/[^\w.-]/g, '_');
+}
+
+/** the label file key of a scene: its seed for a single block; `w<world seed>_<block id>` for a city block, made
+ *  file-safe (the dev server takes [\w.-]{1,80}); keys too long keep 71 chars + '_' + a hash of the whole key */
+export function storeKey(sc: Scene): string {
+  const w = sc.params?.world as { seed: string; blockId: string } | undefined;
+  if (!w) return sc.seed;
+  const full = `w${w.seed}_${w.blockId}`, k = full.replace(/[^\w.-]/g, '_');
+  if (k.length <= 80) return k;
+  return `${k.slice(0, 71)}_${Math.floor(hash01('label-key', full) * 2 ** 32).toString(16).padStart(8, '0')}`;
 }
 
 const LS = (version: string, seed: string) => `citygen-labels/${version}/${seed}`;

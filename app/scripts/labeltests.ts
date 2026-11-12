@@ -4,10 +4,12 @@
 //   bad label  -> passes when the labelled thing is gone or changed (objects matched by sprite + position, regions
 //                 by what stands in them); still there = failing test, listed with the constraints that see it
 //   good label -> passes when the labelled thing is unchanged; changed = warning (did we break something liked?)
+// City block labels (v0.8.1, label.world) are replayed with getBlock(world seed, block id, { prefs }).
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { generate } from '../src/gen/generate';
+import { getBlock } from '../src/world/chunk';
 import type { Label } from '../src/viewer/labels';
 import type { Placed, PxRect, Scene, GenOptions } from '../src/gen/types';
 
@@ -46,8 +48,9 @@ export function runLabelTests(opts: Partial<GenOptions> = {}): LabelResult[] {
     // the district is in the options (the viewer passes the kind it drew, 0.7.8.2); none = 普通街区, as every label before 0.7.8
     const o: Partial<GenOptions> = { novelty: l.options?.novelty ?? l.novelty, prefs: l.options?.prefs, prune: true, pruneDraft: false,
       ...(l.options?.district ? { district: l.options.district } : {}), ...opts };
-    const k = JSON.stringify([l.seed, o]);
-    if (!cache.has(k)) cache.set(k, generate(l.seed, o));
+    const w = l.world;
+    const k = JSON.stringify([l.seed, o, w ?? null]);
+    if (!cache.has(k)) cache.set(k, w ? getBlock(w.seed, w.blockId, { prefs: l.options?.prefs }) : generate(l.seed, o));
     const sc = cache.get(k)!;
     const t = l.target;
     let present: boolean, detail: string;
