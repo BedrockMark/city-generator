@@ -46,23 +46,32 @@
     #lblList div:hover { background: #2c2c36; }
     #lblList .g { color: #36d36b; } #lblList .b { color: #ff4040; }
     #lblList button { float: right; padding: 0 6px; font-size: 11px; }
+    /* city mode (v0.8.1): single-block controls hidden; #cityPanel = the selected block's world why */
+    body.city .single { display: none !important; }
+    #cityPanel { position: fixed; top: 49px; right: 8px; width: 340px; max-height: 70vh; overflow-y: auto; background: #23232bf0; border: 1px solid #444;
+                 padding: 8px 12px; display: none; z-index: 5; font-size: 12px; }
+    body:not(.city) #cityPanel { display: none !important; }
+    #cityPanel h3 { margin: 0 0 6px; font-size: 13px; color: #c8c8ff; word-break: break-all; }
+    #cityPanel .mini { font-size: 11px; color: #9a9aa8; }
+    #cityWhy div { padding: 2px 0; border-bottom: 1px solid #30303a; }
     #toast { position: fixed; bottom: 16px; left: 16px; background: #000c; padding: 6px 12px; border-radius: 4px; display: none; z-index: 30; }
   </style>
 </head>
 <body>
   <div id="bar">
-    <label title="特色街区（exp-08）：围绕素材里的大型特殊建筑生成主街区（URL d=）"><select id="district"></select></label>
-    <label>种子 <input id="seed" /></label>
+    <button id="mode" title="城市漫游 / 单街区切换（URL city=1）">城市</button>
+    <label class="single" title="特色街区（exp-08）：围绕素材里的大型特殊建筑生成主街区（URL d=）"><select id="district"></select></label>
+    <label><span id="seedLbl">种子</span> <input id="seed" /></label>
     <button id="go" title="用输入框里的种子生成 (Enter)">生成</button>
     <button id="regen" title="随机新种子并重新生成 (R)">重新生成 🎲</button>
     <span class="sep"></span>
     <button id="zin">＋</button><button id="zout">－</button><button id="fit" title="适应窗口 (F)">适应</button>
-    <label><input type="checkbox" id="grid" /> 网格</label>
-    <label title="楼的非碰撞部分（屋顶以上）半透明，显示楼后的内容 (G)"><input type="checkbox" id="ghost" /> 虚化楼上层</label>
-    <span class="sep"></span>
-    <label title="创新度 0–1（0 = 完全保守）：越高越偏好少用的贴图、拼接楼越多（URL nov=）。随导出和标注记录">创新度 <input type="range" id="novelty" min="0" max="1" step="0.05" /> <span id="noveltyVal"></span></label>
-    <label title="从标注和 A/B 回答（已归档）学到的偏好调整随机选择（URL l=0 = 关）"><input type="checkbox" id="prefs" checked /> 学到的偏好</label>
-    <button id="anno" title="标注层：小组、区域、原因、好 / 坏标注 (A)">标注 (A)</button>
+    <label class="single"><input type="checkbox" id="grid" /> 网格</label>
+    <label class="single" title="楼的非碰撞部分（屋顶以上）半透明，显示楼后的内容 (G)"><input type="checkbox" id="ghost" /> 虚化楼上层</label>
+    <span class="sep single"></span>
+    <label class="single" title="创新度 0–1（0 = 完全保守）：越高越偏好少用的贴图、拼接楼越多（URL nov=）。随导出和标注记录">创新度 <input type="range" id="novelty" min="0" max="1" step="0.05" /> <span id="noveltyVal"></span></label>
+    <label class="single" title="从标注和 A/B 回答（已归档）学到的偏好调整随机选择（URL l=0 = 关）"><input type="checkbox" id="prefs" checked /> 学到的偏好</label>
+    <button id="anno" class="single" title="标注层：小组、区域、原因、好 / 坏标注 (A)">标注 (A)</button>
     <span class="sep"></span>
     <button id="export" title="下载 PNG(2x) + 虚化版 + 标注版 PNG + scene JSON (+ 标注 JSON) (E)">导出截图</button>
     <span id="info"></span>
@@ -92,6 +101,11 @@
       <div class="row"><button id="lblSave">保存标注 (Ctrl+Enter)</button><span id="lblStore" class="mini"></span></div>
     </section>
     <section><h3>本图标注 <span id="lblCount" class="mini"></span></h3><div id="lblList"></div></section>
+  </div>
+  <div id="cityPanel">
+    <h3>街区 <span id="cityBlock"></span></h3>
+    <div id="cityWhy"></div>
+    <div style="margin-top:6px"><button id="cityEnter" title="进入这个街区，查看和标注（也可双击街区）">进入街区 (Enter)</button></div>
   </div>
   <div id="toast"></div>
   <script type="module" src="/src/main.ts"></script>

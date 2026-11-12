@@ -1,5 +1,6 @@
 // Phaser drawing helpers shared by the single-block and city viewers (moved out of main.ts in 0.8.1).
-import Phaser from 'phaser';
+// type-only: city.ts imports this file and its pure helpers are tested under node, where Phaser cannot load
+import type Phaser from 'phaser';
 import type { Placed, TileRef } from '../gen/types';
 
 export const ASSET_ROOT = 'assets/';
@@ -19,7 +20,7 @@ export function loadTextures(sc: Phaser.Scene, sheets: Record<string, string>, o
     if (n.kind === 'image') sc.load.image(file, ASSET_ROOT + file);
     else sc.load.spritesheet(file, ASSET_ROOT + file, { frameWidth: n.fw, frameHeight: n.fh });
   }
-  if (queued) { sc.load.once(Phaser.Loader.Events.COMPLETE, done); sc.load.start(); } else done();
+  if (queued) { sc.load.once('complete', done); sc.load.start(); } else done();
 }
 
 /** frame index of (col,row) in a sheet loaded with 16-px wide frames (sheet widths are not always multiples) */

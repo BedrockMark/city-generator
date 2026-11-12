@@ -1,6 +1,7 @@
 // Phaser viewer: generate a block from a seed, render it, pan/zoom, regenerate, export PNG + scene JSON.
 // Annotation mode (A): group / zone / building layers, hover + click details, good / bad labels (src/viewer).
 // Generation runs in a worker (src/viewer/gen.worker.ts). The A/B mode (stage 7) is archived in archive/ab/ (0.7.6).
+// City mode (v0.8.1, URL city=1): the endless world streamed in chunks by src/viewer/city.ts; input is handed to it.
 import Phaser from 'phaser';
 import { VERSION } from './gen/generate';
 import { DEFAULT_OPTIONS, withDefaults } from './gen/exp';
@@ -12,16 +13,13 @@ import { PREFS } from './gen/learn/prefs';
 import { DISTRICTS, DISTRICT_KINDS, isDistrict, type DistrictKind } from './gen/district';
 import { mixDistrict } from './viewer/mix';
 import { ASSET_ROOT, loadTextures, drawGround, drawObjects } from './viewer/draw';
+import { CityMode, parseCityUrl, toast, download, type CityUrl } from './viewer/city';
+import { CITY_ZOOM } from './world/config';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 const CELL_NAMES: Record<string, string> = { road: '马路', walk: '主街区人行道', lot: '主街区内部', nwalk: '邻近街区人行道', nlot: '邻近街区地块（画面外的街区，只铺地）' };
-
-function toast(msg: string) {
-  const t = $('toast'); t.textContent = msg; t.style.display = 'block';
-  clearTimeout((toast as unknown as { h: number }).h);
-  (toast as unknown as { h: number }).h = window.setTimeout(() => { t.style.display = 'none'; }, 2500);
-}
+const randomSeed = () => String(Math.floor(Math.random() * 1e6));
 
 class CityView extends Phaser.Scene {
   private world?: Phaser.GameObjects.RenderTexture;
@@ -47,6 +45,11 @@ class CityView extends Phaser.Scene {
   private mixed = false;
   private reqId = 0;
   private reqT0 = 0;
+  /** city mode (created on first use); the single-block camera is kept while the city is shown */
+  private city?: CityMode;
+  private cityOn = false;
+  private singleCam?: { x: number; y: number; z: number };
+  private lastClick = 0;
   constructor() { super('city'); }
 
   create() {
@@ -58,6 +61,7 @@ class CityView extends Phaser.Scene {
     });
     this.input.on('pointerup', (p: Phaser.Input.Pointer) => {
       const d = this.drag; this.drag = undefined;
+      if (this.cityOn) { if (d) this.cityPointerUp(d.moved, p.worldX, p.worldY); return; }
       if (!d || !this.anno || !this.current) return;
       if (d.box && this.ov.box && this.ov.box.x1 - this.ov.box.x0 >= 4 && this.ov.box.y1 - this.ov.box.y0 >= 4) { this.select({ kind: 'region', rect: this.ov.box }); this.ov.box = undefined; return; }
       this.ov.box = undefined;
@@ -76,6 +80,7 @@ class CityView extends Phaser.Scene {
         cam.scrollY = this.drag.sy - (p.y - this.drag.y) / cam.zoom;
         return;
       }
+      if (this.cityOn) { this.city!.pointerMove(p.worldX, p.worldY); return; }
       if (this.anno && this.current) { this.ov.hover = this.selAt(p.worldX, p.worldY); if (!this.ov.pinned) this.showDetail(this.ov.hover); this.dirty = true; }
     });
     this.input.on('wheel', (_p: unknown, _o: unknown, _dx: number, dy: number) => this.zoomBy(dy > 0 ? 1 / 1.25 : 1.25));
@@ -97,16 +102,20 @@ class CityView extends Phaser.Scene {
     prefsBox.onchange = () => { this.opts.prefs = prefsBox.checked; this.reload(); };
     $<HTMLInputElement>('novelty').value = String(this.opts.novelty);
     $('noveltyVal').textContent = this.opts.novelty.toFixed(2);
-    this.load_(url.searchParams.get('seed') ?? String(Math.floor(Math.random() * 1e6)));
-    $('go').onclick = () => this.load_($<HTMLInputElement>('seed').value.trim() || '1');
+    const cu = parseCityUrl(url.searchParams, randomSeed);
+    if (cu) this.enterCity(cu);
+    else this.load_(url.searchParams.get('seed') ?? randomSeed());
+    const seedIn = () => $<HTMLInputElement>('seed').value.trim() || '1';
+    $('mode').onclick = () => this.cityOn ? this.leaveCity() : this.enterCity({ seed: seedIn(), x: 0, y: 0, z: CITY_ZOOM.default });
+    $('go').onclick = () => this.cityOn ? this.newWorld(seedIn()) : this.load_(seedIn());
     $('seed').onkeydown = (e) => { if ((e as KeyboardEvent).key === 'Enter') $('go').click(); };
-    $('regen').onclick = () => this.load_(String(Math.floor(Math.random() * 1e6)));
+    $('regen').onclick = () => this.cityOn ? this.newWorld(randomSeed()) : this.load_(randomSeed());
     $('zin').onclick = () => this.zoomBy(1.25);
     $('zout').onclick = () => this.zoomBy(1 / 1.25);
     $('fit').onclick = () => this.fit();
     $('grid').onchange = () => this.gridGfx?.setVisible($<HTMLInputElement>('grid').checked);
     $('ghost').onchange = () => { if (this.current) this.draw(this.current, false); };
-    $('export').onclick = () => this.exportShot();
+    $('export').onclick = () => this.cityOn ? this.city!.exportShot() : this.exportShot();
     $('anno').onclick = () => this.toggleAnno();
     $<HTMLInputElement>('novelty').oninput = () => { $('noveltyVal').textContent = (+$<HTMLInputElement>('novelty').value).toFixed(2); };
     $<HTMLInputElement>('novelty').onchange = () => { this.opts.novelty = +$<HTMLInputElement>('novelty').value; this.reload(); };
@@ -122,6 +131,14 @@ class CityView extends Phaser.Scene {
       if (tag === 'TEXTAREA' && e.key === 'Enter' && e.ctrlKey) { this.saveLabel(); return; }
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
       const k = e.key.toLowerCase();
+      if (this.cityOn) {
+        if (k === 'r') $('regen').click();
+        if (k === 'f') this.fit();
+        if (k === 'e') this.city!.exportShot();
+        if (k === 'enter') this.city!.enterSelected();
+        if (k === 'escape') this.city!.clearSelection();
+        return;
+      }
       if (k === 'r') $('regen').click();
       if (k === 'f') this.fit();
       if (k === 'e') this.exportShot();
@@ -140,17 +157,19 @@ class CityView extends Phaser.Scene {
       try {
         const sc = JSON.parse(await f.text()) as GenScene; if (!sc.objects || !sc.ground) throw new Error('不是 scene JSON');
         this.cancelGen();   // a generation still running must not replace the dropped file when it finishes
+        if (this.cityOn) this.leaveCity(false);
         this.show(sc, 0, f.name);
       }
       catch (err) { toast(`无法读取 ${f.name}: ${err}`); }
     });
-    this.scale.on('resize', () => this.fit());
+    this.scale.on('resize', () => { if (!this.cityOn) this.fit(); });
   }
 
   update() {
     const c = $<HTMLCanvasElement>('overlay');
     const game = this.game.canvas;
     if (c.width !== game.clientWidth || c.height !== game.clientHeight) { c.width = game.clientWidth; c.height = game.clientHeight; this.dirty = true; }
+    if (this.cityOn) { this.city!.update(); return; }
     const cam = this.cameras.main;
     const v = this.view();
     const key = `${v.s}|${v.ox}|${v.oy}|${this.anno}|${cam.width}`;
@@ -168,11 +187,13 @@ class CityView extends Phaser.Scene {
   }
 
   private zoomBy(f: number) {
+    if (this.cityOn) { this.city!.zoomBy(f); return; }
     const cam = this.cameras.main;
     cam.setZoom(Phaser.Math.Clamp(cam.zoom * f, 0.25, 8));
   }
 
   private fit() {
+    if (this.cityOn) { this.city!.zoomBy(CITY_ZOOM.default / this.cameras.main.zoom); return; }   // city: default zoom
     const sc = this.current;
     if (!sc) return;
     const cam = this.cameras.main;
@@ -185,14 +206,19 @@ class CityView extends Phaser.Scene {
 
   private reload() { if (this.current && !this.source) this.load_(this.current.seed); }
 
-  private load_(seed: string) {
-    $<HTMLInputElement>('seed').value = seed;
+  /** the single-block URL of a seed */
+  private singleQuery(seed: string) {
     const q = new URLSearchParams({ seed });
     if (this.opts.novelty !== DEFAULT_OPTIONS.novelty) q.set('nov', String(this.opts.novelty));
     if (!this.opts.prune) q.set('p', '0');
     if (this.opts.prefs === false) q.set('l', '0');
     if (this.districtSel) q.set('d', this.districtSel);
-    history.replaceState(null, '', `?${q}`);
+    return q;
+  }
+
+  private load_(seed: string) {
+    $<HTMLInputElement>('seed').value = seed;
+    history.replaceState(null, '', `?${this.singleQuery(seed)}`);
     this.cancelGen();
     const id = this.reqId;
     this.reqT0 = performance.now(); this.busy = true;
@@ -276,6 +302,70 @@ class CityView extends Phaser.Scene {
     this.gridGfx = g;
     if (refit) this.fit();
     this.dirty = true;
+  }
+
+  // ------------------------------------------------------------------------------------------------
+  // city mode
+
+  private enterCity(u: CityUrl) {
+    if (this.anno) this.toggleAnno();
+    this.cancelGen();   // a single-block result arriving now would be drawn over the city
+    if (!this.cityOn) { const cam = this.cameras.main; this.singleCam = { x: cam.scrollX, y: cam.scrollY, z: cam.zoom }; }
+    this.cityOn = true;
+    this.setCityBar(true);
+    $<HTMLInputElement>('seed').value = u.seed;
+    this.world?.setVisible(false); this.gridGfx?.setVisible(false);
+    this.city ??= new CityMode(this, $<HTMLCanvasElement>('overlay'), (seed, id) => toast(`进入街区 ${id}（世界 ${seed}）：街区查看还没做`));
+    this.city.enter(u);
+  }
+
+  /** a new world seed, same place and zoom */
+  private newWorld(seed: string) {
+    const cam = this.cameras.main;
+    $<HTMLInputElement>('seed').value = seed;
+    this.city!.enter({ seed, x: Math.floor((cam.scrollX + cam.width / 2) / 16), y: Math.floor((cam.scrollY + cam.height / 2) / 16), z: cam.zoom });
+  }
+
+  /** back to the single-block view: the scene shown before (or a new one); reload = false: the caller shows a scene */
+  private leaveCity(reload = true) {
+    this.city!.exit();
+    this.cityOn = false;
+    this.setCityBar(false);
+    const c = $<HTMLCanvasElement>('overlay');
+    c.getContext('2d')!.clearRect(0, 0, c.width, c.height);
+    this.lastView = ''; this.dirty = true;
+    $('info').textContent = '';
+    if (!reload) return;
+    const sc = this.current;
+    if (!sc) { this.load_($<HTMLInputElement>('seed').value.trim() || randomSeed()); return; }   // opened in city mode: the world seed
+    $<HTMLInputElement>('seed').value = sc.seed;
+    if (!this.source) history.replaceState(null, '', `?${this.singleQuery(sc.seed)}`);
+    this.show(sc, 0, this.source);   // redraws (the world texture comes back) and refits only for a dropped file
+    const s = this.singleCam, cam = this.cameras.main;
+    if (s && !this.source) { cam.setZoom(s.z); cam.setScroll(s.x, s.y); }
+  }
+
+  private setCityBar(on: boolean) {
+    document.body.classList.toggle('city', on);
+    $('mode').textContent = on ? '单街区' : '城市';
+    $('seedLbl').textContent = on ? '世界种子' : '种子';
+    $('go').title = on ? '用输入框里的世界种子生成城市 (Enter)' : '用输入框里的种子生成 (Enter)';
+    $('regen').title = on ? '随机新的世界种子 (R)' : '随机新种子并重新生成 (R)';
+  }
+
+  /** city: a click (two within 350 ms enter the block) or the end of a drag */
+  private cityPointerUp(moved: boolean, wx: number, wy: number) {
+    const city = this.city!;
+    if (moved) { city.syncUrl(); return; }
+    const t = performance.now();
+    if (t - this.lastClick < 350) {
+      this.lastClick = 0;
+      if (!city.selection) city.click(wx, wy);   // the first click of the pair unselected the block
+      city.enterSelected();
+      return;
+    }
+    this.lastClick = t;
+    city.click(wx, wy);
   }
 
   // ------------------------------------------------------------------------------------------------
@@ -496,13 +586,6 @@ class CityView extends Phaser.Scene {
     (window as unknown as { __exportCount: number }).__exportCount = files.length;
     (async () => { for (const [b, name] of files) download(typeof b === 'function' ? await b() : b, name); })();
   }
-}
-
-function download(blob: Blob, name: string) {
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = name;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 
 new Phaser.Game({
