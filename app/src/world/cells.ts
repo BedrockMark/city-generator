@@ -4,7 +4,7 @@
 import { hash01, hashInt } from './hash';
 import { cellAt, cellRect } from './arterials';
 import { blockAt, cellBlocks, lotOf } from './blocks';
-import { ARTERIAL_SPACING, CROSSING_CHANCE, CROSSING_MIN_RUN, CROSSING_LEN, CROSSING_GAP, ANALYSIS_PAD, ROAD_WIDTHS } from './config';
+import { ARTERIAL_SPACING, CROSSING_CHANCE, CROSSING_MIN_RUN, CROSSING_LEN, CROSSING_GAP, ANALYSIS_PAD, ROAD_WIDTHS, STREET_WIDTH } from './config';
 import { findSegs } from '../gen/layout';
 import type { Rect, WorldCell, WorldCls, WCrossing } from './types';
 
@@ -106,9 +106,11 @@ export function ownerRaster(seed: string, r: Rect): string[][] {
 /** Zebra crossings (CROSSING_LEN cells along the road, the full road width across) intersecting r.
  *  Corridors are found on r padded by ANALYSIS_PAD. A crossing is drawn at a corridor end whose next cell is a
  *  junction (road in no corridor) when the corridor runs on for >= CROSSING_MIN_RUN cells; whether and where is
- *  hashed on the junction's first world cell. Locality: a cell's corridor status depends only on runs of at most the
- *  widest road through it. A crossing intersecting r, its gap and its junction reach at most ~7 cells beyond r, so
- *  with ANALYSIS_PAD = 16 a corridor run cut by the raster edge still keeps >= 10 cells, >= CROSSING_MIN_RUN; the
+ *  hashed on the junction's first world cell. A junction also needs a cross road leaving it (>= STREET_WIDTH road
+ *  cells beyond the band). Locality: a cell's corridor status depends only on runs of at most the widest road
+ *  through it. A crossing intersecting r, its gap and its junction cells reach at most ~4 cells beyond r and their
+ *  runs at most the widest road (13) further, so with ANALYSIS_PAD = 24 a corridor run cut by the raster edge still
+ *  keeps >= 7 cells beyond them, and every run they depend on lies inside the raster; the
  *  decisions for crossings intersecting r are therefore unaffected by the raster edge, and ends cut by the raster
  *  edge are never junctions near r. */
 export function crossingsIn(seed: string, r: Rect): WCrossing[] {
@@ -133,7 +135,17 @@ export function crossingsIn(seed: string, r: Rect): WCrossing[] {
         const [x, y] = at(j, k);
         junction = ras.cls[y][x] === 'road' && !inSeg[y][x];
       }
-      if (!junction) continue;
+      // a cross road must leave the junction: >= STREET_WIDTH road cells beyond one side of the band (a jogged
+      // street's widening is only JOG_STEP cells wide, so a jog is no junction)
+      const beyond = (k: number, dk: number) => {
+        let n = 0;
+        for (; n < STREET_WIDTH; n++, k += dk) {
+          const [x, y] = at(j, k);
+          if (x < 0 || y < 0 || x >= cols || y >= rows || ras.cls[y][x] !== 'road') break;
+        }
+        return n;
+      };
+      if (!junction || (beyond(s.band0 - 1, -1) < STREET_WIDTH && beyond(s.band1, 1) < STREET_WIDTH)) continue;
       const [jx, jy] = at(j, s.band0);
       const wx = jx + pr.x0, wy = jy + pr.y0;                 // the junction's first world cell
       const [cx, cy] = at(end === 'a' ? s.a : s.b - 1, s.band0);

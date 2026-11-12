@@ -3,8 +3,10 @@
 import { blockById } from './blocks';
 import { classRaster, blockRaster, crossingsIn, ownerOf, ownerRaster } from './cells';
 import { paintGround } from './ground';
-import { BLOCK_CACHE, CITY_NOVELTY, ROAD_WIDTHS, STREET_WIDTH, WINDOW_MARGIN, WINDOW_SW2 } from './config';
-import { chebDist, findSegs, type Crossing, type Layout } from '../gen/layout';
+import { BLOCK_CACHE, CITY_NOVELTY, CROSSING_LEN, ROAD_WIDTHS, SLAB_PERIOD, STREET_WIDTH, WINDOW_MARGIN, WINDOW_SW2 } from './config';
+import { chebDist, findSegs, type Crossing, type Layout, type Seg } from '../gen/layout';
+
+const floorTo = (n: number, m: number) => Math.floor(n / m) * m;
 import { generateBase } from '../gen/generate';
 import { withDefaults } from '../gen/exp';
 import { TILE, type CellClass, type Placed, type PxRect, type Scene, type ZoneRec } from '../gen/types';
@@ -16,11 +18,16 @@ export interface CityOptions { prune?: boolean; prefs?: boolean }
 export interface BlockScene { scene: Scene; ox: number; oy: number }
 export interface BlockWindowLayout { layout: Layout; ox: number; oy: number }
 
-/** The window of block b: its footprint's bounding box grown by `margin`, as a Layout in window coordinates. */
+/** The window of block b: its footprint's bounding box grown by `margin`, as a Layout in window coordinates. The
+ *  top-left corner is moved out to a multiple of the paving slab period (4 x 2), so slabs the generator repaints in
+ *  window coordinates line up with the world's. Only what the block owns is handed to the generator's random
+ *  subsystems: road segments are cut to the stretches whose centre line the block owns, crossings are those with a
+ *  cell the block owns, and `org` puts world coordinates into the stream labels, so a block's content does not depend
+ *  on the margin (window.test.ts). */
 export function blockLayout(seed: string, b: BlockRec, margin = WINDOW_MARGIN): BlockWindowLayout {
   const bx0 = Math.min(...b.foot.map(f => f.x0)), by0 = Math.min(...b.foot.map(f => f.y0));
   const bx1 = Math.max(...b.foot.map(f => f.x1)), by1 = Math.max(...b.foot.map(f => f.y1));
-  const r: Rect = { x0: bx0 - margin, y0: by0 - margin, x1: bx1 + margin, y1: by1 + margin };
+  const r: Rect = { x0: floorTo(bx0 - margin, SLAB_PERIOD[0]), y0: floorTo(by0 - margin, SLAB_PERIOD[1]), x1: bx1 + margin, y1: by1 + margin };
   const ox = r.x0, oy = r.y0, cols = r.x1 - r.x0, rows = r.y1 - r.y0;
   const wcls = classRaster(seed, r), wblk = blockRaster(seed, r);
 
@@ -42,11 +49,28 @@ export function blockLayout(seed: string, b: BlockRec, margin = WINDOW_MARGIN): 
     }
   }
 
-  // crossings: the world's, clipped to the window and shifted to window coordinates
+  // crossings: the world's with a cell the block owns, shifted to window coordinates
+  const owner = ownerRaster(seed, r);
+  const owns = (x: number, y: number) => owner[y]?.[x] === b.id;
   const crossings: Crossing[] = crossingsIn(seed, r).map(c => {
     const [ob, oa] = c.axis === 'h' ? [oy, ox] : [ox, oy];
     return { axis: c.axis, band0: c.band0 - ob, band1: c.band1 - ob, at: c.at - oa };
+  }).filter(c => {
+    for (let k = c.band0; k < c.band1; k++) for (let j = 0; j < CROSSING_LEN; j++) if (c.axis === 'h' ? owns(c.at + j, k) : owns(k, c.at + j)) return true;
+    return false;
   });
+  // road segments: the stretches of each corridor whose centre line the block owns
+  const segs: Seg[] = [];
+  for (const s of findSegs(cls, (_a, w) => ROAD_WIDTHS.includes(w))) {
+    const k = s.band0 + Math.floor((s.band1 - s.band0) / 2), on = (p: number) => (s.axis === 'h' ? owns(p, k) : owns(k, p));
+    for (let p = s.a; p < s.b; p++) {
+      if (!on(p)) continue;
+      let q = p;
+      while (q < s.b && on(q)) q++;
+      segs.push({ ...s, a: p, b: q });
+      p = q;
+    }
+  }
 
   // topLimit (spec 4): per column, the centre line of the road band north of the column's northmost lot cell
   const top = Array.from({ length: cols }, (_, x) => {
@@ -67,9 +91,9 @@ export function blockLayout(seed: string, b: BlockRec, margin = WINDOW_MARGIN): 
     rH: STREET_WIDTH, rV: STREET_WIDTH, sw: b.sw, sw2: WINDOW_SW2,
     roadDist: chebDist(road), shape: b.shape, region,
     regionStyle: others.map(id => blockById(seed, id).paving), mainStyle: b.paving,
-    segs: findSegs(cls, (_a, w) => ROAD_WIDTHS.includes(w)), crossings,
+    segs, crossings,
     base: g.base, over: g.over, mark: g.mark,
-    topLimit: x => top[x] ?? 0,
+    topLimit: x => top[x] ?? 0, org: [ox, oy],
   };
   return { layout, ox, oy };
 }

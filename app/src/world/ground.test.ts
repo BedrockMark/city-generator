@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { paintGround } from './ground';
 import { classRaster, crossingsIn } from './cells';
 import { blockAt } from './blocks';
-import { CROSSING_LEN } from './config';
-import { slab } from '../gen/layout';
+import { ARTERIAL_LANE, CROSSING_LEN, ROAD_WIDTHS, STREET_WIDTH } from './config';
+import { findSegs, slab } from '../gen/layout';
 import type { Rect } from './types';
 
 const SEEDS = ['1', '2', '3'];
@@ -75,4 +75,34 @@ test('slab tiling uses non-negative modulo at negative x', () => {
     }
   }
   assert.ok(n > 20, `only ${n} interior lot cells at x = -4..-1`);
+});
+
+test('arterials: double solid centre line flanked by dashed lane lines ARTERIAL_LANE apart; streets: one dashed line', () => {
+  let arterial = 0, street = 0;
+  for (const s of SEEDS) {
+    const r: Rect = { x0: -130, y0: -100, x1: 130, y1: 100 };
+    const g = paintGround(s, r), cls = classRaster(s, r);
+    for (const sg of findSegs(cls, (_a, w) => ROAD_WIDTHS.includes(w))) {
+      if (sg.b - sg.a < 20 || sg.a === 0 || sg.b >= (sg.axis === 'h' ? r.x1 - r.x0 : r.y1 - r.y0)) continue;
+      const w = sg.band1 - sg.band0, mid = sg.band0 + Math.floor(w / 2);
+      // a cell well inside the corridor, away from any zebra: across the band, the marks
+      const p = sg.a + Math.floor((sg.b - sg.a) / 2);
+      const across = Array.from({ length: w }, (_, k) => (sg.axis === 'h' ? g.mark[sg.band0 + k][p] : g.mark[p][sg.band0 + k]));
+      if (across.includes('zebra')) continue;
+      const want = Array.from({ length: w }, (_, k) => '');
+      if (w === STREET_WIDTH) { want[mid - sg.band0] = 'dash'; street++; }
+      else {
+        assert.ok(w >= 9 && w % 2 === 1, `arterial width ${w}`);
+        want[mid - sg.band0] = 'centre';
+        for (let m = 1; m < Math.floor(Math.floor(w / 2) / ARTERIAL_LANE); m++) {
+          want[mid - sg.band0 - m * ARTERIAL_LANE] = 'dash'; want[mid - sg.band0 + m * ARTERIAL_LANE] = 'dash';
+        }
+        const [x, y] = sg.axis === 'h' ? [p, mid] : [mid, p];
+        assert.equal(g.over[y][x]?.[0], 'city', `${s} centre overlay at ${x + r.x0},${y + r.y0}`);
+        arterial++;
+      }
+      assert.deepEqual(across, want, `${s} ${sg.axis} corridor w=${w} at ${p}`);
+    }
+  }
+  assert.ok(arterial > 5 && street > 20, `arterial ${arterial} street ${street}`);
 });

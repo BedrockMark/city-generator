@@ -15,7 +15,7 @@ The generator proper: pure TypeScript, no Phaser. `generate(seed, options?)` tur
 9. `explainGround` (road segments and crossings become zones), `sb.finish()`, assemble the `Scene`.
 10. `markNovel` (objects drawn from never-used sprites), then `rationalize` writes `scene.audit` (constraint audit, repair by deletion; no random numbers).
 
-RNG forking: `rng.fork(label)` seeds a new sfc32 stream from the original seed plus the label (`seed/label`, nested as `fronts/b7`), so adding or removing draws in one subsystem does not reshuffle the others. The stream name is part of the seed, so renaming any stream (`yard`, `cross`, `exp/exp-04`, `district/palace`, ...) changes every picture for every seed and invalidates regression baselines.
+RNG forking: `rng.fork(label)` seeds a new sfc32 stream from the original seed plus the label (`seed/label`, nested as `fronts/b7`), so adding or removing draws in one subsystem does not reshuffle the others. The stream name is part of the seed, so renaming any stream (`yard`, `cross`, `exp/exp-04`, `district/palace`, ...) changes every picture for every seed and invalidates regression baselines. In city mode (a world window, `Layout.org` set) labels that hold coordinates add the window's world origin (`orgOf`), crossings get one stream each (`cross/xing…`), and only the block's own curb runs reach `bus` / `curb` / `cars` / `walk`, so a block's content does not depend on its window (NOTE D82); single-block labels are unchanged.
 
 ## Files
 

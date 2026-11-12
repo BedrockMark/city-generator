@@ -4,7 +4,7 @@
 // Ground north of a building's footprint is ordinary yard: whether the upper floors cover it in the picture plays
 // no part here (D38).
 import { Rng } from './rng';
-import { paintWalkCell, asphalt, slab, type Layout } from './layout';
+import { paintWalkCell, asphalt, slab, orgOf, type Layout } from './layout';
 import type { BlockPlan, PlacedBuilding } from './block';
 import { SceneBuilder, rect } from './place';
 import { spr, variants, hasSprite } from './assets';
@@ -44,6 +44,7 @@ export function bestRect(cells: [number, number][], ok: (x: number, y: number) =
 const cellsOf = (rc: CellRect) => { const o: [number, number][] = []; for (let y = rc.y; y < rc.y + rc.h; y++) for (let x = rc.x; x < rc.x + rc.w; x++) o.push([x, y]); return o; };
 
 export function yardSpaces(L: Layout, plan: BlockPlan, sb: SceneBuilder, r: Rng, e06: Rng) {
+  const [ox, oy] = orgOf(L);
   const yardStyle = r.choose('yard.paving', {}, ['sidewalk_brown', 'sidewalk_grey', 'sidewalk_beige', 'sidewalk_lightgrey'].filter(s => s !== L.mainStyle));
   const free = plan.yard.map(row => [...row]);
   for (let y = 0; y < L.rows; y++) for (let x = 0; x < L.cols; x++) if (free[y][x]) L.base[y][x] = slab(yardStyle, x, y);
@@ -71,7 +72,7 @@ export function yardSpaces(L: Layout, plan: BlockPlan, sb: SceneBuilder, r: Rng,
     const size = `${rc.w}×${rc.h} 格`;
     let parkTried = false;
     if (fronted && rc.h <= 3 && street.includes('S')) { kind = 'forecourt'; why = `楼前空地（${size}）：${fronted.plan.id} 立面前退出 ≤3 行、南侧临街，按楼的类型布置`; }
-    else if (!used.parking && rc.w >= 9 && rc.h >= 7 && (parkTried = true) && r.choose('yard.parking', { w: rc.w, h: rc.h }, { p: 0.75 }) && parking(L, sb, sb.enter(r.fork(`park${rc.x},${rc.y}`, { w: rc.w, h: rc.h })), rc, plan, free)) { sb.enter(r); used.parking++; continue; }
+    else if (!used.parking && rc.w >= 9 && rc.h >= 7 && (parkTried = true) && r.choose('yard.parking', { w: rc.w, h: rc.h }, { p: 0.75 }) && parking(L, sb, sb.enter(r.fork(`park${rc.x + ox},${rc.y + oy}`, { w: rc.w, h: rc.h })), rc, plan, free)) { sb.enter(r); used.parking++; continue; }
     else if (Math.min(rc.w, rc.h) >= 3 && rc.w * rc.h >= 15 && used.garden < 2) { kind = 'garden'; used.garden++; why = `花园（${size}）：内院中最短边 ≥3、面积 ≥15 的空地（每街区至多 2 个）${parkTried ? '；没有做成停车场（未抽中或找不到车道）' : ''}`; }
     else if (Math.min(rc.w, rc.h) <= 2 && street.length > 0) {
       kind = rc.w <= 2 && rc.h >= 3 && street.includes('S') && !street.includes('E') && !street.includes('W') ? 'passage' : 'strip';
@@ -85,7 +86,7 @@ export function yardSpaces(L: Layout, plan: BlockPlan, sb: SceneBuilder, r: Rng,
   // exp-06 (adopted 0.7.5): the cut may split one space into neighbouring gardens; they become one garden, their paths linked
   const blocked = rects.filter(q => q.kind === 'parking' || q.kind === 'passage' || q.kind === 'forecourt').map(q => q.rc);
   const gapOk = (x: number, y: number) => plan.yard[y]?.[x] === true && !blocked.some(q => x >= q.x && x < q.x + q.w && y >= q.y && y < q.y + q.h);
-  const join = joinGardens(L, rects.filter(q => q.kind === 'garden'), (rc, side) => ownPath(rc, side, r.fork(`garden${rc.x},${rc.y}`)), e06, gapOk);
+  const join = joinGardens(L, rects.filter(q => q.kind === 'garden'), (rc, side) => ownPath(rc, side, r.fork(`garden${rc.x + ox},${rc.y + oy}`)), e06, gapOk);
   let mergedGid: string | undefined;
   if (join) {
     const ra = rects.find(q => q.rc === join.a)!, c = { x: (join.a.x + join.a.w / 2) * T, y: (join.a.y + join.a.h / 2) * T };
@@ -98,7 +99,7 @@ export function yardSpaces(L: Layout, plan: BlockPlan, sb: SceneBuilder, r: Rng,
   for (const { rc, kind, b, side, why } of rects) {
     const shared = join && (rc === join.a || rc === join.b) ? join : undefined;
     const emit = () => {
-      const rr = sb.enter(r.fork(`${kind}${rc.x},${rc.y}`, { kind, w: rc.w, h: rc.h, street: side ?? '' }));
+      const rr = sb.enter(r.fork(`${kind}${rc.x + ox},${rc.y + oy}`, { kind, w: rc.w, h: rc.h, street: side ?? '' }));
       const px = rect(rc.x * T, rc.y * T, (rc.x + rc.w) * T, (rc.y + rc.h) * T);
       const gid = shared ? mergedGid! : sb.group(kind, why, kind === 'forecourt' ? { id: b!.plan.id, anchor: { kind: 'door', ref: `${b!.plan.id}.door`, x: b!.cx * T + (b!.plan.doors[0] ?? b!.plan.w * T / 2), y: (b!.cy + b!.plan.h) * T } }
         : { anchor: { kind: 'yard', ref: `${kind}@${rc.x},${rc.y}`, x: px.x0 + (px.x1 - px.x0) / 2, y: px.y0 + (px.y1 - px.y0) / 2 } });

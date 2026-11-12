@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { blockLayout, generateBlock, generateInWindow, ownerCell, _clearWindowCache } from './window';
 import { blockById, cellBlocks, _clearBlockCache } from './blocks';
 import { worldCell, ownerOf, blockRaster } from './cells';
-import { WINDOW_MARGIN } from './config';
+import { SLAB_PERIOD, WINDOW_MARGIN } from './config';
 import { TILE } from '../gen/types';
 import type { BlockRec } from './types';
 
@@ -14,8 +14,9 @@ test('blockLayout: inP is exactly the block lot; cls agrees with worldCell', () 
   for (const b of BLOCKS.slice(0, 3)) {
     const { layout: L, ox, oy } = blockLayout(SEED, b);
     const x0 = Math.min(...b.foot.map(f => f.x0)), y0 = Math.min(...b.foot.map(f => f.y0));
-    assert.equal(ox, x0 - WINDOW_MARGIN);
-    assert.equal(oy, y0 - WINDOW_MARGIN);
+    // the margin, moved out to the slab period
+    assert.equal(ox, Math.floor((x0 - WINDOW_MARGIN) / SLAB_PERIOD[0]) * SLAB_PERIOD[0]);
+    assert.equal(oy, Math.floor((y0 - WINDOW_MARGIN) / SLAB_PERIOD[1]) * SLAB_PERIOD[1]);
     let lots = 0;
     for (let y = 0; y < L.rows; y++) for (let x = 0; x < L.cols; x++) {
       const w = worldCell(SEED, ox + x, oy + y);
@@ -75,20 +76,27 @@ test('generateBlock is deterministic and cache-independent', () => {
   assert.equal(a4, a1);
 });
 
-// Ruling 5: only buildings must be identical across margins. Small props (gardens, curb furniture, cars, walkers, road
-// works) may differ: generator streams are keyed by window-relative coordinates and some streams draw in sequence over
-// the whole window, so a different margin gives them different draws. The window is a pure function of (seed, blockId),
-// so determinism and locality still hold; what must hold at any margin is the ownership filter.
-test('buildings do not depend on the window margin; the ownership filter holds at a larger margin', () => {
+// v0.8.0-hotfix1 (NOTE D82): a block's content does not depend on the window margin. Stream labels hold world
+// coordinates (Layout.org) and the generator's random subsystems only see what the block owns (its curb runs, the
+// stretches of road it owns, the crossings it touches). Margins 5 and 9 larger are not multiples of the slab period.
+test('a block does not depend on the window margin: buildings, objects and zones; the ownership filter holds', () => {
   for (const b of BLOCKS) {
     const run = (margin: number) => generateInWindow(SEED, b, blockLayout(SEED, b, margin));
-    const big = run(WINDOW_MARGIN + 4);
+    const base = run(WINDOW_MARGIN);
     const blds = (r: ReturnType<typeof run>) =>
       (r.scene.buildings ?? []).map(x => `${x.label}@${x.rect.x0 + r.ox * TILE},${x.rect.y0 + r.oy * TILE}`).sort();
-    assert.deepEqual(blds(big), blds(run(WINDOW_MARGIN)), `${b.id} buildings`);
+    const objs = (r: ReturnType<typeof run>) => r.scene.objects.map(o => `${o.key}@${o.x + r.ox * TILE},${o.foot + r.oy * TILE}`).sort();
+    const zones = (r: ReturnType<typeof run>) => (r.scene.zones ?? []).map(z => `${z.kind}@${z.rect.x0 + r.ox * TILE},${z.rect.y0 + r.oy * TILE},${z.rect.x1 + r.ox * TILE},${z.rect.y1 + r.oy * TILE}`).sort();
+    let big = base;
+    for (const m of [WINDOW_MARGIN + 5, WINDOW_MARGIN + 9]) {
+      big = run(m);
+      assert.deepEqual(blds(big), blds(base), `${b.id} margin ${m}: buildings`);
+      assert.deepEqual(objs(big), objs(base), `${b.id} margin ${m}: objects`);
+      assert.deepEqual(zones(big), zones(base), `${b.id} margin ${m}: zones`);
+    }
     for (const o of big.scene.objects) {
       const [cx, cy] = ownerCell(o);
-      assert.equal(ownerOf(SEED, big.ox + cx, big.oy + cy), b.id, `${b.id} margin+4: ${o.id} ${o.key} at ${cx},${cy}`);
+      assert.equal(ownerOf(SEED, big.ox + cx, big.oy + cy), b.id, `${b.id} margin+9: ${o.id} ${o.key} at ${cx},${cy}`);
     }
   }
 });

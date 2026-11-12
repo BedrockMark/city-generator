@@ -19,7 +19,7 @@ import { PREFS } from './learn/prefs';
 import { markNovel } from './learn/novelty';
 import { planCampus, districtVignettes, isDistrict, resetDistrictIds } from './district';
 
-export const VERSION = '0.8.0';
+export const VERSION = '0.8.0-hotfix1';
 
 export function generate(seed: string, options: Partial<GenOptions> = {}): Scene {
   return generateBase(seed, withDefaults(options));
@@ -73,19 +73,22 @@ export function generateBase(seed: string, opts: GenOptions, win?: BlockWindow):
   if (lm) on('district', r => districtVignettes(L, lm, sb, r));
   const runs = curbRuns(L);
   reserveWalkways(sb, runs);
+  // city mode: only the block's own curb runs get furniture, cars, walkers (the neighbours' runs belong to their own
+  // windows), so the draws do not depend on how much of the neighbours the window shows
+  const own = win ? runs.filter(u => u.main) : runs;
   // order = priority: things with a strong reason claim their space first
   on('cross', r => crossingVignettes(L, sb, r));
   on('zones', r => zoneVignettes(L, main, sb, r));
-  on('bus', r => busStop(L, sb, r, runs));
+  on('bus', r => busStop(L, sb, r, own));
   on('fronts', r => frontVignettes(L, main, sb, r));
   if (!win) {
     on('nfronts', r => frontVignettes(L, { ...neigh, buildings: neigh.buildings.filter(b => b.side === 'S') }, sb, r));
     on('island', r => islandSquares(L, neigh, sb, r));
   }
-  on('curb', r => curbStrips(L, sb, r, runs));
-  on('cars', r => cars(L, sb, r, runs));
+  on('curb', r => curbStrips(L, sb, r, own));
+  on('cars', r => cars(L, sb, r, own));
   on('road', r => roadDetails(L, sb, r));
-  on('walk', r => walkers(L, sb, r, runs));
+  on('walk', r => walkers(L, sb, r, own));
   explainGround(L, sb, runs);
   sb.finish();
   // the window's params sit beside the generator's, never over them

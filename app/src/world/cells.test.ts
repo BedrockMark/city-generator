@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { worldCell, roadOwner, ownerOf, ownerRaster, classRaster, crossingsIn } from './cells';
 import { blockById, lotOf } from './blocks';
 import { cellAt } from './arterials';
-import { ROAD_WIDTHS, CROSSING_MIN_RUN, CROSSING_LEN, CROSSING_GAP } from './config';
+import { ROAD_WIDTHS, CROSSING_MIN_RUN, CROSSING_LEN, CROSSING_GAP, STREET_WIDTH } from './config';
 import type { Rect, WCrossing, BlockRec, WorldCell } from './types';
 
 const SEEDS = ['1', '2', '3', '7', 'city'];
@@ -159,7 +159,9 @@ test('crossings sit next to junctions and span the full road width', () => {
       const ok = [-1, 1].some(dir => gaps.some(g => {
         const j = dir < 0 ? c.at - 1 - g : c.at + CROSSING_LEN + g;
         for (let k = c.band0; k < c.band1; k++) if (at(j, k).cls !== 'road') return false;
-        if (at(j, c.band0 - 1).cls !== 'road' && at(j, c.band1).cls !== 'road') return false;
+        // the cross road is a real road (>= STREET_WIDTH beyond the band), not a jogged street's widening
+        const side = (k0: number, dk: number) => Array.from({ length: STREET_WIDTH }, (_, t) => at(j, k0 + dk * t).cls).every(x => x === 'road');
+        if (!side(c.band0 - 1, -1) && !side(c.band1, 1)) return false;
         for (let t = 1; t <= CROSSING_MIN_RUN; t++) {
           const p = j - dir * t;
           if (at(p, c.band0 - 1).cls === 'road' || at(p, c.band1).cls === 'road') return false;

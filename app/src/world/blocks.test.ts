@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { cellBlocks, blockAt, blockById, lotOf, _clearBlockCache } from './blocks';
 import { cellRect } from './arterials';
-import { STREET_WIDTH, JOG_STEP } from './config';
+import { STREET_WIDTH, JOG_STEP, JOG_GAP } from './config';
 import type { BlockRec, Rect } from './types';
 
 const R = (a: number, b: number) => Array.from({ length: b - a + 1 }, (_, k) => a + k);
@@ -156,5 +156,32 @@ test('cellBlocks is deterministic across calls and cache states', () => {
     assert.notEqual(a, b);
     assert.deepEqual(b, a);
     assert.equal(cellBlocks(s, i, j), b);                     // cache hit returns the same object
+  }
+});
+
+test('a jogged street widens for JOG_GAP cells at the jog and never narrows below STREET_WIDTH', () => {
+  for (const s of SEEDS.slice(0, 10)) for (const [i, j] of CELLS) for (const b of cellBlocks(s, i, j)) {
+    if (b.shape !== 'jog') continue;
+    const [p, q] = b.foot;
+    const shareH = p.y1 === q.y0 || q.y1 === p.y0;           // rects stacked: the jogged street is vertical
+    // across = coordinate across the street, along = along it; the jogged edge is where the rects differ
+    const [pa0, pa1, qa0, qa1] = shareH ? [p.x0, p.x1, q.x0, q.x1] : [p.y0, p.y1, q.y0, q.y1];
+    const hi = pa0 === qa0;                                   // the jogged edge is on the high side of the block
+    const off = hi ? Math.abs(pa1 - qa1) : Math.abs(pa0 - qa0);
+    const bb = bbox(b.foot);
+    const [l0, l1] = shareH ? [bb.y0, bb.y1] : [bb.x0, bb.x1];
+    const road = (u: number, v: number) => blockAt(s, ...(shareH ? [u, v] : [v, u]) as [number, number]) === null;
+    let wide = 0;
+    for (let v = l0; v < l1; v++) {
+      // the block's own edge at this row, then the road run outwards from it
+      let u = hi ? Math.max(...b.foot.filter(r => (shareH ? r.y0 <= v && v < r.y1 : r.x0 <= v && v < r.x1)).map(r => (shareH ? r.x1 : r.y1)))
+        : Math.min(...b.foot.filter(r => (shareH ? r.y0 <= v && v < r.y1 : r.x0 <= v && v < r.x1)).map(r => (shareH ? r.x0 : r.y0))) - 1;
+      let n = 0;
+      while (road(u, v) && n < 40) { n++; u += hi ? 1 : -1; }
+      if (n >= 40) continue;                                  // the street ran into an arterial / cross street here
+      assert.ok(n >= STREET_WIDTH, `${s} ${b.id} street only ${n} wide at ${v}`);
+      if (n === STREET_WIDTH + off) wide++;
+    }
+    assert.equal(wide, JOG_GAP, `${s} ${b.id} widened rows`);
   }
 });

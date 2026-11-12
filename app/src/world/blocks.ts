@@ -4,7 +4,7 @@
 import { hash01, hashInt, hashPick } from './hash';
 import { cellRect, cellAt } from './arterials';
 import { zoneAt } from './zone';
-import { ZONES, STREET_WIDTH, JOG_CHANCE, JOG_STEP, JOG_AT, LEAF_CHANCE, CELL_CACHE } from './config';
+import { ZONES, STREET_WIDTH, JOG_CHANCE, JOG_STEP, JOG_AT, JOG_GAP, LEAF_CHANCE, CELL_CACHE } from './config';
 import type { BlockRec, Rect, ZoneKind } from './types';
 
 type Range = readonly [number, number];
@@ -90,7 +90,8 @@ function split(c: Ctx, r: Rect, path: string, why: string[]): void {
     : axis === 'v' ? `宽 ${w} 不在占地目标 ${fw[0]}–${fw[1]} 内` : `高 ${h} 不在占地目标 ${fh[0]}–${fh[1]} 内`;
 
   // Jog: the street band shifts by d part-way along (the two band halves overlap by STREET - |d|), so each side
-  // becomes L-shaped. An L-shaped piece is only ever cut parallel to the jogged street, so its extent along the cut
+  // becomes L-shaped. The side the band moves away from steps first, at vt, and the other side JOG_GAP cells later, so
+  // the street widens to STREET + |d| for JOG_GAP cells (room for a car to change over) instead of being cut clean. An L-shaped piece is only ever cut parallel to the jogged street, so its extent along the cut
   // must already be in range, and each side must still end in an L-shaped leaf whose narrow and wide parts fit.
   // A jogged cut is placed uniformly among such offsets; with none, the cut stays straight.
   if (hash01(seed, 'cut', i, j, path, 'jog') < JOG_CHANCE && inR(along, vr)) {
@@ -100,10 +101,12 @@ function split(c: Ctx, r: Rect, path: string, why: string[]): void {
       && feasibleL(Math.min(len - a - STREET_WIDTH, len - a - STREET_WIDTH - d), step, ur));
     if (jp.length) {
       const at = u0 + jp[hashInt(seed, 0, jp.length - 1, 'cut', i, j, path, 'jogpos')];
-      const vt = v0 + hashInt(seed, Math.ceil(JOG_AT[0] * along), Math.floor(JOG_AT[1] * along), 'cut', i, j, path, 'jogt');
-      const jw = `${cutWhy(c, path, axis, at, reason)}，在${axis === 'v' ? ' y' : ' x'}=${vt} 处错开 ${step} 格`;
-      splitL(c, { axis, lo: false, s: u0, e: [at, at + d], v0, v1, vt }, path + 'L', [...why, jw]);
-      splitL(c, { axis, lo: true, s: u1, e: [at + STREET_WIDTH, at + d + STREET_WIDTH], v0, v1, vt }, path + 'R', [...why, jw]);
+      const vt = v0 + hashInt(seed, Math.ceil(JOG_AT[0] * along), Math.floor(JOG_AT[1] * along) - JOG_GAP, 'cut', i, j, path, 'jogt');
+      const jw = `${cutWhy(c, path, axis, at, reason)}，在${axis === 'v' ? ' y' : ' x'}=${vt}–${vt + JOG_GAP} 处错开 ${step} 格（中间路面加宽，留出一条车道的距离）`;
+      // d > 0: the band moves to higher u, so the high side (R) gives way and steps first; d < 0: the low side (L)
+      const [vl, vr] = d > 0 ? [vt + JOG_GAP, vt] : [vt, vt + JOG_GAP];
+      splitL(c, { axis, lo: false, s: u0, e: [at, at + d], v0, v1, vt: vl }, path + 'L', [...why, jw]);
+      splitL(c, { axis, lo: true, s: u1, e: [at + STREET_WIDTH, at + d + STREET_WIDTH], v0, v1, vt: vr }, path + 'R', [...why, jw]);
       return;
     }
   }

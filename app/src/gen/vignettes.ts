@@ -9,7 +9,7 @@ import { SceneBuilder, rect } from './place';
 import { spr, variants, hasSprite } from './assets';
 import { makePerson, frameFor, type Dir, type Pose } from './people';
 import { TILE, type Anchor } from './types';
-import { slab } from './layout';
+import { slab, orgOf } from './layout';
 
 const C = '3_City_Props/';
 const V = '10_Vehicles/';
@@ -26,6 +26,12 @@ export function person(sb: SceneBuilder, r: Rng, fx: number, fy: number, pose: P
 export interface CurbRun { id: string; side: 'S' | 'N' | 'E' | 'W'; main: boolean; fixed: number; curb: number; a: number; b: number; region: number; sw: number }
 // side = where the ROAD is relative to the sidewalk. fixed = furniture foot line (px); curb = px of the curb line; a..b = px range along;
 // sw = sidewalk depth in cells
+
+/** a run's stream label: side, foot line and start in world px (orgOf), so it does not depend on the window */
+function runLabel(L: Layout, run: CurbRun): string {
+  const [ox, oy] = orgOf(L), h = run.side === 'S' || run.side === 'N';
+  return `${run.side}${run.fixed + (h ? oy : ox) * T}${run.a + (h ? ox : oy) * T}`;
+}
 
 export function curbRuns(L: Layout): CurbRun[] {
   const out: CurbRun[] = [];
@@ -90,10 +96,15 @@ export function reserveWalkways(sb: SceneBuilder, runs: CurbRun[]) {
 
 // ------------------------------------------------------------------------------------------------
 
-export function crossingVignettes(L: Layout, sb: SceneBuilder, r: Rng) {
+export function crossingVignettes(L: Layout, sb: SceneBuilder, r0: Rng) {
+  let r = r0;
   const lights = variants(C + 'Traffic_Light', [1, 2, 5]);
   const isWalk = (x: number, y: number) => L.cls[y]?.[x] === 'walk' || L.cls[y]?.[x] === 'nwalk';
   for (const [ci, c] of L.crossings.entries()) {
+    // city mode: one stream per crossing, keyed by its world position, so the blocks on either side of the road decide
+    // its lights the same way; single-block mode: one stream for all (unchanged)
+    const [ox, oy] = orgOf(L);
+    if (L.org) r = sb.enter(r0.fork(`xing${c.axis}${c.band0 + (c.axis === 'h' ? oy : ox)},${c.at + (c.axis === 'h' ? ox : oy)}`));
     const zx = c.axis === 'h' ? (c.at + 1) * T : (c.band0 + c.band1) / 2 * T, zy = c.axis === 'h' ? (c.band0 + c.band1) / 2 * T : (c.at + 1) * T;
     const gid = sb.group('crossing', `人行横道 zebra${ci}：路口附近的横道，配红绿灯（参考图中红绿灯总在横道端头，lift 6.2）`, { anchor: { kind: 'crossing', ref: `zebra${ci}`, x: zx, y: zy } });
     const key = r.choose('cross.lightModel', {}, lights);
@@ -154,7 +165,7 @@ export function curbStrips(L: Layout, sb: SceneBuilder, r: Rng, runs: CurbRun[])
     const len = run.b - run.a;
     sb.enter(r);
     if (len < 4 * T) { sb.zone('curb', 'curb:short', runRect(run), `路缘段 ${runName(run)}：太短（<4 格），不放路缘设施`); continue; }
-    const rr = sb.enter(r.fork(`curb${run.side}${run.fixed}${run.a}`, { run: run.id, side: run.side, main: run.main, sw: run.sw, len: Math.round(len / T) }));
+    const rr = sb.enter(r.fork(`curb${runLabel(L, run)}`, { run: run.id, side: run.side, main: run.main, sw: run.sw, len: Math.round(len / T) }));
     const horiz = run.side === 'S' || run.side === 'N';
     const put = (key: string, along: number, cls: string, gid: string, why: string, inset = 0) => {
       const [fx, fy] = footAt(run, along, inset);
@@ -324,7 +335,7 @@ function seated(r: Rng, fx: number, fy: number, dir: Dir): [string[], [number, n
 
 export function zoneVignettes(L: Layout, plan: BlockPlan, sb: SceneBuilder, r: Rng) {
   for (const z of plan.zones) {
-    const rr = sb.enter(r.fork(`zone${z.x0},${z.y0}`, { zone: z.kind, w: z.x1 - z.x0, h: z.y1 - z.y0 }));
+    const rr = sb.enter(r.fork(`zone${z.x0 + orgOf(L)[0]},${z.y0 + orgOf(L)[1]}`, { zone: z.kind, w: z.x1 - z.x0, h: z.y1 - z.y0 }));
     const w = (z.x1 - z.x0) * T, x0 = z.x0 * T, y0 = z.y0 * T, y1 = z.y1 * T;
     const gid = sb.group(z.kind, z.why, { anchor: { kind: 'zone', ref: `${z.kind}@${z.x0},${z.y0}`, x: x0 + w / 2, y: y1 } });
     sb.zone('block', z.kind, rect(x0, y0, x0 + w, y1), z.why, gid);
@@ -447,7 +458,7 @@ const segAnchor = (sg: Seg, i: number, p: number): Anchor => sg.axis === 'h'
 export function cars(L: Layout, sb: SceneBuilder, r: Rng, runs: CurbRun[]) {
   // parked: in the lane next to the curb, facing the lane's traffic direction (right-hand traffic)
   for (const run of runs) {
-    const rr = sb.enter(r.fork(`cars${run.side}${run.fixed}${run.a}`, { run: run.id, side: run.side, main: run.main, len: Math.round((run.b - run.a) / T) }));
+    const rr = sb.enter(r.fork(`cars${runLabel(L, run)}`, { run: run.id, side: run.side, main: run.main, len: Math.round((run.b - run.a) / T) }));
     if (!rr.choose('cars.parked', { main: run.main }, { p: run.main ? 0.55 : 0.35 }) || run.b - run.a < 8 * T) continue;
     const horiz = run.side === 'S' || run.side === 'N';
     const n = rr.count('cars.parkedCount', {}, 1, 3);

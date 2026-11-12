@@ -37,7 +37,13 @@ export interface Layout {
   /** city mode (spec 4): the top row a building sprite may reach in column x (upper floors stop at the north road's
    *  centre line); undefined = no limit (single-block mode) */
   topLimit?: (x: number) => number;
+  /** city mode: the window's top-left world cell. Stream labels that hold coordinates add it, so a block's draws do not
+   *  depend on where its window starts; undefined = [0, 0] (single-block mode, labels unchanged) */
+  org?: [number, number];
 }
+
+/** the world origin of L in cells: [0, 0] in single-block mode */
+export const orgOf = (L: Layout): [number, number] => L.org ?? [0, 0];
 
 const grid = <T>(r: number, c: number, v: T): T[][] => Array.from({ length: r }, () => Array<T>(c).fill(v));
 
