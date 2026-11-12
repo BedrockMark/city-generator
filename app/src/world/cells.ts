@@ -108,9 +108,9 @@ export function ownerRaster(seed: string, r: Rect): string[][] {
  *  junction (road in no corridor) when the corridor runs on for >= CROSSING_MIN_RUN cells; whether and where is
  *  hashed on the junction's first world cell. A junction also needs a cross road leaving it (>= STREET_WIDTH road
  *  cells beyond the band). Locality: a cell's corridor status depends only on runs of at most the widest road
- *  through it. A crossing intersecting r, its gap and its junction cells reach at most ~4 cells beyond r and their
- *  runs at most the widest road (13) further, so with ANALYSIS_PAD = 24 a corridor run cut by the raster edge still
- *  keeps >= 7 cells beyond them, and every run they depend on lies inside the raster; the
+ *  through it. A crossing intersecting r, its gap and its junction cells reach at most ~4 cells beyond r and the runs
+ *  across them at most the widest road (17) further, 21 < ANALYSIS_PAD = 24, so every run they depend on lies inside
+ *  the raster, and a corridor run toward the raster edge keeps >= 20 cells >= CROSSING_MIN_RUN; the
  *  decisions for crossings intersecting r are therefore unaffected by the raster edge, and ends cut by the raster
  *  edge are never junctions near r. */
 export function crossingsIn(seed: string, r: Rect): WCrossing[] {

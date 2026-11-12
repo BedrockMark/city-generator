@@ -19,7 +19,7 @@ import { PREFS } from './learn/prefs';
 import { markNovel } from './learn/novelty';
 import { planCampus, districtVignettes, isDistrict, resetDistrictIds } from './district';
 
-export const VERSION = '0.8.0-hotfix1';
+export const VERSION = '0.8.0-hotfix2';
 
 export function generate(seed: string, options: Partial<GenOptions> = {}): Scene {
   return generateBase(seed, withDefaults(options));

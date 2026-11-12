@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { paintGround } from './ground';
+import { arterialLanes, paintGround } from './ground';
 import { classRaster, crossingsIn } from './cells';
 import { blockAt } from './blocks';
 import { ARTERIAL_LANE, CROSSING_LEN, ROAD_WIDTHS, STREET_WIDTH } from './config';
@@ -77,7 +77,7 @@ test('slab tiling uses non-negative modulo at negative x', () => {
   assert.ok(n > 20, `only ${n} interior lot cells at x = -4..-1`);
 });
 
-test('arterials: double solid centre line flanked by dashed lane lines ARTERIAL_LANE apart; streets: one dashed line', () => {
+test('arterials: double solid centre line and dashed lane lines, each on its own cell, lanes ARTERIAL_LANE wide; streets: one dashed line', () => {
   let arterial = 0, street = 0;
   for (const s of SEEDS) {
     const r: Rect = { x0: -130, y0: -100, x1: 130, y1: 100 };
@@ -92,11 +92,14 @@ test('arterials: double solid centre line flanked by dashed lane lines ARTERIAL_
       const want = Array.from({ length: w }, (_, k) => '');
       if (w === STREET_WIDTH) { want[mid - sg.band0] = 'dash'; street++; }
       else {
-        assert.ok(w >= 9 && w % 2 === 1, `arterial width ${w}`);
         want[mid - sg.band0] = 'centre';
-        for (let m = 1; m < Math.floor(Math.floor(w / 2) / ARTERIAL_LANE); m++) {
-          want[mid - sg.band0 - m * ARTERIAL_LANE] = 'dash'; want[mid - sg.band0 + m * ARTERIAL_LANE] = 'dash';
+        for (let m = 1; m < arterialLanes(w); m++) {
+          want[mid - sg.band0 - m * (ARTERIAL_LANE + 1)] = 'dash'; want[mid - sg.band0 + m * (ARTERIAL_LANE + 1)] = 'dash';
         }
+        // every lane (curb to line, line to line) is ARTERIAL_LANE cells
+        const lines = across.map((m, k) => (m ? k : -1)).filter(k => k >= 0);
+        const gaps = [lines[0], ...lines.slice(1).map((k, i) => k - lines[i] - 1), w - 1 - lines[lines.length - 1]];
+        assert.ok(gaps.every(g => g === ARTERIAL_LANE), `${s} lane widths ${gaps} at w=${w}`);
         const [x, y] = sg.axis === 'h' ? [p, mid] : [mid, p];
         assert.equal(g.over[y][x]?.[0], 'city', `${s} centre overlay at ${x + r.x0},${y + r.y0}`);
         arterial++;

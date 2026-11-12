@@ -6,7 +6,7 @@ The world layer of city mode (v0.8.0, spec `docs/superpowers/specs/2026-11-11-v1
 
 | Path | Purpose |
 |---|---|
-| `config.ts` | Every world tunable as a named constant (spec 3.8): arterial spacing / jitter / widths (odd, >= 9: two or three lanes each way) / lane pitch / jog, street width, jog chance / step / position / gap, zone thresholds and per-zone lot ranges, sidewalk width and paving, crossing chances, window margin, pads, `CITY_NOVELTY`, caches. `ROAD_WIDTHS` and `REGION_PAD` are derived. No other file holds these numbers |
+| `config.ts` | Every world tunable as a named constant (spec 3.8): arterial spacing / jitter / widths (11 / 17: two or three lanes each way, every line on its own cell) / lane width / jog, street width, jog chance / step / position / gap, zone thresholds and per-zone lot ranges, sidewalk width and paving, crossing chances, window margin, pads, `CITY_NOVELTY`, caches. `ROAD_WIDTHS` and `REGION_PAD` are derived. No other file holds these numbers |
 | `types.ts` | `Rect`, `ZoneKind`, `BlockRec` (id, cell, footprint rects, sw, zone, paving, shape, why), `WorldCell`, `WCrossing` |
 | `hash.ts` | Coordinate hash `hash01` / `hashInt` / `hashPick(seed, ...keys)` (cyrb128, as in `gen/rng.ts`) |
 | `zone.ts` | `zoneValue` (two-layer smoothstep value noise on the arterial lattice) and `zoneAt` (downtown / mixed / residential) |
@@ -16,7 +16,7 @@ The world layer of city mode (v0.8.0, spec `docs/superpowers/specs/2026-11-11-v1
 | `ground.ts` | `paintGround(seed, r)`: asphalt, autotiled sidewalk / lot paving, lane lines (streets: one dashed centre line; arterials: double solid centre line on `over` plus dashed lane lines), zebras; same tile pickers as `gen/layout.ts`, identical on overlapping rects |
 | `window.ts` | `blockLayout` (a block plus `WINDOW_MARGIN` cells, top-left snapped to `SLAB_PERIOD`, as a gen `Layout`, with `topLimit` at the north road centre line, `org` = world origin for stream labels, road segments cut to the block's own stretches and only the crossings it touches, so the block does not depend on the margin), `generateInWindow` (runs `generateBase` with the window, then drops objects / zones on cells the block does not own), `generateBlock` (cached by `BLOCK_CACHE`), `ownerCell`, `zoneCell`, `CityOptions` |
 | `region.ts` | `blocksIn(seed, r)` and `assembleRegion(seed, r)`: one `Scene` for a world rect (world ground + each owner block's ground edits, objects / buildings / groups / zones with `<blockId>:` prefixes, `params.world`) |
-| `*.test.ts` | node:test suites (46 tests, run by `npm test`): hash, zone continuity and shares, arterial coverage without gaps, cuts in range over 30 seeds x 7 x 7 cells and jog ratio, ownership, crossings, ground seams, window ownership / determinism / cache independence / height limit, region halves vs whole and order independence. All include negative coordinates |
+| `*.test.ts` | node:test suites (47 tests, run by `npm test`): hash, zone continuity and shares, arterial coverage without gaps, cuts in range over 30 seeds x 7 x 7 cells and jog ratio, ownership, crossings, ground seams, window ownership / determinism / cache independence / height limit, region halves vs whole and order independence. All include negative coordinates |
 
 ## Usage
 

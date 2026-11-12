@@ -22,6 +22,13 @@ const DIRS: [number, number][] = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1,
 // Full mask: every neighbour is "inside" (not road)
 const ALL = (1 << DIRS.length) - 1;
 
+/** Lanes each way of an arterial w cells wide: w = 2n * (ARTERIAL_LANE + 1) - 1 (config ARTERIAL_WIDTHS). */
+export function arterialLanes(w: number): number {
+  const n = (w + 1) / (2 * (ARTERIAL_LANE + 1));
+  if (!Number.isInteger(n) || n < 1) throw new Error(`world/ground: arterial width ${w} does not fit whole lanes`);
+  return n;
+}
+
 /** Double solid centre line overlay of an arterial: part 0 = west / north end, 1 = middle, 2 = east / south end. */
 function centreTile(axis: 'h' | 'v', part: 0 | 1 | 2): TileRef {
   return axis === 'h' ? ['city', 26 + 2 * part, 71] : ['city', 33, 69 + 2 * part];
@@ -56,8 +63,8 @@ export function paintGround(seed: string, r: Rect): Ground {
   }
 
   // lane lines, stopping 1 cell before zebras / segment ends: a street (STREET_WIDTH) has one dashed centre line; an
-  // arterial has a double solid centre line (overlay tiles with end caps) and dashed lines ARTERIAL_LANE cells apart
-  // between its lanes, two or three lanes each way (lane | dash | lane | double | lane | dash | lane)
+  // arterial has a double solid centre line (overlay tiles with end caps) and dashed lines between its lanes, every
+  // line on a cell of its own and every lane ARTERIAL_LANE cells (lane | dash | lane | double | lane | dash | lane)
   const over: (TileRef | null)[][] = Array.from({ length: rows }, () => Array<TileRef | null>(cols).fill(null));
   for (const s of findSegs(cls, (_a, w) => ROAD_WIDTHS.includes(w))) {
     if (s.b - s.a < DASH_MIN_RUN) continue;
@@ -70,8 +77,8 @@ export function paintGround(seed: string, r: Rect): Ground {
     };
     const dashes = (k: number) => { for (const [x, y] of lines(k)) { base[y][x] = dashTile(s.axis); mark[y][x] = 'dash'; } };
     if (w <= STREET_WIDTH) { dashes(mid); continue; }
-    const n = Math.floor(Math.floor(w / 2) / ARTERIAL_LANE);          // lanes each way
-    for (let m = 1; m < n; m++) { dashes(mid - m * ARTERIAL_LANE); dashes(mid + m * ARTERIAL_LANE); }
+    const n = arterialLanes(w), pitch = ARTERIAL_LANE + 1;            // lanes each way, line to line
+    for (let m = 1; m < n; m++) { dashes(mid - m * pitch); dashes(mid + m * pitch); }
     const cells = lines(mid), on = new Set(cells.map(([x, y]) => `${x},${y}`));
     const step: [number, number] = s.axis === 'h' ? [1, 0] : [0, 1];
     for (const [x, y] of cells) {

@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { vLine, hLine, cellRect, cellAt, arterialWhy } from './arterials';
 import { ARTERIAL_SPACING as SP, ARTERIAL_JITTER, ARTERIAL_JOG, ARTERIAL_WIDTHS } from './config';
+import { arterialLanes } from './ground';
 
 const R = (a: number, b: number) => Array.from({ length: b - a + 1 }, (_, k) => a + k);
 const inRect = (r: { x0: number; y0: number; x1: number; y1: number }, x: number, y: number) =>
@@ -79,6 +80,10 @@ test('negative coordinates: cellAt(s, -1, -1) is a cell with i <= -1 or an arter
 
 test('arterialWhy is Chinese and deterministic', () => {
   assert.equal(arterialWhy('1', 'v', 3), arterialWhy('1', 'v', 3));
-  assert.match(arterialWhy('1', 'v', 3), /^竖向主干道 3：宽 \d 格（散列抽到），位置偏移 [−\d]+ 格$/);
+  assert.match(arterialWhy('1', 'v', 3), /^竖向主干道 3：宽 \d+ 格（散列抽到），位置偏移 [−\d]+ 格$/);
   assert.match(arterialWhy('1', 'h', -2), /^横向主干道 -2/);
+});
+
+test('every arterial width fits whole lanes (lines on cells of their own)', () => {
+  for (const [w] of [...ARTERIAL_WIDTHS.v, ...ARTERIAL_WIDTHS.h]) assert.ok(arterialLanes(w) >= 2, `width ${w}`);
 });
