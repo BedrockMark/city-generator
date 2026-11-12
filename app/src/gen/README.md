@@ -1,16 +1,16 @@
 # app/src/gen/
 
-The generator proper: pure TypeScript, no Phaser. `generate(seed, options?)` turns a seed string into a `Scene` JSON (ground tiles, placed sprites, buildings, groups and zones with reasons, a decision trace and a constraint audit). It is consumed by the Phaser viewer (`../main.ts`, `../viewer/`), by the Node scripts in `../../scripts/` (batch, regress, prefs, constraints, shots) and, once exported, by the Python tools in `../../../tools/`. `data/` is JSON exported from the asset packs by those tools, `rational/` is the constraint audit and repair, `learn/` is the learned-preference and novelty reweighting. Tests are `node:test` files next to the code they test. Current `VERSION` is `0.8.0`. City mode (`../world/`) calls `generateBase` with an optional block window; without it nothing changes.
+The generator proper: pure TypeScript, no Phaser. `generate(seed, options?)` turns a seed string into a `Scene` JSON (ground tiles, placed sprites, buildings, groups and zones with reasons, a decision trace and a constraint audit). It is consumed by the Phaser viewer (`../main.ts`, `../viewer/`), by the Node scripts in `../../scripts/` (batch, regress, prefs, constraints, shots) and, once exported, by the Python tools in `../../../tools/`. `data/` is JSON exported from the asset packs by those tools, `rational/` is the constraint audit and repair, `learn/` is the learned-preference and novelty reweighting. Tests are `node:test` files next to the code they test. Current `VERSION` is `0.8.2`. City mode (`../world/`) calls `generateBase` with an optional block window; without it nothing changes. The window may carry `city` (v0.8.2: the zone, its generator parameters `ZoneGen` and the block's `centre`); every draw it affects falls back to the single-block value when it is absent.
 
 ## Pipeline (`generate.ts` -> `generateBase`)
 
 1. `resetIds` / `resetKitIds` / `resetDistrictIds`; `Trace` + root `Rng(seed)` with the `makeAdjust(opts, PREFS)` hook (learned preferences x novelty).
-2. `planCampus(district, rng)` if `opts.district` is set (the block is sized to the campus; an unknown district throws).
+2. `planCampus(district, rng)` if `opts.district` is set (the block is sized to the campus; an unknown district throws). In a world window it is `campusFor(seed, district)` instead (a plain `Rng(seed)`, no preference hook), the same call the world layer used to reserve the footprint.
 3. `makeLayout` : block interior, sidewalk ring, road band, neighbour regions, autotiled ground, lane markings, crossings.
-4. `planMainBlock` + `planNeighbours` (packer in `pack.ts`; composite buildings on stream `exp/exp-04`, kit buildings on `exp/exp-05`).
+4. `planMainBlock` + `planNeighbours` (packer in `pack.ts`; composite buildings on stream `exp/exp-04`, kit buildings on `exp/exp-05`). With `win.city`, `planMainBlock` takes the zone's `mix` weights, `plaza` chance and `shopFront` chance (sub-stream `block/shop`, drawn once per facade left column), the composite / kit chances are multiplied by `composite` / `kit`; with `city.centre` it carves the centre area and its two passages (`centre.ts` `planCentre`, sub-stream `block/centre`) before the alleys, and caps buildings south of the centre at `CENTRE_OVERHANG` rows into it (`PackOpts.topCap`).
 5. `linkBuildings` : touching buildings swap to their seamless `_Modular` edge pieces (no random numbers).
 6. `emitBuildings` for `main` and `neigh`, then `rooftopAC` (stream `exp/exp-01`).
-7. `yardSpaces` (stream `yard`, gardens merged on `exp/exp-06`), then `districtVignettes` (stream `district`) : both may cut driveways into the curb.
+7. `yardSpaces` (stream `yard`, gardens merged on `exp/exp-06`), then `centreVignettes` (stream `centre`, city blocks with a centre only: plaza or garden contents), then `districtVignettes` (stream `district`) : yard and district may cut driveways into the curb.
 8. `curbRuns` + `reserveWalkways`, then the street vignettes in priority order, one stream each: `cross`, `zones`, `bus`, `fronts`, `nfronts`, `island`, `curb`, `cars`, `road`, `walk`.
 9. `explainGround` (road segments and crossings become zones), `sb.finish()`, assemble the `Scene`.
 10. `markNovel` (objects drawn from never-used sprites), then `rationalize` writes `scene.audit` (constraint audit, repair by deletion; no random numbers).
@@ -22,7 +22,7 @@ RNG forking: `rng.fork(label)` seeds a new sfc32 stream from the original seed p
 | Path | Purpose |
 |---|---|
 | `generate.ts` | Entry point: `generate`, `generateBase(seed, opts, win?)` (optional `BlockWindow` from `../world/window.ts`: its layout replaces `makeLayout`, no neighbours / `nfronts` / `island`), `VERSION`; wires the stages above |
-| `types.ts` | Scene JSON format shared with the viewer and `tools/eval_generated.py`: `TILE` (16 px), `SHEETS`, `Placed`, `GroupRec`, `BuildingRec`, `ZoneRec`, `Scene`, `GenOptions` |
+| `types.ts` | Scene JSON format shared with the viewer and `tools/eval_generated.py`: `TILE` (16 px), `SHEETS`, `Placed`, `GroupRec`, `BuildingRec`, `ZoneRec`, `Scene`, `GenOptions`; city-mode window parameters `CityZone`, `ZoneGen`, `CityParams` (v0.8.2; the values live in `../world/config.ts`) |
 | `exp.ts` | `DEFAULT_OPTIONS` (novelty 0.1, prune, prefs), `withDefaults`, `expStream`, `fireByNovelty`, `compositeChance`, `kitChance`; remains of the experiment system |
 | `rng.ts` | Seeded RNG (sfc32 + cyrb128), `fork`, decision `Trace`; labelled `choose / count / order / tex`, unlabelled `pick / weighted / chance / shuffle`, geometry `int / range / jitter` |
 | `layout.ts` | `makeLayout(rng, need?)`: block geometry and ground; `autotile`, `slab`, `asphalt`, `paintWalkCell` |
@@ -32,10 +32,11 @@ RNG forking: `rng.fork(label)` seeds a new sfc32 stream from the original seed p
 | `neighbours.ts` | `planNeighbours`: surrounding blocks packed for context (may run off the edge) |
 | `terrace.ts` | Composite buildings (`terraceSection`, `condoBays`, `terracedRow`) and deterministic `linkBuildings` via `data/links.json` |
 | `kits.ts` | Kit buildings from the packs: `condo3`, `condo4Row`, `condo4Tower`, `condo7Row`, `office`, `hotel` |
-| `district.ts` | Special districts: `DISTRICTS` table (school, hospital, police, fire, mall, hotel, gas, palace), `planCampus`, `placeCampus`, `districtVignettes`, `driveway` |
+| `district.ts` | Special districts: `DISTRICTS` table (school, hospital, police, fire, mall, hotel, gas, palace), `planCampus`, `campusFor(blockSeed, kind)` (v0.8.2: `planCampus` on a plain `Rng(blockSeed)`, so the world layer and the window agree on the campus size whatever the preferences), `placeCampus`, `districtVignettes`, `driveway`, `lawn`, `SCHOOL_TOYS` |
+| `centre.ts` | v0.8.2 city mode: the centre of a big block. `CENTRE_INSET` (s 14, n / e / w 10), `CENTRE_MIN_AREA` (12 x 8), `CENTRE_OVERHANG` (3), `planCentre` (centre area and two passages, `toCentre` alleys exempt from the alley-beside-a-building check), `centreVignettes` (plaza: paving, centre piece via `putClearOfDoors`, benches, corner trees and flower beds, café tables via `cafeTables`, people; garden: lawn, paths through, playground from `SCHOOL_TOYS`, benches, trees, children), `centreReachable` |
 | `palace.ts` | Palace garden district (`palacePlan`, `palaceCampus`, `palaceGrounds`: pool, maze, playground, greenhouse, hedged rooms); menu-only, called from `district.ts` |
 | `yard.ts` | `yardSpaces`: parking with driveways, gardens, forecourts, passages, green strips, service corners; `joinGardens`, `bestRect` |
-| `vignettes.ts` | Street-level groups with reasons: `curbRuns`, `reserveWalkways`, `crossingVignettes`, `curbStrips`, `frontVignettes`, `zoneVignettes`, `islandSquares` / `islandSquare` (one island square; city mode's notch islands use it too), `putClearOfDoors` / `hidesDoor` (C24 at placement: plaza centre pieces, garden trees), `busStop`, `cars`, `roadDetails`, `walkers`, `person` |
+| `vignettes.ts` | Street-level groups with reasons: `curbRuns`, `reserveWalkways`, `crossingVignettes`, `curbStrips`, `frontVignettes`, `zoneVignettes`, `islandSquares` / `islandSquare` (one island square; city mode's notch islands use it too), `putClearOfDoors` / `hidesDoor` (C24 at placement: plaza centre pieces, garden trees), `cafeTables` (café / bakery tables, also used by the centre plaza), `busStop`, `cars`, `roadDetails`, `walkers`, `person` |
 | `rooftop.ts` | `rooftopAC`: AC units on modular flat roofs, drawn right after their building |
 | `people.ts` | Character composition `makePerson` (body, eyes, outfit, hair, accessory) and `frameFor` |
 | `place.ts` | `SceneBuilder`: placement by feet, footprint occupancy, keep-clear zones, `group()` / zones with reasons, `inStream()` attribution, `withExp()`, `finish()`; `rect`, `overlaps` |
@@ -81,10 +82,11 @@ RNG forking: `rng.fork(label)` seeds a new sfc32 stream from the original seed p
 
 | Path | Covers |
 |---|---|
-| `window.test.ts` (5) | `generateBase` with a block window; packer `topLimit` (city mode height limit) |
+| `window.test.ts` (9) | `generateBase` with a block window; packer `topLimit` (city mode height limit); `win.city` zone parameters |
 | `rng.test.ts` (9) | Fork independence, decision trace, adjust hook |
 | `deadend.test.ts` (8) | C25 dead-end paths on two fixture scenes from `references/labels/v0.7.4/` (tracked JSON) |
-| `district.test.ts` (3), `palace.test.ts` (2) | Special districts and the palace garden; `palace.test.ts` imports `../viewer/mix.ts` |
+| `centre.test.ts` (3) | Centre area inset, passages, too-small lots |
+| `district.test.ts` (4), `palace.test.ts` (2) | Special districts and the palace garden; `palace.test.ts` imports `../viewer/mix.ts` |
 | `kits.test.ts` (3), `terrace.test.ts` (5), `yard.test.ts` (5), `block.test.ts` (1) | Kit buildings, composite buildings and links, yard allocation, main block plan |
 | `learn/prefs.test.ts` (8), `learn/novelty.test.ts` (5), `learn/data.test.ts` (4) | Bradley-Terry fit, novelty factors, comparison extraction |
 
@@ -92,7 +94,7 @@ RNG forking: `rng.fork(label)` seeds a new sfc32 stream from the original seed p
 
 | Working dir | Command | Produces |
 |---|---|---|
-| `app` | `npm test` | Runs all `node:test` suites via `tsx --test` (104 tests incl. `src/viewer/mix.test.ts` and `src/world/*.test.ts`, about 1 min) |
+| `app` | `npm test` | Runs all `node:test` suites via `tsx --test` (157 tests incl. `src/viewer/mix.test.ts` and `src/world/*.test.ts`, about 1 min) |
 | `app` | `npx tsc --noEmit` | Type-checks generator and viewer (about 3 s) |
 | `app` | `npx tsx scripts/batch.ts ../work/gen 1..12 [--d=gas]` | Scene JSON per seed under `work/gen/` (optionally a special district) |
 | `app` | `npx tsx scripts/regress.ts snapshot-par ../work/regress/<name> --jobs 8` then `compare <dirA> <dirB>` | 200-seed picture signatures and a diff of what changed |

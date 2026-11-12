@@ -20,7 +20,7 @@ import { markNovel } from './learn/novelty';
 import { planCampus, campusFor, districtVignettes, isDistrict, resetDistrictIds } from './district';
 import { centreVignettes } from './centre';
 
-export const VERSION = '0.8.1-hotfix1';
+export const VERSION = '0.8.2';
 
 export function generate(seed: string, options: Partial<GenOptions> = {}): Scene {
   return generateBase(seed, withDefaults(options));
