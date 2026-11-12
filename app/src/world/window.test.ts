@@ -276,6 +276,26 @@ test('a centre plaza: paved, a centre piece with benches facing it, corner trees
   }
 });
 
+test('centre cafe tables hug the facade of the building north of them (at most 2 rows below it)', () => {
+  // the plazas of the content cases, plus seed 8's and seed 32's b0,1/RR and RL (tables once a yard's depth off)
+  const extra = ['8', '32'].flatMap(s => [-2, -1, 0, 1, 2].flatMap(i => [-2, -1, 0, 1, 2].flatMap(j =>
+    cellBlocks(s, i, j).filter(b => b.centre === 'plaza').map(b => [s, b] as [string, BlockRec]))));
+  const cases = [...CONTENT_CASES.filter(([, b]) => b.centre === 'plaza'), ...extra];
+  let tables = 0;
+  for (const [s, b] of cases) {
+    const { scene } = generateBlock(s, b.id);
+    for (const t of centreOf(scene).objs.filter(o => o.cls === 'table')) {
+      tables++;
+      const fx = t.x + t.w / 2;
+      const north = (scene.buildings ?? []).filter(bl => bl.rect.x0 <= fx && fx < bl.rect.x1 && bl.rect.y1 <= t.foot);
+      assert.ok(north.length, `${s} ${b.id}: table at ${fx},${t.foot} with no building north of it`);
+      const facade = Math.max(...north.map(bl => bl.rect.y1));
+      assert.ok(t.foot - facade <= 2 * TILE, `${s} ${b.id}: table at ${fx},${t.foot} is ${(t.foot - facade) / TILE} rows below the facade (${facade})`);
+    }
+  }
+  assert.ok(tables > 0, 'no centre cafe table in the cases');
+});
+
 test('a centre garden: lawn, a cross path to the passages, trees, benches, a playground corner', () => {
   const cases = CONTENT_CASES.filter(([, b]) => b.centre === 'garden');
   assert.ok(cases.length >= 2, `only ${cases.length} garden blocks found`);

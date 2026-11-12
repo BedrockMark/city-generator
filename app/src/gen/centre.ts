@@ -126,14 +126,15 @@ function plazaContents(plan: BlockPlan, sb: SceneBuilder, r: Rng, a: CentreArea,
     const t = putClearOfDoors(sb, key, sx < 0 ? X0 : cx, sx < 0 ? cx : X1, fx, fy, 'tree', { gid, why: `${head}：四角（内缩一格）的树` });
     if (t) sb.putFoot(r.choose('centre.flowerModel', {}, variants(C + 'Flower_Bush', [1, 2, 3])), t.x - sx * (hw + 18), fy, 'plant', { gid, why: `${head}：角上树旁的花坛` });
   }
-  // cafe tables before the doors of the north buildings that open onto the plaza (tables kept on the plaza)
+  // cafe tables before the doors of the north buildings that open straight onto the plaza: the facade's bottom row
+  // is the row above it (a building set back behind a yard strip gets none); the tables hug the facade as in frontOf
   for (const pb of plan.buildings) {
-    const b = pb.plan, left = pb.cx * T, dx = left + (b.doors[0] ?? b.w * T / 2);
-    if (pb.side !== 'N' || pb.cy + b.h > a.y0 || dx < X0 || dx >= X1) continue;
+    const b = pb.plan, left = pb.cx * T, dx = left + (b.doors[0] ?? b.w * T / 2), bottom = pb.cy + b.h;
+    if (pb.side !== 'N' || bottom !== a.y0 || dx < X0 || dx >= X1) continue;
     const x0 = Math.max(left, X0);
     if (x0 + 100 > X1 || !r.choose('centre.cafe', {}, { p: 0.5 })) continue;
     const rr = r.fork(`cafe${b.id}`);
-    sb.inStream(rr.stream, () => cafeTables(sb, rr, gid, x0, dx, Y0 + 20));
+    sb.inStream(rr.stream, () => cafeTables(sb, rr, gid, x0, dx, bottom * T + 20));
   }
   people(sb, r, a, gid, `${head}：在广场上走动或停留的人`);
 }
