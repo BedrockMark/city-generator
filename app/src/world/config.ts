@@ -46,3 +46,9 @@ export const ROAD_WIDTHS: readonly number[] = [...new Set<number>([
   ...ARTERIAL_WIDTHS.h.map(w => w[0]),
   STREET_WIDTH,
 ])].sort((a, b) => a - b);
+
+// Viewer city mode (v0.8.1)
+export const WORKERS_MAX = 8;                              // upper bound of the generation worker pool
+export const CITY_ZOOM = { min: 0.25, max: 4, default: 1 } as const;   // city mode camera zoom range
+export const CHUNK_PREFETCH = 1;                           // chunks requested beyond the visible ones (ring width)
+export const CHUNK_KEEP = 2;                               // chunks kept loaded beyond the visible ones (ring width)

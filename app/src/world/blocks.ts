@@ -10,7 +10,7 @@ import type { BlockRec, Rect, ZoneKind } from './types';
 type Range = readonly [number, number];
 type Axis = 'v' | 'h';                 // 'v' = vertical street (splits the width), 'h' = horizontal street
 
-const ZONE_NAME: Record<ZoneKind, string> = { downtown: '闹市', mixed: '混合', residential: '住宅' };
+export const ZONE_NAME: Record<ZoneKind, string> = { downtown: '闹市', mixed: '混合', residential: '住宅' };
 
 const inR = (n: number, r: Range) => n >= r[0] && n <= r[1];
 
