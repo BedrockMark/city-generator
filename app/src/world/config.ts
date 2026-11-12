@@ -42,14 +42,16 @@ export const DISTRICT_WEIGHTS: Record<ZoneKind, Record<DistrictKind, number>> = 
   mixed:       { hospital: 2, school: 2, fire: 2, gas: 2, police: 1, mall: 0, hotel: 0, palace: 0 },
   residential: { school: 3, gas: 2, fire: 2, hospital: 0, police: 0, mall: 0, hotel: 0, palace: 0 },
 };
-// gen: the generator's zone parameters (gen/types.ts ZoneGen); initial values, tuned in v0.8.2 task 7
+// gen: the generator's zone parameters (gen/types.ts ZoneGen)
+// tuned v0.8.2 by screenshots (report section 调参; docs/reports/v0.8.2.md): downtown mix all on "mostly modular", kit 2;
+// residential mix all on "more single" (composite 2 doubled trapped doors C02 / C18, kept at 1.5); mixed unchanged
 export const ZONES: Record<ZoneKind, { sw: 2 | 3; paving: readonly (readonly [string, number])[]; gen: ZoneGen }> = {
   downtown:    { sw: 3, paving: [['sidewalk_lightgrey', 3], ['sidewalk_grey', 2], ['sidewalk_beige', 1]],
-                 gen: { mix: [2, 1, 4], shopFront: 1, composite: 1, kit: 1.5, plaza: 0.6 } },
+                 gen: { mix: [0, 0, 6], shopFront: 1, composite: 1, kit: 2, plaza: 0.6 } },
   mixed:       { sw: 2, paving: [['sidewalk_lightbeige', 2], ['sidewalk_beige', 2], ['sidewalk_lightgrey', 1], ['sidewalk_brown', 1]],
                  gen: { mix: [2, 1, 1], shopFront: 1, composite: 1, kit: 1, plaza: 0.45 } },
   residential: { sw: 2, paving: [['sidewalk_lightbeige', 2], ['sidewalk_brown', 2], ['sidewalk_blue', 1]],
-                 gen: { mix: [1, 4, 1], shopFront: 0.3, composite: 1.5, kit: 1, plaza: 0.3 } },
+                 gen: { mix: [0, 6, 0], shopFront: 0.3, composite: 1.5, kit: 1, plaza: 0.3 } },
 };
 export const CROSSING_CHANCE = { arterial: 0.9, street: 0.9 } as const;   // chance of a crosswalk per junction arm
 export const CROSSING_MIN_RUN = 8;                         // minimum straight road run (cells) for a crosswalk
