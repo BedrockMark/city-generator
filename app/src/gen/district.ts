@@ -261,6 +261,21 @@ export function placeCampus(L: Layout, c: Campus): Landmark {
 // ------------------------------------------------------------------------------------------------
 // the campus grounds
 
+// the car park ramp: its footprint is claimed before the yard is filled (v0.8.3, v0.8.2 label 498503 b-4,-4/RLD L1:
+// a strip plant in the 1-column gap beside it overhung the footprint, and the ramp, placed after the yard, did not fit)
+const RAMP_DEPTH = 40, RAMP_HOLD = 'ramp:reserved';
+
+/** the ramp sprite's footprint, where the campus grounds put it: foot at the bottom centre of its area */
+function rampFoot(f: Feat) {
+  const s = spr(f.key!), x0 = f.x0 * T, x1 = f.x1 * T, y1 = f.y1 * T;
+  return SceneBuilder.footprint(f.key!, Math.round((x0 + x1) / 2 - (s.bb[0] + s.bb[2]) / 2), Math.round(y1 - s.bb[3]), RAMP_DEPTH);
+}
+
+/** holds the campus's ramp footprints, so nothing placed before the campus grounds (the yard) overlaps them */
+export function reserveCampus(lm: Landmark, sb: SceneBuilder) {
+  for (const f of lm.feats) if (f.kind === 'ramp' && hasSprite(f.key!)) sb.hold(rampFoot(f), RAMP_HOLD);
+}
+
 /** paving and the props of every campus area */
 export function districtVignettes(L: Layout, lm: Landmark, sb: SceneBuilder, r: Rng) {
   if (lm.kind === 'palace') { palaceGrounds(L, lm, sb, r); return; }
@@ -386,7 +401,9 @@ function grounds(L: Layout, lm: Landmark, sb: SceneBuilder, r0: Rng) {
         break;
       }
       case 'ramp': {
-        put(f.key!, (x0 + x1) / 2, y1, 'utility', f.why, { depth: 40, ignoreClear: true });
+        // release the claim (reserveCampus), then the ramp takes the same footprint
+        sb.release(rampFoot(f), RAMP_HOLD);
+        put(f.key!, (x0 + x1) / 2, y1, 'utility', f.why, { depth: RAMP_DEPTH, ignoreClear: true });
         const w = f.x1 - f.x0, lane = w >= 7 ? 4 : 2;
         driveway(L, sb, r, f.x0 + Math.floor((w - lane) / 2), lane, f.y1, gid, '地下停车场入口的车道：穿过人行道通到马路，路缘在这里断开');
         break;

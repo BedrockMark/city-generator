@@ -13,7 +13,8 @@ export const overlaps = (a: Rect, b: Rect) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0
 export class SceneBuilder {
   objects: Placed[] = [];
   /** footprints of placed things (what stands on the ground) */
-  feet: { r: Rect; cls: string }[] = [];
+  /** occupied footprints; a hold (see hold) blocks only what overlaps it, the pad of a placement does not count */
+  feet: { r: Rect; cls: string; hold?: true }[] = [];
   /** areas that must stay walkable / visible (door fronts, crossing mouths, alley mouths, bus bay ...) */
   keepClear: { r: Rect; why: string; reason?: string; gid?: string; exp?: string; stream?: string }[] = [];
   private seq = 0;
@@ -69,7 +70,7 @@ export class SceneBuilder {
     const p = opts.pad ?? 0;
     const rr = rect(r.x0 - p, r.y0 - p, r.x1 + p, r.y1 + p);
     if (rr.x0 < 0 || rr.y0 < 0 || rr.x1 > this.cols * TILE || rr.y1 > this.rows * TILE) return false;
-    if (this.feet.some(f => overlaps(f.r, rr))) return false;
+    if (this.feet.some(f => overlaps(f.r, f.hold ? r : rr))) return false;
     const ig = opts.ignoreClear;
     if (ig !== true && this.keepClear.some(k => overlaps(k.r, r) && !(ig && ig.includes(k.why)))) return false;
     return true;
@@ -96,6 +97,12 @@ export class SceneBuilder {
   }
 
   occupy(r: Rect, cls: string) { this.feet.push({ r, cls }); }
+  /** claims r for something placed later: nothing in between may overlap it (padding aside); release frees it */
+  hold(r: Rect, cls: string) { this.feet.push({ r: { ...r }, cls, hold: true }); }
+  release(r: Rect, cls: string) {
+    const i = this.feet.findIndex(f => f.hold && f.cls === cls && f.r.x0 === r.x0 && f.r.y0 === r.y0 && f.r.x1 === r.x1 && f.r.y1 === r.y1);
+    if (i >= 0) this.feet.splice(i, 1);
+  }
   /** keep-clear zone of kind `why` (what ignoreClear refers to); reason / gid explain it */
   clear(r: Rect, why: string, reason?: string, gid?: string) { this.keepClear.push({ r, why, reason, gid, exp: this.exp, stream: this.stream }); }
 

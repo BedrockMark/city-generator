@@ -377,3 +377,18 @@ test('a roundabout corner block: nothing on the roundabout road, the roundabout 
   }
   assert.ok(n > 50, `only ${n} window cells in R`);
 });
+
+// v0.8.3 (v0.8.2 label 498503 b-4,-4/RLD L1: 地下停车场入口呢？): a strip plant in the 1-column gap beside the ramp
+// overhung its footprint, and the ramp, placed after the yard, did not fit. Hotels have the same ramp.
+test('every city mall has its underground car park entrance', () => {
+  const miss: string[] = [];
+  let n = 0;
+  for (let s = 1; s <= 20; s++) for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++)
+    for (const b of cellBlocks(String(s), i, j)) if (b.district === 'mall' || b.district === 'hotel') {
+      n++;
+      if (!generateBlock(String(s), b.id).scene.objects.some(o => o.key.includes('Underground_Parking'))) miss.push(`${s} ${b.id} (${b.district})`);
+    }
+  assert.ok(n > 40, `only ${n} malls and hotels`);
+  assert.deepEqual(miss, []);
+  assert.ok(generateBlock('498503', 'b-4,-4/RLD').scene.objects.some(o => o.key.includes('Underground_Parking')), 'label 498503 b-4,-4/RLD');
+});

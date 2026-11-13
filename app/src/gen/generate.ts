@@ -17,7 +17,7 @@ import { rationalize } from './rational/rationalize';
 import { makeAdjust } from './learn/adjust';
 import { PREFS } from './learn/prefs';
 import { markNovel } from './learn/novelty';
-import { planCampus, campusFor, districtVignettes, isDistrict, resetDistrictIds } from './district';
+import { planCampus, campusFor, districtVignettes, reserveCampus, isDistrict, resetDistrictIds } from './district';
 import { centreVignettes } from './centre';
 import { roundaboutIsland } from './roundabout';
 
@@ -78,11 +78,13 @@ export function generateBase(seed: string, opts: GenOptions, win?: BlockWindow):
   const on = (label: string, fn: (r: Rng) => void) => { const r = rng.fork(label); sb.inStream(r.stream, () => fn(r)); };
   // exp-06 (adopted): touching gardens share one path (decided on its own stream)
   const e06 = expStream(rng, 'exp-06', opts.novelty);
+  // the campus's car park ramp claims its footprint before the yard is filled (no random numbers)
+  const lm = main.landmark;
+  if (lm) reserveCampus(lm, sb);
   if (!island && !rbIsland) on('yard', r => yardSpaces(L, main, sb, r, e06));
   // v0.8.2 city mode: the big block's centre plaza / garden (never with a campus)
   if (main.centre) on('centre', r => centreVignettes(L, main, sb, r));
   // exp-08: the campus grounds (driveways cut the curb, so before the curb runs)
-  const lm = main.landmark;
   if (lm) on('district', r => districtVignettes(L, lm, sb, r));
   const runs = curbRuns(L);
   reserveWalkways(sb, runs);
