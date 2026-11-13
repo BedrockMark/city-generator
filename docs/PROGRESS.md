@@ -1,6 +1,6 @@
 # 进度
 
-## 当前状态（2026-11-12）
+## 当前状态（2026-11-13）
 - 阶段 1（分析，`docs/reports/ANALYSIS.md`）和阶段 2（原型，v0.2.0）已完成。
 - 现在是迭代阶段，按版本号汇报。
   - 用户反馈是查看器里的好 / 坏标注（`references/labels/v<版本>/`）。文字评价 remarks 和反面案例 anti_references 已不再使用（D37）。
@@ -75,6 +75,7 @@
 - **v0.8.1**（2026-11-11，`main`，报告 `docs/reports/v0.8.1.md`，D84–D86）：v1.0.0 的第二个里程碑，**区块 API 和查看器城市模式**。`app/src/world/chunk.ts`：`getChunk` / `getBlock` / `worldInfo`（64 × 64 格区块，由拥有格子的街区拼出，D84）；查看器 Worker 池（`pool.ts`、`cityqueue.ts`、`city.worker.ts`，街区、组装两步，D85）；城市模式（`city.ts`，拖动、滚轮、悬停 / 单击看说明、双击 / Enter 进入街区做好坏标注、Esc 返回、E 导出；标注存放键 `storeKey`，D86）；`draw.ts` 是从 `main.ts` 搬出的共用画图函数；`scripts/cityregress.ts` 世界回归。单街区 200/200 相同（`work/regress/v081`，约束记录逐字节相同）；世界回归 20 个种子全部通过（`work/cityregress/v081`，6 分 40 秒）；132 项测试通过。一屏画满（headless Edge 软件 WebGL）z=1 约 10–14 秒、z=0.5 约 13–31 秒、z=0.25 约 76 秒。
 - **v0.8.1-hotfix1**（2026-11-12，`main`，报告 `docs/reports/v0.8.1-hotfix1.md`，D87–D93）：用户对 v0.8.1 的反馈 + 城市里 8 条坏标注（`references/labels/v0.8.1/`，全部处理）。巷子要贴着楼、过道两边要是楼（D87）；杂物角不临街 / 不挨广场，临街空地种草（D88）；广场中心物和花园的树不挡门（`putClearOfDoors` / `hidesDoor`，D89）；C25 接上被草坪挡住的巷子尽头（D90）；小岛单街区补全（排在横道前、树和长椅在地块上、亭子按宽度挑），城市里恢复（`world/blocks.ts` 的 `notch`，缺角小岛 `<id>I`，D91）；跨区块大精灵排序是查看器画法，不修（D92）；不再验收速度（D93）。单街区 70/200 相同（`work/regress/v081h1`），C24 13 → 2；世界回归通过（`work/cityregress/v081h1`，剩余违规 321 → 242，C24 130 → 12，C23 50 → 85）；135 项测试通过。
 - **v0.8.2**（2026-11-12，`main`，报告 `docs/reports/v0.8.2.md`，计划 `docs/superpowers/plans/2026-11-12-v082-blocks.md`，D95–D100）：v1.0.0 的第三个里程碑，**城市里的街区**。繁荣度（格中心的 `zoneValue`，`P_LO` 0.18 / `P_HI` 0.81 实测）在 `LOT_RANGE` 28–56 × 20–40（t = 0）到 16–30 × 12–22（t = 1）之间插值地块范围，切不开时放宽上限（D95）；特色街区在格角预留园区（`reserveCorner`、`campusFor`，id 末尾 `D`；`DISTRICT_CHANCE` 1 / 1 / 0.99，占比 0.074 / 0.091 / 0.121，D96）；矩形大街区（地块 ≥ 44 × 32）刻中心广场（混合）/ 中庭（住宅）和两条通道（`gen/centre.ts`，D97），南边的楼最多伸进中心 3 行（`CENTRE_OVERHANG`，D99）；分区参数表 `ZONES[zone].gen` 经 `BlockWindow.city` 接到生成器（楼型 `mix`、店铺 `shopFront`、拼接楼、套件楼、临街小广场；调过的值见 D98）。单街区 200/200 相同（`work/regress/v082-final`，约束记录逐字节相同）；世界回归 7 项检查全部通过（`work/cityregress/v082`，新增“地块在范围”“中心可达”），剩余违规 242 → 326（每街区 0.113 → 0.166，C02 / C18 0 / 3 → 12 / 23，D100）；中心 6 个（广场 2、中庭 4）；158 项测试通过。
+- **v0.8.3**（2026-11-13，`main`，报告 `docs/reports/v0.8.3.md`，计划 `docs/superpowers/plans/2026-11-12-v083-roads.md`，D101–D106）：v1.0.0 的第四个里程碑，**路**。v0.8.2 按现状接受（D101，旧城市标注作废）。主干道路口环岛（`world/junction.ts` `isRoundabout`，`ROUNDABOUT_CHANCE` 闹市 0.2 / 混合 0.35 / 住宅 0.35；四臂不错位；`2_City_Terrains` 的环岛九宫格拉伸，角街区 `cut` / `paved`，D102），中间绿岛街区 `r<i>,<j>`（`shape: 'roundabout'`，`gen/roundabout.ts`，D103）；C26 = 能走横道离开（`world/reach.ts`，只报告，D104）；`worldInfo` 补错位 / 环岛 / 横道 / 车道线 / 地标 / C26 的说明（D105）；购物中心 / 酒店地下停车场入口先占位（`SceneBuilder.hold`，D106）。单街区普通街区 200/200 相同（`work/regress/v083-final`）；世界回归 9 项全过（`work/cityregress/v083`，新增“环岛”“停车场入口”），环岛 82 个，C26 违规 2 个（缺角小岛），剩余违规每街区 0.166 → 0.164；182 项测试通过。
 - 查看器：`cd app && npx vite`，然后打开 http://localhost:5173/?seed=7
   - 快捷键：R 重新生成，F 适应窗口，G 虚化楼上层，A 标注层，E 导出（PNG、_ghost.png、_annotated.png、JSON，有标注时加 _labels.json）。v0.7.6 起没有 H（热力图）、B（A/B）、K（存档为合格）。
   - 标注模式：单击选中，Shift+拖动框选，1 / 2 标好 / 坏，Ctrl+Enter 保存，Esc 取消。标注由开发服务器写到 `references/labels/v<版本>/`。
@@ -82,7 +83,7 @@
   - 顶栏“学到的偏好”复选框（URL `l=0` 关）；创新度滑块。标注层金色虚线框 = `novel`（新贴图），悬停显示偏好乘子。
   - URL 参数：`d=school|hospital|police|fire|mall|hotel|gas|palace|none`（特色街区，顶栏最左的下拉菜单；`palace`（宫殿花园，v0.7.9.1 转正）只在菜单里，不参加随机混入；不传时查看器按 `src/viewer/mix.ts` 让 20% 的种子随机抽到一种，`none` = 只要普通街区；生成器本身从不随机抽，脚本里 `generate(seed)` 就是普通街区），`nov=0.3`（创新度），`l=0`（关掉学到的偏好），`p=0`（完全不剪枝）。可以把 scene JSON 拖进页面查看。脚本里的 `--pd`（草案约束也修复）还在。
   - 标注层的“约束”图层：红框 = 违规，灰色叉框 = 已删除的物件，紫框 = 降级的区域，青框 = 改过的地面。
-- 测试：`cd app && npm test`（约 1 分钟，158 项）、`npx tsc --noEmit`。
+- 测试：`cd app && npm test`（约 2 分钟，182 项）、`npx tsc --noEmit`。
 - 城市区域（v0.8.0）：`cd app && npx tsx scripts/cityshot.ts ../work/city080 <种子> [x0,y0,w,h]`（默认 `-60,-44,360,264`，约 45 秒）写 `city_<种子>.json` 并打印统计，然后 `cd tools && uv run python render_generated.py ../work/city080/city_1.json --scale 1` 出 PNG（5760 × 4224）。还没有查看器城市模式（v0.8.1）。
 - 世界回归（v0.8.1 起）：`cd app && npx tsx scripts/cityregress.ts ../work/cityregress/<名> --jobs 8 --base ../work/regress/<名> [--prev ../work/cityregress/<旧名>]`（20 个种子 × 25 个区块，约 7 分钟；`--prev` 加和旧版的对比表）。街区统计（v0.8.2）：`npx tsx scripts/blockstats.ts zone | districts | find | fronts [--seeds ...]`（分区噪声分布、特色街区的占比和放得下的比例、每种特色街区 / 中心广场 / 中庭的第一个例子和每档繁荣度的典型格、每个分区的楼型 / 店铺比例）。
 - 回归：`cd app && npx tsx scripts/regress.ts snapshot ../work/regress/<名> [--pd] [--nov <x>] [--noprefs]`；用 `snapshot-par <目录> [同样的参数] [--jobs 8]` 多进程跑（约 40 秒；14 个进程并不更快）。v0.7.6 起没有 `--on` / `--off`。然后：
@@ -150,8 +151,14 @@
 - `app/src/world/blocks.ts`：`prosperityT`、`lotRange`、`widenToFit`、`cellLotRange`（每格的地块范围）、`reserveCorner` / `cellDistrict`（特色街区预留），`feasible` / `Range` 导出；`BlockRec.district`、`BlockRec.centre`。`world/config.ts`：`LOT_RANGE`、`P_LO`、`P_HI`、`CENTRE_MIN`、`DISTRICT_CHANCE`、`DISTRICT_WEIGHTS`、`ZONES[zone].gen`。`world/window.ts` 把 `district` 和 `city` 传给生成器。
 - `app/scripts/blockstats.ts`（`zone` / `districts` / `find` / `fronts`）；`cityregress.ts` 加了 `--prev`、“地块在范围”“中心可达”两项检查、繁荣度分档、特色街区、中心、大街区单列。
 
+## 代码结构（v0.8.3 新增）
+- `app/src/world/junction.ts`：jitter / 宽度、`isRoundabout`。`world/roundabout.ts`：`Roundabout`、`roundabout` / `roundaboutsIn` / `roundaboutAt`、`RB_CLASS`、`rbSource`、`rbClass`、`islandBlock`、`roundaboutWhy`。`world/reach.ts`：C26 `blockReach`。`arterials.ts` `segmentJog`；`cells.ts` `rbMask` / `segClasses`；`BlockRec.cut` / `paved`；`WCrossing.why`。
+- `app/src/gen/roundabout.ts`：绿岛 `roundaboutIsland`；`centre.ts` `centrePieces`；`place.ts` `SceneBuilder.hold` / `release`；`district.ts` `reserveCampus`。
+- `tools/export_roundabout.py`：复核 `RB_CLASS`。`cityregress.ts`：检查“环岛”“停车场入口”，环岛个数、C26 统计。
+
 ## 下一步
-- **v0.8.2 已完成，等用户看**（2026-11-12，报告 `docs/reports/v0.8.2.md` 第 5 节的 9 个问题，用户按编号答复）。tag `v0.8.2` 在最终审查之后打。用户答复后先处理反馈（可能的 hotfix：住宅深地块的 C02 / C18、闹市模块楼比例、特色街区 / 中心的数量），再写 v0.8.3 的计划：主干道路口的环岛、C26（街区可达）、世界层可解释性补全（spec 第 10 节）。
+- **v0.8.3 已完成，等用户看**（2026-11-13，报告 `docs/reports/v0.8.3.md` 第 5 节的 5 个问题，用户按编号答复）。tag `v0.8.3` 在最终审查之后打。之后按 spec 第 10 节做 v0.9.0（高度数据、exp-10 运河、桥、C27–C29），先写 spec / 计划。执行记录 `.superpowers/sdd/2026-11-12-v083-roads/progress.md`（git 忽略，含所有 Ruling）。
+- v0.8.2 用户 2026-11-12 按现状接受（D101）。
 - v0.8.2 的设计和执行：spec `docs/superpowers/specs/2026-11-12-v082-blocks-design.md`、计划 `docs/superpowers/plans/2026-11-12-v082-blocks.md`、执行记录 `.superpowers/sdd/2026-11-12-v082-blocks/progress.md`（git 忽略，含所有 Ruling）。用户 2026-11-12 定了拆成两版（v0.8.2 街区、v0.8.3 路），越繁荣街区越小越密，中心广场按分区变；v0.8.1-hotfix1 已接受（D94），城市模式虚化上层不做。
 - 用户 2026-11-12 对 v0.8.1：城市模式很流畅（以后不验收速度，D93）；已知问题 1 不修（D92）。
 - 用户 2026-11-11 确认 v0.8.0-hotfix2：“现在这样就很好”（横向主干道不加 17 格）。v0.8.1 已完成（见上）。
@@ -170,7 +177,8 @@
 - 阶段 7 的计划和执行记录：`docs/_prev/superpowers/plans/2026-11-04-stage7-learning.md`；`.superpowers/sdd/2026-11-04-stage7-learning/progress.md`（git 忽略，含所有 Ruling）。阶段 6 的：`docs/_prev/superpowers/plans/2026-11-03-stage6-judge.md`。
 
 ## 已知问题
-- v0.8.2 城市（详见 `docs/reports/v0.8.2.md` 第 4 节）：住宅深地块里门被楼围死，C02 / C18 0 / 3 → 12 / 23（D100）；闹市单体楼仍约 59%，`mix` 量不出作用（D98）；闹市 / 混合特色街区占比 0.074 / 0.091 < 1/8，闹市医院 4/12 放得下；中心街区很少（20 个种子的区域 6 个）、只有 8 行高的中庭游乐设施 1–2 件；中心广场的咖啡座也会放在公寓 / 住宅门前；园区剩下的角会盖无关的普通楼（医院旁的唱片店）；城市里地标的选择不进 trace（`campusFor` 无轨迹）；城市旧标注（`references/labels/v0.8.1/`）指向重新切过的街区，重放结果不再有意义。
+- v0.8.3（详见 `docs/reports/v0.8.3.md` 第 4 节）：环岛进口路缘和主干道错开 2–4 像素；环岛没有车 / 让行线，支路路口没有环岛；C26 只报告（2 个缺角小岛）；悬停马路格现画一小块地面。
+- v0.8.2 城市（详见 `docs/reports/v0.8.2.md` 第 4 节）：住宅深地块里门被楼围死，C02 / C18 0 / 3 → 12 / 23（D100）；闹市单体楼仍约 59%，`mix` 量不出作用（D98）；闹市 / 混合特色街区占比 0.074 / 0.091 < 1/8，闹市医院 4/12 放得下；中心街区很少（20 个种子的区域 6 个）、只有 8 行高的中庭游乐设施 1–2 件；中心广场的咖啡座也会放在公寓 / 住宅门前；园区剩下的角会盖无关的普通楼（医院旁的唱片店）；城市里地标的选择不进 trace（v0.8.3 起写进街区 `why`）；城市旧标注作废（D101）。
 - v0.8.1 城市模式（详见 `docs/reports/v0.8.1.md` 第 4 节）：同一行相邻区块的大精灵排序可能错（只是查看器的画法，不修，D92）；失败的街区同一 epoch 内不重试；z=0.25 显存重。
 - v0.8.1-hotfix1：406829 的巨型冰淇淋亭（好标注 L1）挡门，换成了喷泉（用户接受，D94）；剩余只报告的 C19 / C23（单街区 17 / 3）。
 - v0.8.0-hotfix1 的种子 2 有一条 C18（门前 1 格草坪没清掉，生成器修复的问题）；hotfix2 重新切了街区，这条没有了，问题本身还在。
