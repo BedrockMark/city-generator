@@ -2,7 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { blockLayout, generateBlock, generateInWindow, ownerCell, _clearWindowCache } from './window';
 import { blockById, cellBlocks, _clearBlockCache } from './blocks';
-import { worldCell, ownerOf, blockRaster } from './cells';
+import { worldCell, ownerOf, blockRaster, classRaster } from './cells';
+import { paintGround } from './ground';
+import { roundabout } from './roundabout';
 import { SLAB_PERIOD, WINDOW_MARGIN, ZONES } from './config';
 import { TILE } from '../gen/types';
 import type { BlockRec } from './types';
@@ -36,10 +38,11 @@ function firstDistrict(): [string, BlockRec] | undefined {
   return undefined;
 }
 
-// the margin test's blocks: seed w1's cell (0,0), plus the first centre plaza, centre garden and district block
+// the margin test's blocks: seed w1's cell (0,0) (v0.8.3: b0,0/LRLR is a corner block of the roundabout at junction
+// (1, 0)) and that roundabout's island block, plus the first centre plaza, centre garden and district block
 // (v0.8.2: their centre / passages / campus must not depend on the margin either)
 const MARGIN_CASES: [string, BlockRec][] = [
-  ...BLOCKS.map(b => [SEED, b] as [string, BlockRec]),
+  ...[...BLOCKS, blockById(SEED, 'r1,0')].map(b => [SEED, b] as [string, BlockRec]),
   ...(['plaza', 'garden'] as const).map(k => centreBlocks(1).find(([, b]) => b.centre === k)!),
   firstDistrict()!,
 ];
@@ -92,22 +95,24 @@ test('generateBlock keeps only objects on cells the block owns', () => {
 });
 
 test('generateBlock is deterministic and cache-independent', () => {
-  const A = BLOCKS[0].id, B = BLOCKS[1].id;
-  _clearWindowCache();
-  const a1 = JSON.stringify(generateBlock(SEED, A));
-  generateBlock(SEED, B);
-  const hit = generateBlock(SEED, A);
-  const a2 = JSON.stringify(hit);
-  // a caller mutating its result must not corrupt the cache
-  hit.scene.objects.length = 0;
-  hit.ox = 12345;
-  const a3 = JSON.stringify(generateBlock(SEED, A));
-  _clearWindowCache();
-  _clearBlockCache();
-  const a4 = JSON.stringify(generateBlock(SEED, A));
-  assert.equal(a2, a1);
-  assert.equal(a3, a1);
-  assert.equal(a4, a1);
+  for (const A of [BLOCKS[0].id, BLOCKS.find(b => b.cut)!.id, 'r1,0']) {
+    const B = BLOCKS[1].id;
+    _clearWindowCache();
+    const a1 = JSON.stringify(generateBlock(SEED, A));
+    generateBlock(SEED, B);
+    const hit = generateBlock(SEED, A);
+    const a2 = JSON.stringify(hit);
+    // a caller mutating its result must not corrupt the cache
+    hit.scene.objects.length = 0;
+    hit.ox = 12345;
+    const a3 = JSON.stringify(generateBlock(SEED, A));
+    _clearWindowCache();
+    _clearBlockCache();
+    const a4 = JSON.stringify(generateBlock(SEED, A));
+    assert.equal(a2, a1, A);
+    assert.equal(a3, a1, A);
+    assert.equal(a4, a1, A);
+  }
 });
 
 // v0.8.0-hotfix1 (NOTE D82): a block's content does not depend on the window margin. Stream labels hold world
@@ -334,4 +339,41 @@ test('the buildings south of a centre reach at most CENTRE_OVERHANG rows into it
       assert.ok(bl.rect.y0 / TILE >= c.y1 / TILE - CENTRE_OVERHANG, `${s} ${b.id}: ${bl.id} (${bl.label}) top row ${bl.rect.y0 / TILE}, centre bottom ${c.y1 / TILE}`);
     }
   }
+});
+
+// ---- v0.8.3 roundabouts (spec 2.5) ----
+
+/** seed w1's roundabout at junction (1, 0), its corner block in cell (0, 0) and its island block */
+const RB = roundabout(SEED, 1, 0)!;
+const RB_CORNER = BLOCKS.find(b => b.cut)!;
+const RB_ISLAND = blockById(SEED, `r${RB.i},${RB.j}`);
+const inRb = (x: number, y: number) => x >= RB.R.x0 && x < RB.R.x1 && y >= RB.R.y0 && y < RB.R.y1;
+
+test('window segs stop at the roundabout', () => {
+  assert.ok(RB && RB_CORNER, 'seed w1 has a roundabout corner block in cell (0, 0)');
+  const { layout: L, ox, oy } = blockLayout(SEED, RB_CORNER);
+  assert.ok(L.segs.length > 0);
+  for (const s of L.segs) for (let p = s.a; p < s.b; p++) for (let k = s.band0; k < s.band1; k++) {
+    const [x, y] = s.axis === 'h' ? [ox + p, oy + k] : [ox + k, oy + p];
+    assert.ok(!inRb(x, y), `${s.axis} seg ${s.band0}-${s.band1} ${s.a}..${s.b} reaches ${x},${y} in R`);
+  }
+});
+
+test('a roundabout corner block: nothing on the roundabout road, the roundabout ground kept', () => {
+  const { scene, ox, oy } = generateBlock(SEED, RB_CORNER.id);
+  const cls = classRaster(SEED, RB.R), g = paintGround(SEED, RB.R);
+  const road = (x: number, y: number) => inRb(x, y) && cls[y - RB.R.y0][x - RB.R.x0] === 'road';
+  for (const o of scene.objects) {
+    const [cx, cy] = ownerCell(o);
+    assert.ok(!road(ox + cx, oy + cy), `${o.id} ${o.key} on the roundabout at ${ox + cx},${oy + cy}`);
+  }
+  let n = 0;
+  for (let y = 0; y < scene.ground[0].length; y++) for (let x = 0; x < scene.ground[0][y].length; x++) {
+    const wx = ox + x, wy = oy + y;
+    if (!inRb(wx, wy)) continue;
+    n++;
+    assert.deepEqual(scene.ground[0][y][x], g.base[wy - RB.R.y0][wx - RB.R.x0], `base at ${wx},${wy}`);
+    assert.deepEqual(scene.ground[1][y][x], g.over[wy - RB.R.y0][wx - RB.R.x0], `over at ${wx},${wy}`);
+  }
+  assert.ok(n > 50, `only ${n} window cells in R`);
 });

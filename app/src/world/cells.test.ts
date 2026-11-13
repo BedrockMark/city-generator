@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { worldCell, roadOwner, ownerOf, ownerRaster, classRaster, crossingsIn } from './cells';
 import { blockById, lotOf } from './blocks';
 import { cellAt } from './arterials';
+import { roundabout, roundaboutAt } from './roundabout';
 import { ROAD_WIDTHS, CROSSING_MIN_RUN, CROSSING_LEN, CROSSING_GAP, STREET_WIDTH } from './config';
 import type { Rect, WCrossing, BlockRec, WorldCell } from './types';
 
@@ -163,7 +164,9 @@ test('crossings sit next to junctions and span the full road width', () => {
         for (let k = c.band0; k < c.band1; k++) if (at(j, k).cls !== 'road') return false;
         // the cross road is a real road (>= STREET_WIDTH beyond the band), not a jogged street's widening
         const side = (k0: number, dk: number) => Array.from({ length: STREET_WIDTH }, (_, t) => at(j, k0 + dk * t).cls).every(x => x === 'road');
-        if (!side(c.band0 - 1, -1) && !side(c.band1, 1)) return false;
+        // (v0.8.3) or the junction is a roundabout's R: an arm ends there with no cross road
+        const [jx, jy] = c.axis === 'h' ? [j, c.band0] : [c.band0, j];
+        if (!side(c.band0 - 1, -1) && !side(c.band1, 1) && !roundaboutAt(s, jx, jy)) return false;
         for (let t = 1; t <= CROSSING_MIN_RUN; t++) {
           const p = j - dir * t;
           if (at(p, c.band0 - 1).cls === 'road' || at(p, c.band1).cls === 'road') return false;
@@ -175,4 +178,28 @@ test('crossings sit next to junctions and span the full road width', () => {
   }
   assert.ok(n > 20, `only ${n} crossings`);
   assert.deepEqual([...kinds].sort(), ['arterial', 'street']);
+});
+
+test('crossings on roundabout arms', () => {
+  let rbs = 0, withXing = 0, arms = 0;
+  for (let s = 1; s <= 30; s++) for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++) {
+    const rb = roundabout(String(s), i, j);
+    if (!rb) continue;
+    rbs++;
+    const P = CROSSING_GAP[1] + CROSSING_LEN + 1, R = rb.R;
+    const cs = crossingsIn(String(s), { x0: R.x0 - P, y0: R.y0 - P, x1: R.x1 + P, y1: R.y1 + P });
+    // the arms: crossings across the vertical arterial's band (axis v) or the horizontal one's (axis h)
+    const onArm = cs.filter(c => c.axis === 'v' ? c.band0 === rb.x0 && c.band1 === rb.x0 + rb.wv : c.band0 === rb.y0 && c.band1 === rb.y0 + rb.wh);
+    for (const c of onArm) {
+      const [lo, hi] = c.axis === 'v' ? [R.y0, R.y1] : [R.x0, R.x1];
+      const tag = `${s} ${i},${j} ${key(c)}`;
+      assert.ok(c.at + CROSSING_LEN <= lo || c.at >= hi, `${tag}: inside R`);
+      const d = c.at + CROSSING_LEN <= lo ? lo - c.at : c.at + CROSSING_LEN - hi;
+      assert.ok(d <= CROSSING_GAP[1] + CROSSING_LEN, `${tag}: ${d} cells from R`);
+    }
+    arms += onArm.length;
+    if (onArm.length) withXing++;
+  }
+  assert.ok(rbs > 50, `only ${rbs} roundabouts`);
+  assert.ok(withXing / rbs > 0.9, `${withXing} / ${rbs} roundabouts with a crossing (${arms} arm crossings)`);
 });

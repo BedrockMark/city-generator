@@ -2,9 +2,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { arterialLanes, paintGround } from './ground';
 import { classRaster, crossingsIn } from './cells';
-import { blockAt } from './blocks';
+import { blockAt, cellBlocks } from './blocks';
+import { cellAt } from './arterials';
+import { roundabout, rbSource, RB_CLASS, type Roundabout } from './roundabout';
 import { ARTERIAL_LANE, CROSSING_LEN, ROAD_WIDTHS, STREET_WIDTH } from './config';
-import { findSegs, slab } from '../gen/layout';
+import { findSegs, slab, ASPHALT, SLAB_BLOCK } from '../gen/layout';
 import type { Rect } from './types';
 
 const SEEDS = ['1', '2', '3'];
@@ -108,4 +110,77 @@ test('arterials: double solid centre line and dashed lane lines, each on its own
     }
   }
   assert.ok(arterial > 5 && street > 20, `arterial ${arterial} street ${street}`);
+});
+
+// ---- v0.8.3 roundabouts (spec 2.5) ----
+
+const inR = (r: Rect, x: number, y: number) => x >= r.x0 && x < r.x1 && y >= r.y0 && y < r.y1;
+
+/** first roundabout of the given arm widths (seeds 1..30, junctions -2..2) */
+function findRb(wv: number, wh: number): [string, Roundabout] {
+  for (let s = 1; s <= 30; s++) for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++) {
+    const rb = roundabout(String(s), i, j);
+    if (rb && rb.wv === wv && rb.wh === wh) return [String(s), rb];
+  }
+  throw new Error(`no ${wv} x ${wh} roundabout`);
+}
+
+/** the corner block of the quadrant of R that (x, y) lies in: the block whose footprint (cut or not) holds the
+ *  cell diagonally next to the junction on that side */
+function cornerPaving(s: string, rb: Roundabout, x: number, y: number): string {
+  const cx = x < rb.x0 + rb.wv / 2 ? rb.x0 - 1 : rb.x0 + rb.wv, cy = y < rb.y0 + rb.wh / 2 ? rb.y0 - 1 : rb.y0 + rb.wh;
+  const [i, j] = cellAt(s, cx, cy)!;
+  return cellBlocks(s, i, j).find(b => b.foot.some(f => inR(f, cx, cy)))!.paving;
+}
+
+for (const [wv, wh] of [[11, 11], [17, 11]] as const) {
+  test(`ground of an ${wv} x ${wh} roundabout`, () => {
+    const [s, rb] = findRb(wv, wh);
+    const g = paintGround(s, rb.R), cls = classRaster(s, rb.R);
+    let sprites = 0, asphalt = 0;
+    for (let y = rb.R.y0; y < rb.R.y1; y++) for (let x = rb.R.x0; x < rb.R.x1; x++) {
+      const [col, row] = rbSource(rb, x, y), at = `${s} ${x},${y} (source ${col},${row})`;
+      const base = g.base[y - rb.R.y0][x - rb.R.x0], island = inR(rb.island, x, y);
+      const box = col >= 19 && col <= 23 && row >= 13 && row <= 17, c = RB_CLASS[row - 9][col - 14];
+      if (!island && (box || c === 'A')) {
+        assert.ok(ASPHALT.some(([t]) => JSON.stringify(t) === JSON.stringify(base)), `${at}: not asphalt ${base}`);
+        asphalt++;
+      }
+      if (c === 'r' && !box) {
+        const [bx, by] = SLAB_BLOCK[cornerPaving(s, rb, x, y)];
+        assert.deepEqual(base, ['city', bx + col, by + row], at);
+        sprites++;
+      }
+      const road = cls[y - rb.R.y0][x - rb.R.x0] === 'road';
+      assert.equal(g.mark[y - rb.R.y0][x - rb.R.x0] === 'roundabout', road && !island, `${at}: mark`);
+    }
+    assert.ok(sprites > 50 && asphalt > 20, `sprites ${sprites} asphalt ${asphalt}`);
+  });
+}
+
+test('roundabout ground is the same in overlapping rects', () => {
+  for (const [s, rb] of [findRb(11, 11), findRb(17, 11)]) {
+    const A = rb.R, h = Math.floor((A.x1 - A.x0) / 2), v = Math.floor((A.y1 - A.y0) / 2);
+    for (const B of [{ ...A, x0: A.x0 + h, x1: A.x1 + h }, { ...A, y0: A.y0 - v, y1: A.y1 - v }]) {
+      const ga = paintGround(s, A), gb = paintGround(s, B);
+      for (let y = Math.max(A.y0, B.y0); y < Math.min(A.y1, B.y1); y++)
+        for (let x = Math.max(A.x0, B.x0); x < Math.min(A.x1, B.x1); x++) for (const k of ['base', 'over', 'mark'] as const)
+          assert.deepEqual(ga[k][y - A.y0][x - A.x0], gb[k][y - B.y0][x - B.x0], `${s} ${k} at ${x},${y}`);
+    }
+  }
+});
+
+test('no lane line or zebra inside a roundabout', () => {
+  let n = 0;
+  for (const s of ['1', '2', '3']) for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++) {
+    const rb = roundabout(s, i, j);
+    if (!rb) continue;
+    n++;
+    const g = paintGround(s, rb.R);
+    for (let y = 0; y < g.mark.length; y++) for (let x = 0; x < g.mark[y].length; x++) {
+      assert.ok(!['dash', 'centre', 'zebra'].includes(g.mark[y][x]), `${s} ${g.mark[y][x]} at ${x + rb.R.x0},${y + rb.R.y0}`);
+      assert.equal(g.over[y][x], null, `${s} overlay at ${x + rb.R.x0},${y + rb.R.y0}`);
+    }
+  }
+  assert.ok(n > 5, `only ${n} roundabouts`);
 });

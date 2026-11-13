@@ -209,7 +209,7 @@ export function autotile(style: string, mask: number): TileRef {
 }
 
 /** 2_City_Terrains colour block (col,row offset) whose 4x4 slab patch (cols 9-12, rows 0-3) matches each autotile style */
-const SLAB_BLOCK: Record<string, [number, number]> = {
+export const SLAB_BLOCK: Record<string, [number, number]> = {
   sidewalk_lightbeige: [0, 0], sidewalk_beige: [0, 23], sidewalk_lightgrey: [30, 0],
   sidewalk_grey: [0, 46], sidewalk_brown: [30, 46], sidewalk_blue: [30, 23],
 };

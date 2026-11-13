@@ -4,9 +4,10 @@
 import { hash01, hashInt } from './hash';
 import { cellAt, cellRect } from './arterials';
 import { blockAt, cellBlocks, lotOf } from './blocks';
-import { roundaboutsIn, islandBlock } from './roundabout';
+import { roundaboutsIn, roundaboutAt, islandBlock } from './roundabout';
 import { ARTERIAL_SPACING, CROSSING_CHANCE, CROSSING_MIN_RUN, CROSSING_LEN, CROSSING_GAP, ANALYSIS_PAD, ROAD_WIDTHS, STREET_WIDTH } from './config';
-import { findSegs } from '../gen/layout';
+import { findSegs, type Seg } from '../gen/layout';
+import type { CellClass } from '../gen/types';
 import type { Rect, WorldCell, WorldCls, WCrossing } from './types';
 
 /** Class of one world cell; road cells outside every arterial cell are arterial. */
@@ -55,6 +56,33 @@ function raster(seed: string, r: Rect): Raster {
     });
   }
   return { cls, block, art };
+}
+
+/** Per cell of r (row-major): a road cell of a roundabout's R (spec 2.5). The centre island's cells are a block, so
+ *  false. */
+export function rbMask(seed: string, r: Rect): boolean[][] {
+  return maskOn(seed, r, () => raster(seed, r).cls);
+}
+
+/** rbMask on the classes of r (computed only when a roundabout reaches r). */
+function maskOn(seed: string, r: Rect, classes: () => WorldCls[][]): boolean[][] {
+  const W = r.x1 - r.x0, H = r.y1 - r.y0;
+  const out: boolean[][] = Array.from({ length: H }, () => Array<boolean>(W).fill(false));
+  const rbs = roundaboutsIn(seed, r);
+  if (!rbs.length) return out;
+  const cls = classes();
+  for (const rb of rbs) {
+    for (let y = Math.max(rb.R.y0, r.y0); y < Math.min(rb.R.y1, r.y1); y++)
+      for (let x = Math.max(rb.R.x0, r.x0); x < Math.min(rb.R.x1, r.x1); x++)
+        if (cls[y - r.y0][x - r.x0] === 'road') out[y - r.y0][x - r.x0] = true;
+  }
+  return out;
+}
+
+/** Classes for findSegs: a roundabout's road (mask) counts as non-road, so corridors stop at the edge of R and lane
+ *  lines, crossings and window segments never run into it (spec 2.5). */
+export function segClasses<C extends WorldCls | CellClass>(cls: C[][], mask: boolean[][]): (C | 'walk')[][] {
+  return cls.map((row, y) => row.map((c, x) => (c === 'road' && mask[y][x] ? 'walk' : c)));
 }
 
 /** Classes of r, row-major (rows y0..y1-1). */
@@ -117,7 +145,8 @@ export function ownerRaster(seed: string, r: Rect): string[][] {
  *  Corridors are found on r padded by ANALYSIS_PAD. A crossing is drawn at a corridor end whose next cell is a
  *  junction (road in no corridor) when the corridor runs on for >= CROSSING_MIN_RUN cells; whether and where is
  *  hashed on the junction's first world cell. A junction also needs a cross road leaving it (>= STREET_WIDTH road
- *  cells beyond the band). Locality: a cell's corridor status depends only on runs of at most the widest road
+ *  cells beyond the band). A corridor running into a roundabout's road (rbMask: its R is no corridor) ends at a
+ *  junction without a cross road; whether and where is hashed on the roundabout (i, j), the axis and the end (v0.8.3). Locality: a cell's corridor status depends only on runs of at most the widest road
  *  through it. A crossing intersecting r, its gap and its junction cells reach at most ~4 cells beyond r and the runs
  *  across them at most the widest road (17) further, 21 < ANALYSIS_PAD = 24, so every run they depend on lies inside
  *  the raster, and a corridor run toward the raster edge keeps >= 20 cells >= CROSSING_MIN_RUN; the
@@ -125,14 +154,23 @@ export function ownerRaster(seed: string, r: Rect): string[][] {
  *  edge are never junctions near r. */
 export function crossingsIn(seed: string, r: Rect): WCrossing[] {
   const P = ANALYSIS_PAD, pr: Rect = { x0: r.x0 - P, y0: r.y0 - P, x1: r.x1 + P, y1: r.y1 + P };
-  const ras = raster(seed, pr);
+  const ras = raster(seed, pr), rbm = maskOn(seed, pr, () => ras.cls);
   const rows = ras.cls.length, cols = rows ? ras.cls[0].length : 0;
-  const segs = findSegs(ras.cls, (_a, w) => ROAD_WIDTHS.includes(w));
+  const segs = findSegs(segClasses(ras.cls, rbm), (_a, w) => ROAD_WIDTHS.includes(w));
   const inSeg: boolean[][] = Array.from({ length: rows }, () => Array<boolean>(cols).fill(false));
   for (const s of segs) for (let p = s.a; p < s.b; p++) for (let k = s.band0; k < s.band1; k++) {
     if (s.axis === 'h') inSeg[k][p] = true; else inSeg[p][k] = true;
   }
   const out: WCrossing[] = [];
+  // a crossing of corridor s at raster position p (along the corridor), kept when it intersects r
+  const add = (s: Seg, p: number) => {
+    const o = s.axis === 'h' ? pr.x0 : pr.y0, ob = s.axis === 'h' ? pr.y0 : pr.x0;
+    const c: WCrossing = { axis: s.axis, band0: s.band0 + ob, band1: s.band1 + ob, at: p + o };
+    const cr = s.axis === 'h'
+      ? { x0: c.at, x1: c.at + CROSSING_LEN, y0: c.band0, y1: c.band1 }
+      : { x0: c.band0, x1: c.band1, y0: c.at, y1: c.at + CROSSING_LEN };
+    if (cr.x0 < r.x1 && r.x0 < cr.x1 && cr.y0 < r.y1 && r.y0 < cr.y1) out.push(c);
+  };
   for (const s of segs) {
     if (s.b - s.a < CROSSING_MIN_RUN) continue;
     const n = s.axis === 'h' ? cols : rows;
@@ -140,6 +178,16 @@ export function crossingsIn(seed: string, r: Rect): WCrossing[] {
     for (const end of ['a', 'b'] as const) {
       const j = end === 'a' ? s.a - 1 : s.b;                  // first cell beyond the end
       if (j < 0 || j >= n) continue;                          // cut by the raster edge: not a real end
+      // a corridor running into a roundabout (spec 2.5): a junction without a cross road, one draw per arm
+      let rb = true;
+      for (let k = s.band0; k < s.band1 && rb; k++) { const [x, y] = at(j, k); rb = rbm[y][x]; }
+      if (rb) {
+        const [x, y] = at(j, s.band0), q = roundaboutAt(seed, x + pr.x0, y + pr.y0)!;
+        if (hash01(seed, 'xing', 'rb', q.i, q.j, s.axis, end) >= CROSSING_CHANCE.arterial) continue;
+        const gap = hashInt(seed, CROSSING_GAP[0], CROSSING_GAP[1], 'xgap', 'rb', q.i, q.j, s.axis, end);
+        add(s, end === 'a' ? s.a + gap : s.b - CROSSING_LEN - gap);
+        continue;
+      }
       let junction = true;
       for (let k = s.band0; k < s.band1 && junction; k++) {
         const [x, y] = at(j, k);
@@ -162,13 +210,7 @@ export function crossingsIn(seed: string, r: Rect): WCrossing[] {
       const kind = ras.art[cy][cx] ? 'arterial' : 'street';
       if (hash01(seed, 'xing', wx, wy, s.axis) >= CROSSING_CHANCE[kind]) continue;
       const gap = hashInt(seed, CROSSING_GAP[0], CROSSING_GAP[1], 'xgap', wx, wy, s.axis);
-      const p = end === 'a' ? s.a + gap : s.b - CROSSING_LEN - gap;
-      const o = s.axis === 'h' ? pr.x0 : pr.y0, ob = s.axis === 'h' ? pr.y0 : pr.x0;
-      const c: WCrossing = { axis: s.axis, band0: s.band0 + ob, band1: s.band1 + ob, at: p + o };
-      const cr = s.axis === 'h'
-        ? { x0: c.at, x1: c.at + CROSSING_LEN, y0: c.band0, y1: c.band1 }
-        : { x0: c.band0, x1: c.band1, y0: c.at, y1: c.at + CROSSING_LEN };
-      if (cr.x0 < r.x1 && r.x0 < cr.x1 && cr.y0 < r.y1 && r.y0 < cr.y1) out.push(c);
+      add(s, end === 'a' ? s.a + gap : s.b - CROSSING_LEN - gap);
     }
   }
   return out.sort((p, q) => (p.axis < q.axis ? -1 : p.axis > q.axis ? 1 : p.band0 - q.band0 || p.at - q.at));

@@ -1,7 +1,8 @@
 // Block windows (spec 4): one world block plus its surroundings as a gen Layout, the single-block generator run on it,
 // and the ownership filter (spec 2.3) that keeps only the objects and zones on cells the block owns.
 import { blockById } from './blocks';
-import { classRaster, blockRaster, crossingsIn, ownerOf, ownerRaster } from './cells';
+import { classRaster, blockRaster, crossingsIn, ownerOf, ownerRaster, rbMask, segClasses } from './cells';
+import { roundaboutsIn } from './roundabout';
 import { paintGround } from './ground';
 import { BLOCK_CACHE, CITY_NOVELTY, CROSSING_LEN, ROAD_WIDTHS, SLAB_PERIOD, STREET_WIDTH, WINDOW_MARGIN, WINDOW_SW2, ZONES } from './config';
 import { chebDist, findSegs, type Crossing, type Layout, type Seg } from '../gen/layout';
@@ -59,9 +60,10 @@ export function blockLayout(seed: string, b: BlockRec, margin = WINDOW_MARGIN): 
     for (let k = c.band0; k < c.band1; k++) for (let j = 0; j < CROSSING_LEN; j++) if (c.axis === 'h' ? owns(c.at + j, k) : owns(k, c.at + j)) return true;
     return false;
   });
-  // road segments: the stretches of each corridor whose centre line the block owns
+  // road segments: the stretches of each corridor whose centre line the block owns; a roundabout's road is no
+  // corridor (spec 2.5), so the arterials' segments stop at the edge of its R
   const segs: Seg[] = [];
-  for (const s of findSegs(cls, (_a, w) => ROAD_WIDTHS.includes(w))) {
+  for (const s of findSegs(segClasses(cls, rbMask(seed, r)), (_a, w) => ROAD_WIDTHS.includes(w))) {
     const k = s.band0 + Math.floor((s.band1 - s.band0) / 2), on = (p: number) => (s.axis === 'h' ? owns(p, k) : owns(k, p));
     for (let p = s.a; p < s.b; p++) {
       if (!on(p)) continue;
@@ -123,10 +125,23 @@ export function generateInWindow(seed: string, b: BlockRec, win: BlockWindowLayo
   const scene = generateBase(`${seed}/${b.id}`, withDefaults({ novelty: CITY_NOVELTY, ...city, ...(b.district ? { district: b.district } : {}) }),
     { layout, params: { world: { seed, blockId: b.id, zone: b.zone, offset: [ox, oy] } },
       city: { zone: b.zone, gen: ZONES[b.zone].gen, ...(b.centre ? { centre: b.centre } : {}) } });
-  const owner = ownerRaster(seed, { x0: ox, y0: oy, x1: ox + layout.cols, y1: oy + layout.rows });
+  const wr: Rect = { x0: ox, y0: oy, x1: ox + layout.cols, y1: oy + layout.rows };
+  const owner = ownerRaster(seed, wr);
   const owns = (x: number, y: number) =>
     (x >= 0 && y >= 0 && x < layout.cols && y < layout.rows ? owner[y][x] : ownerOf(seed, ox + x, oy + y)) === b.id;
-  scene.objects = scene.objects.filter(p => owns(...ownerCell(p)));
+  // roundabouts (spec 2.5): the generator's ground edits on R are dropped (the world's roundabout ground comes back
+  // from the layout, which generateBase only ever clones), except on the centre island, whose block owns its ground;
+  // nothing stands on a roundabout's road
+  const rbm = rbMask(seed, wr);
+  for (const rb of roundaboutsIn(seed, wr)) {
+    for (let y = Math.max(rb.R.y0, wr.y0); y < Math.min(rb.R.y1, wr.y1); y++)
+      for (let x = Math.max(rb.R.x0, wr.x0); x < Math.min(rb.R.x1, wr.x1); x++) {
+        if (x >= rb.island.x0 && x < rb.island.x1 && y >= rb.island.y0 && y < rb.island.y1) continue;
+        scene.ground.forEach((g, li) => { g[y - oy][x - ox] = li === 0 ? layout.base[y - oy][x - ox] : li === 1 ? layout.over[y - oy][x - ox] : null; });
+      }
+  }
+  const onRb = (x: number, y: number) => x >= 0 && y >= 0 && x < layout.cols && y < layout.rows && rbm[y][x];
+  scene.objects = scene.objects.filter(p => owns(...ownerCell(p)) && !onRb(...ownerCell(p)));
   if (scene.groups) {
     const kept = new Set(scene.objects.map(o => o.id));
     scene.groups = scene.groups
