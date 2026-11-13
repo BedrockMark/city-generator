@@ -100,8 +100,13 @@ export function getBlock(seed: string, blockId: string, opts: CityOptions = {}):
 export interface WorldInfo { cls: WorldCls; blockId?: string; owner: string; zone: ZoneKind; z: number; level: number; why: string[] }
 
 /** Arterial lines through (x, y): vertical line i on the segment j covering y (x inside its band), horizontal alike. */
-function arterialsAt(seed: string, x: number, y: number): { text: string; axis: 'v' | 'h'; n: number }[] {
-  const out: { text: string; axis: 'v' | 'h'; n: number }[] = [];
+export function arterialsAt(seed: string, x: number, y: number): { text: string; axis: 'v' | 'h'; n: number }[] {
+  const segs = new Map<string, { axis: 'v' | 'h'; n: number; ms: number[] }>();   // one entry per arterial line
+  const add = (axis: 'v' | 'h', n: number, m: number) => {
+    const e = segs.get(axis + n) ?? { axis, n, ms: [] };
+    if (!e.ms.includes(m)) e.ms.push(m);
+    segs.set(axis + n, e);
+  };
   const i0 = Math.floor(x / ARTERIAL_SPACING.x), j0 = Math.floor(y / ARTERIAL_SPACING.y);
   for (let i = i0 - 2; i <= i0 + 2; i++) for (let j = j0 - 2; j <= j0 + 2; j++) {
     // segment j of vertical line i lies between the horizontal lines j and j + 1 (either neighbouring cell column)
@@ -110,15 +115,15 @@ function arterialsAt(seed: string, x: number, y: number): { text: string; axis: 
     const [t0, t1, b0, b1] = [hLine(seed, j, i - 1), hLine(seed, j, i), hLine(seed, j + 1, i - 1), hLine(seed, j + 1, i)];
     const ya = Math.min(t0.y0, t1.y0), yb = Math.max(b0.y0 + b0.h, b1.y0 + b1.h);
     const v = vLine(seed, i, j);
-    if (y >= ya && y < yb && x >= v.x0 && x < v.x0 + v.w) out.push({ text: arterialWhy(seed, 'v', i, j), axis: 'v', n: i });
+    if (y >= ya && y < yb && x >= v.x0 && x < v.x0 + v.w) add('v', i, j);
   }
   for (let j = j0 - 2; j <= j0 + 2; j++) for (let i = i0 - 2; i <= i0 + 2; i++) {
     const [l0, l1, r0, r1] = [vLine(seed, i, j - 1), vLine(seed, i, j), vLine(seed, i + 1, j - 1), vLine(seed, i + 1, j)];
     const xa = Math.min(l0.x0, l1.x0), xb = Math.max(r0.x0 + r0.w, r1.x0 + r1.w);
     const h = hLine(seed, j, i);
-    if (x >= xa && x < xb && y >= h.y0 && y < h.y0 + h.h) out.push({ text: arterialWhy(seed, 'h', j, i), axis: 'h', n: j });
+    if (x >= xa && x < xb && y >= h.y0 && y < h.y0 + h.h) add('h', j, i);
   }
-  return out.filter((o, k) => out.findIndex(p => p.text === o.text) === k);
+  return [...segs.values()].map(e => ({ text: arterialWhy(seed, e.axis, e.n, e.ms.sort((p, q) => p - q)), axis: e.axis, n: e.n }));
 }
 
 /** Which part of roundabout rb the road cell (x, y) is (spec 4): the ring inside the dashed ellipse, an arm (the

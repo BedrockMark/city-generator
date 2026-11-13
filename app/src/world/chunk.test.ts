@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { assembleChunk, chunkOf, chunkRect, getChunk, trimBlock, worldInfo, type Chunk } from './chunk';
+import { arterialsAt, assembleChunk, chunkOf, chunkRect, getChunk, trimBlock, worldInfo, type Chunk } from './chunk';
 import { assembleRegion, blocksIn } from './region';
 import { _clearWindowCache, generateBlock, ownerCell } from './window';
 import { _clearBlockCache, blockById, cellBlocks } from './blocks';
@@ -112,8 +112,16 @@ test('worldInfo explains lots, sidewalks, streets and arterials', () => {
   const s = check('street');
   assert.equal(s.cls, 'road');
   assert.ok(s.why.some(l => l.includes('支路')));
-  // every 5th arterial cell (both axes) of three regions gets an arterial line (worldInfo paints a 1 x 1 ground for
-  // lane lines / zebras, ~13 ms a cell, so the exhaustive scan of v0.8.1 is thinned out)
+  // every arterial cell of three regions (negative coordinates included) gets an arterial line, one line per arterial
+  // (arterialsAt directly: no paint cost)
+  for (const [seed, x0, y0] of [[SEED, -30, -200], [SEED, 190, -20], ['7', -60, -60]] as const)
+    for (let y = y0; y < y0 + 100; y++) for (let x = x0; x < x0 + 100; x++)
+      if (worldCell(seed, x, y).arterial) {
+        const a = arterialsAt(seed, x, y);
+        assert.ok(a.some(e => /主干道 -?\d+/.test(e.text)), `${seed} ${x},${y}`);
+        assert.equal(new Set(a.map(e => `${e.axis}${e.n}`)).size, a.length, `${seed} ${x},${y} one line per arterial`);
+      }
+  // and a sampled worldInfo check (it paints a 1 x 1 ground for lane lines / zebras, ~13 ms a cell)
   for (const [seed, x0, y0] of [[SEED, -30, -200], [SEED, 190, -20], ['7', -60, -60]] as const)
     for (let y = y0; y < y0 + 100; y += 5) for (let x = x0; x < x0 + 100; x += 5)
       if (worldCell(seed, x, y).arterial) assert.ok(worldInfo(seed, x, y).why.some(l => /主干道 -?\d+/.test(l)), `${seed} ${x},${y}`);

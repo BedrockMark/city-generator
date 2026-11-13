@@ -42,16 +42,17 @@ export function cellAt(seed: string, x: number, y: number): [number, number] | n
   return null;
 }
 
-/** Why of arterial n; with the segment index m (see segmentJog) it adds that segment's jog. */
-export function arterialWhy(seed: string, axis: 'v' | 'h', n: number, m?: number): string {
+/** Why of arterial n; with segment indices m (see segmentJog; two when a cell near a junction lies on both) it adds
+ *  each segment's jog. */
+export function arterialWhy(seed: string, axis: 'v' | 'h', n: number, m?: number | number[]): string {
   const w = axis === 'v' ? vWidth(seed, n) : hWidth(seed, n);
   const off = axis === 'v' ? vJitter(seed, n) : hJitter(seed, n);
   let s = `${axis === 'v' ? '竖向' : '横向'}主干道 ${n}：宽 ${w} 格（散列抽到），位置偏移 ${off < 0 ? '−' : ''}${Math.abs(off)} 格`;
-  if (m !== undefined) {
-    const [a, b] = axis === 'v' ? [[n, m], [n, m + 1]] : [[m, n], [m + 1, n]];   // the junctions (i, j) at the segment's ends
+  for (const k of m === undefined ? [] : Array.isArray(m) ? m : [m]) {
+    const [a, b] = axis === 'v' ? [[n, k], [n, k + 1]] : [[k, n], [k + 1, n]];   // the junctions (i, j) at the segment's ends
     const rb = isRoundabout(seed, a[0], a[1]) || isRoundabout(seed, b[0], b[1]);
-    s += rb ? `；本段（第 ${m} 段）一头或两头有环岛，环岛两边不错位`
-      : `；本段（第 ${m} 段）错位 ${segmentJog(seed, axis, n, m)} 格（散列抽到，0..${ARTERIAL_JOG}，整段平移）`;
+    s += rb ? `；本段（第 ${k} 段）一头或两头有环岛，环岛两边不错位`
+      : `；本段（第 ${k} 段）错位 ${segmentJog(seed, axis, n, k)} 格（散列抽到，0..${ARTERIAL_JOG}，整段平移）`;
   }
   return s;
 }
