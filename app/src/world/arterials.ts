@@ -1,24 +1,28 @@
 // Arterial roads: a jittered grid of vertical / horizontal lines, each line broken into segments between junctions.
 // Everything is a pure function of (seed, indices), so any cell can be computed locally and in any order.
-import { hashInt, hashPick } from './hash';
-import { ARTERIAL_SPACING, ARTERIAL_JITTER, ARTERIAL_JOG, ARTERIAL_WIDTHS } from './config';
+import { hashInt } from './hash';
+import { ARTERIAL_SPACING, ARTERIAL_JOG } from './config';
+import { vWidth, hWidth, vJitter, hJitter, isRoundabout } from './junction';
 import type { Rect } from './types';
 
-const vWidth = (seed: string, i: number): number => hashPick(seed, ARTERIAL_WIDTHS.v, 'art.v.w', i);
-const hWidth = (seed: string, j: number): number => hashPick(seed, ARTERIAL_WIDTHS.h, 'art.h.w', j);
-const vJitter = (seed: string, i: number): number => hashInt(seed, -ARTERIAL_JITTER, ARTERIAL_JITTER, 'art.v.jit', i);
-const hJitter = (seed: string, j: number): number => hashInt(seed, -ARTERIAL_JITTER, ARTERIAL_JITTER, 'art.h.jit', j);
+export { vWidth, hWidth, vJitter, hJitter };
+
+/** Jog (0..ARTERIAL_JOG cells) of one arterial segment: axis 'v', n = i, m = j is vertical arterial i between
+ *  horizontal arterials j and j + 1; axis 'h', n = j, m = i is horizontal arterial j between vertical arterials i and
+ *  i + 1. A segment ending at a roundabout does not jog, so the roundabout's four arms line up (spec 2.2). */
+export function segmentJog(seed: string, axis: 'v' | 'h', n: number, m: number): number {
+  if (axis === 'v') return isRoundabout(seed, n, m) || isRoundabout(seed, n, m + 1) ? 0 : hashInt(seed, 0, ARTERIAL_JOG, 'art.v.jog', n, m);
+  return isRoundabout(seed, m, n) || isRoundabout(seed, m + 1, n) ? 0 : hashInt(seed, 0, ARTERIAL_JOG, 'art.h.jog', n, m);
+}
 
 /** Column band [x0, x0 + w) of vertical arterial i between horizontal arterials j and j+1. */
 export function vLine(seed: string, i: number, j: number): { x0: number; w: number } {
-  const jog = hashInt(seed, 0, ARTERIAL_JOG, 'art.v.jog', i, j);
-  return { x0: i * ARTERIAL_SPACING.x + vJitter(seed, i) + jog, w: vWidth(seed, i) };
+  return { x0: i * ARTERIAL_SPACING.x + vJitter(seed, i) + segmentJog(seed, 'v', i, j), w: vWidth(seed, i) };
 }
 
 /** Row band [y0, y0 + h) of horizontal arterial j between vertical arterials i and i+1. */
 export function hLine(seed: string, j: number, i: number): { y0: number; h: number } {
-  const jog = hashInt(seed, 0, ARTERIAL_JOG, 'art.h.jog', j, i);
-  return { y0: j * ARTERIAL_SPACING.y + hJitter(seed, j) + jog, h: hWidth(seed, j) };
+  return { y0: j * ARTERIAL_SPACING.y + hJitter(seed, j) + segmentJog(seed, 'h', j, i), h: hWidth(seed, j) };
 }
 
 /** Interior of arterial cell (i, j): the area between the four bounding bands. */

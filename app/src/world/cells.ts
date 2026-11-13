@@ -4,6 +4,7 @@
 import { hash01, hashInt } from './hash';
 import { cellAt, cellRect } from './arterials';
 import { blockAt, cellBlocks, lotOf } from './blocks';
+import { roundaboutsIn, islandBlock } from './roundabout';
 import { ARTERIAL_SPACING, CROSSING_CHANCE, CROSSING_MIN_RUN, CROSSING_LEN, CROSSING_GAP, ANALYSIS_PAD, ROAD_WIDTHS, STREET_WIDTH } from './config';
 import { findSegs } from '../gen/layout';
 import type { Rect, WorldCell, WorldCls, WCrossing } from './types';
@@ -40,6 +41,15 @@ function raster(seed: string, r: Rect): Raster {
   for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) {
     clip(cellRect(seed, i, j), (x, y) => { art[y - r.y0][x - r.x0] = false; });
     for (const b of cellBlocks(seed, i, j)) for (const f of b.foot) clip(f, (x, y) => {
+      if (b.cut?.some(q => x >= q.x0 && x < q.x1 && y >= q.y0 && y < q.y1)) return;   // a roundabout's road
+      cls[y - r.y0][x - r.x0] = lotOf(b, x, y) ? 'lot' : 'walk';
+      block[y - r.y0][x - r.x0] = b.id;
+    });
+  }
+  // roundabouts' centre islands lie on the arterials, outside every cell
+  for (const rb of roundaboutsIn(seed, r)) {
+    const b = islandBlock(seed, rb);
+    clip(rb.island, (x, y) => {
       cls[y - r.y0][x - r.x0] = lotOf(b, x, y) ? 'lot' : 'walk';
       block[y - r.y0][x - r.x0] = b.id;
     });

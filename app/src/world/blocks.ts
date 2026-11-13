@@ -4,15 +4,16 @@
 // i, j, ...)) first takes a corner of the cell, its footprint sized by campusFor (v0.8.2).
 import { hash01, hashInt, hashPick } from './hash';
 import { cellRect, cellAt } from './arterials';
-import { zoneAt, zoneValue } from './zone';
+import { zoneAt, zoneValue, ZONE_NAME } from './zone';
 import { ZONES, LOT_RANGE, P_LO, P_HI, CENTRE_MIN, DISTRICT_CHANCE, DISTRICT_WEIGHTS, STREET_WIDTH, JOG_CHANCE, JOG_STEP, JOG_AT, JOG_GAP, LEAF_CHANCE, CELL_CACHE, ISLAND_CHANCE, ISLAND_LOT, ISLAND_ARM } from './config';
+import { roundabout, roundaboutAt, islandBlock, rbClass, type Roundabout } from './roundabout';
 import { campusFor, DISTRICTS, type DistrictKind } from '../gen/district';
 import type { BlockRec, Rect, ZoneKind } from './types';
 
 export type Range = readonly [number, number];
 type Axis = 'v' | 'h';                 // 'v' = vertical street (splits the width), 'h' = horizontal street
 
-export const ZONE_NAME: Record<ZoneKind, string> = { downtown: '闹市', mixed: '混合', residential: '住宅' };
+export { ZONE_NAME };
 
 const inR = (n: number, r: Range) => n >= r[0] && n <= r[1];
 
@@ -49,7 +50,9 @@ const mk = (axis: Axis, u0: number, u1: number, v0: number, v1: number): Rect =>
 // for v in [v0, vt) and e[1] for v in [vt, v1). `lo` = the jogged edge is on the low-u side of the piece.
 interface LPiece { axis: Axis; lo: boolean; s: number; e: [number, number]; v0: number; v1: number; vt: number }
 
-interface Ctx { seed: string; i: number; j: number; zone: ZoneKind; fw: Range; fh: Range; sw: 2 | 3; out: BlockRec[] }
+interface Ctx { seed: string; i: number; j: number; zone: ZoneKind; fw: Range; fh: Range; sw: 2 | 3; out: BlockRec[]; rbs: Rect[] }
+
+const hits = (a: Rect, b: Rect) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
 
 function leaf(c: Ctx, path: string, foot: Rect[], why: string[], shape: BlockRec['shape'] = foot.length > 1 ? 'jog' : 'rect',
   extra?: { district?: DistrictKind }): void {
@@ -85,6 +88,9 @@ function notch(c: Ctx, r: Rect, path: string, why: string[]): boolean {
   if (w - nw - 2 * sw < ISLAND_ARM.w || h - nh - 2 * sw < ISLAND_ARM.h) return false;
   const corner = hashInt(seed, 0, 3, 'cut', i, j, path, 'islandcorner'), east = (corner & 1) === 1, south = (corner & 2) === 2;
   const island: Rect = { x0: east ? r.x1 - iw : r.x0, x1: east ? r.x1 : r.x0 + iw, y0: south ? r.y1 - ih : r.y0, y1: south ? r.y1 : r.y0 + ih };
+  // no notch island on a roundabout corner: the roundabout cuts that corner round already
+  const grown: Rect = { x0: island.x0 - 1, x1: island.x1 + 1, y0: island.y0 - 1, y1: island.y1 + 1 };
+  if (c.rbs.some(q => hits(grown, q))) return false;
   // the rest: the full-width band away from the island, and beside the notch the part it leaves (top to bottom)
   const yc = south ? r.y1 - nh : r.y0 + nh;
   const side: Rect = { x0: east ? r.x0 : r.x0 + nw, x1: east ? r.x1 - nw : r.x1, y0: south ? yc : r.y0, y1: south ? r.y1 : yc };
@@ -190,6 +196,37 @@ function splitL(c: Ctx, p: LPiece, path: string, why: string[]): void {
 export type Corner = 'NW' | 'NE' | 'SW' | 'SE';
 const CORNERS: readonly Corner[] = ['NW', 'NE', 'SW', 'SE'];
 const CORNER_NAME: Record<Corner, string> = { NW: '西北', NE: '东北', SW: '西南', SE: '东南' };
+// the junction at each corner of arterial cell (i, j), in CORNERS order
+const CORNER_JUNCTIONS: readonly (readonly [number, number])[] = [[0, 0], [1, 0], [0, 1], [1, 1]];
+
+/** Cuts the road cells of a roundabout (by the asset's classes) out of the blocks under them: row runs of
+ *  R ∩ cell go into the owning block's `cut` (spec 2.3, 2.5); the walk cells stay that block's sidewalk. */
+function cutCorner(c: Ctx, cell: Rect, rb: Roundabout, corner: Corner): void {
+  const q: Rect = { x0: Math.max(cell.x0, rb.R.x0), x1: Math.min(cell.x1, rb.R.x1), y0: Math.max(cell.y0, rb.R.y0), y1: Math.min(cell.y1, rb.R.y1) };
+  const owner = (x: number, y: number) => c.out.find(b => b.foot.some(f => inRect(f, x, y)));
+  const touched = new Set<BlockRec>();
+  for (let y = q.y0; y < q.y1; y++) {
+    let run: { b: BlockRec; x0: number } | null = null;
+    const close = (x: number) => {
+      if (!run) return;
+      (run.b.cut ??= []).push({ x0: run.x0, x1: x, y0: y, y1: y + 1 });
+      touched.add(run.b);
+      run = null;
+    };
+    for (let x = q.x0; x < q.x1; x++) {
+      const b = rbClass(rb, x, y) === 'road' ? owner(x, y) : undefined;
+      if (run && run.b !== b) close(x);
+      if (b && !run) run = { b, x0: x };
+    }
+    close(q.x1);
+  }
+  // every footprint cell inside R is the roundabout's sidewalk (spec 2.3), never lot
+  for (const b of c.out) for (const f of b.foot) {
+    const p: Rect = { x0: Math.max(q.x0, f.x0), x1: Math.min(q.x1, f.x1), y0: Math.max(q.y0, f.y0), y1: Math.min(q.y1, f.y1) };
+    if (p.x0 < p.x1 && p.y0 < p.y1) (b.paved ??= []).push(p);
+  }
+  for (const b of touched) b.why.push(`${CORNER_NAME[corner]}角被环岛 r${rb.i},${rb.j} 切成圆角`);
+}
 
 /** A special district's footprint reserved in a corner of a cell by two streets. */
 export interface Reservation {
@@ -201,8 +238,10 @@ export interface Reservation {
 }
 
 /** first of the 8 (corner, axis) ways, starting at `start` (0..7, k -> corner k >> 1 in NW NE SW SE, axis k & 1 ? 'h' : 'v'),
- *  whose band rest and rest are feasible in both directions for fw / fh; `size(path)` = footprint w, h for that id */
-export function reserveCorner(cell: Rect, fw: Range, fh: Range, size: (path: string) => { w: number; h: number }, start: number): Reservation | null {
+ *  whose band rest and rest are feasible in both directions for fw / fh and whose footprint misses every rect of
+ *  `avoid` (the roundabouts' R at the cell's corners); `size(path)` = footprint w, h for that id */
+export function reserveCorner(cell: Rect, fw: Range, fh: Range, size: (path: string) => { w: number; h: number }, start: number,
+  avoid: readonly Rect[] = []): Reservation | null {
   const S = STREET_WIDTH;
   const fits = (r: Rect) => feasible(r.x1 - r.x0, fw) && feasible(r.y1 - r.y0, fh);
   for (let n = 0; n < 8; n++) {
@@ -221,8 +260,9 @@ export function reserveCorner(cell: Rect, fw: Range, fh: Range, size: (path: str
     const [q0, q1] = lowV ? [v0 + dv + S, v1] : [v0, v1 - dv - S];       // the band's rest
     if (du <= 0 || dv <= 0 || r1 <= r0 || q1 <= q0) continue;
     const bandRest = mk(axis, b0, b1, q0, q1), rest = mk(axis, r0, r1, v0, v1);
-    if (!fits(bandRest) || !fits(rest)) continue;
-    return { corner, axis, path, foot: mk(axis, b0, b1, f0, f1),
+    const foot = mk(axis, b0, b1, f0, f1);
+    if (!fits(bandRest) || !fits(rest) || avoid.some(q => hits(foot, q))) continue;
+    return { corner, axis, path, foot,
       bandRest: { r: bandRest, path: bandPath + (lowV ? 'R' : 'L') }, rest: { r: rest, path: lowU ? 'R' : 'L' } };
   }
   return null;
@@ -241,7 +281,7 @@ function placeDistrict(c: Ctx, r: Rect, kind: DistrictKind, root: string[]): boo
   const res = reserveCorner(r, c.fw, c.fh, path => {
     const k = campusFor(`${seed}/b${i},${j}/${path}D`, kind);
     return { w: k.W + 2 * sw, h: k.H + 2 * sw };
-  }, hashInt(seed, 0, 7, 'district', i, j, 'way'));
+  }, hashInt(seed, 0, 7, 'district', i, j, 'way'), c.rbs);
   if (!res) return false;
   const { foot, bandRest, rest, axis } = res;
   const name = DISTRICTS[kind].name, where = CORNER_NAME[res.corner], reason = `为特色街区${name}预留${where}角`;
@@ -322,8 +362,10 @@ export function cellBlocks(seed: string, i: number, j: number): readonly BlockRe
   const cx = Math.floor((r.x0 + r.x1) / 2), cy = Math.floor((r.y0 + r.y1) / 2);
   const { p, zone, lotW, lotH, note } = cellLotRange(seed, i, j);
   const { sw } = ZONES[zone];
+  // roundabouts at the cell's four corners (junctions i / i + 1 x j / j + 1)
+  const rbs = CORNER_JUNCTIONS.map(([di, dj]) => roundabout(seed, i + di, j + dj));
   const c: Ctx = {
-    seed, i, j, zone, sw, out: [],
+    seed, i, j, zone, sw, out: [], rbs: rbs.filter(q => q !== null).map(q => q.R),
     fw: [lotW[0] + 2 * sw, lotW[1] + 2 * sw], fh: [lotH[0] + 2 * sw, lotH[1] + 2 * sw],
   };
   const root = [
@@ -336,32 +378,40 @@ export function cellBlocks(seed: string, i: number, j: number): readonly BlockRe
     if (kind) root.push(`抽到特色街区${DISTRICTS[kind].name}，但园区在 8 种预留方式下都切不开剩下的部分，不放`);
     split(c, r, '', root);
   }
+  rbs.forEach((rb, k) => { if (rb) cutCorner(c, r, rb, CORNERS[k]); });
   const out = deepFreeze(c.out) as readonly BlockRec[];
   if (cache.size >= CELL_CACHE) cache.delete(cache.keys().next().value!);
   cache.set(key, out);
   return out;
 }
 
-const inRect = (r: Rect, x: number, y: number) => x >= r.x0 && x < r.x1 && y >= r.y0 && y < r.y1;
-const inFoot = (b: BlockRec, x: number, y: number) => b.foot.some(r => inRect(r, x, y));
+function inRect(r: Rect, x: number, y: number): boolean { return x >= r.x0 && x < r.x1 && y >= r.y0 && y < r.y1; }
+/** In one of the footprint rects and not cut out of it. */
+const inFoot = (b: BlockRec, x: number, y: number) => b.foot.some(r => inRect(r, x, y)) && !b.cut?.some(r => inRect(r, x, y));
 
-/** The block whose footprint contains (x, y), or null when the cell is road. */
+/** The block whose footprint contains (x, y) (a roundabout's centre island included), or null when the cell is road. */
 export function blockAt(seed: string, x: number, y: number): BlockRec | null {
   const ij = cellAt(seed, x, y);
-  if (!ij) return null;
+  if (!ij) {
+    const rb = roundaboutAt(seed, x, y);
+    return rb && inRect(rb.island, x, y) ? islandBlock(seed, rb) : null;
+  }
   return cellBlocks(seed, ij[0], ij[1]).find(b => inFoot(b, x, y)) ?? null;
 }
 
-/** The block with this id (`b<i>,<j>/<path>`); throws when there is none. */
+/** The block with this id (`b<i>,<j>/<path>`, or `r<i>,<j>` for a roundabout's island); throws when there is none. */
 export function blockById(seed: string, id: string): BlockRec {
-  const m = /^b(-?\d+),(-?\d+)\//.exec(id);
-  const b = m ? cellBlocks(seed, Number(m[1]), Number(m[2])).find(o => o.id === id) : undefined;
+  const m = /^b(-?\d+),(-?\d+)\//.exec(id), r = /^r(-?\d+),(-?\d+)$/.exec(id);
+  const rb = r ? roundabout(seed, Number(r[1]), Number(r[2])) : null;
+  const b = m ? cellBlocks(seed, Number(m[1]), Number(m[2])).find(o => o.id === id) : rb ? islandBlock(seed, rb) : undefined;
   if (!b) throw new Error(`world/blocks: no block ${id} for seed ${seed}`);
   return b;
 }
 
-/** Lot cells are footprint cells whose Chebyshev distance to the outside of the footprint is > sw; the rest is sidewalk. */
+/** Lot cells are footprint cells whose Chebyshev distance to the outside of the footprint is > sw and that are not
+ *  `paved` (inside a roundabout); the rest is sidewalk. */
 export function lotOf(b: BlockRec, x: number, y: number): boolean {
+  if (b.paved?.some(r => inRect(r, x, y))) return false;
   for (let dy = -b.sw; dy <= b.sw; dy++) for (let dx = -b.sw; dx <= b.sw; dx++) {
     if (!inFoot(b, x + dx, y + dy)) return false;
   }

@@ -3,6 +3,8 @@ import { hash01 } from './hash';
 import { ARTERIAL_SPACING, ZONE_THRESHOLDS, ZONE_OCTAVE } from './config';
 import type { ZoneKind } from './types';
 
+export const ZONE_NAME: Record<ZoneKind, string> = { downtown: '闹市', mixed: '混合', residential: '住宅' };
+
 const smooth = (t: number) => t * t * (3 - 2 * t);
 
 // Smoothly interpolated lattice noise; lattice points sit at the nominal centre of each (scaled) arterial cell.

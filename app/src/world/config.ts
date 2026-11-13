@@ -11,7 +11,13 @@ export const ARTERIAL_JOG = 2;                             // shift of a whole s
 // its own and every lane ARTERIAL_LANE cells, so n lanes each way need 2n * (ARTERIAL_LANE + 1) - 1 cells:
 // 11 = lane | dash | lane | double | lane | dash | lane (2 + 1 + 2 + 1 + 2 + 1 + 2), 17 = three lanes each way
 export const ARTERIAL_WIDTHS = { v: [[11, 3], [17, 1]], h: [[11, 1]] } as const;
-export const ARTERIAL_LANE = 2;                            // cells of one arterial lane (between a curb or line and the next line)
+// roundabouts at arterial junctions (v0.8.3, spec 2): chance per junction by the zone at its nominal crossing point;
+// R = the junction band plus ROUNDABOUT_MARGIN cells each way (the asset's 15 x 13 stretched over the arms);
+// the centre island = the junction grown by ROUNDABOUT_ISLAND cells each way
+export const ROUNDABOUT_CHANCE: Record<ZoneKind, number> = { downtown: 0.2, mixed: 0.35, residential: 0.35 };
+export const ROUNDABOUT_MARGIN = { x: 6, y: 5 } as const;
+export const ROUNDABOUT_ISLAND = { x: 1, y: 0 } as const;
+export const ARTERIAL_LANE = 2;                           // cells of one arterial lane (between a curb or line and the next line)
 export const STREET_WIDTH = 5;                             // width of the street between blocks
 export const JOG_CHANCE = 0.25;                            // chance a cut is offset midway
 export const JOG_STEP = [2, 4] as const;                   // jog offset range
@@ -23,6 +29,8 @@ export const LEAF_CHANCE = 0.5;                            // chance an in-range
 export const ISLAND_CHANCE = 0.6;                          // chance per rect block big enough for one
 export const ISLAND_LOT = { w: [4, 8], h: [3, 6] } as const;   // the island's lot (inside its sidewalk ring)
 export const ISLAND_ARM = { w: 10, h: 7 } as const;        // the L-shaped rest: lot width / height left beside the notch, at least
+export const JUNCTION_CACHE = 4096;                       // junctions whose isRoundabout is memoised (pure; saves hashing)
+export const ROUNDABOUT_CACHE = 1024;                     // junctions whose roundabout / island block is cached (pure)
 export const CELL_CACHE = 256;                             // arterial cells whose block lists are cached
 export const ZONE_THRESHOLDS = { downtown: 0.62, residential: 0.38 } as const;   // z >= 0.62 downtown, z < 0.38 residential
 export const ZONE_OCTAVE = { scale: 3, weight: 0.5 } as const;   // second noise octave: relative scale and blend weight

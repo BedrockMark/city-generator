@@ -4,6 +4,7 @@
 // (seed, rect, options): the blocks come from the cached generateBlock, whose results do not depend on the cache.
 import { cellRect } from './arterials';
 import { cellBlocks } from './blocks';
+import { roundaboutsIn } from './roundabout';
 import { cellRange, classRaster, ownerRaster } from './cells';
 import { paintGround } from './ground';
 import { generateBlock, ownerCell, zoneCell, type CityOptions } from './window';
@@ -15,7 +16,7 @@ import type { Rect } from './types';
 
 const hits = (a: Rect, b: Rect) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
 
-/** Ids (sorted) of the blocks whose footprint, grown by REGION_PAD (how far a road cell can be from its owner's
+/** Ids (sorted, roundabout islands `r<i>,<j>` included) of the blocks whose footprint, grown by REGION_PAD (how far a road cell can be from its owner's
  *  sidewalk), intersects r: every block that can own a cell of r. Includes blocks that only own road cells of r. */
 export function blocksIn(seed: string, r: Rect): string[] {
   const P = REGION_PAD, pr: Rect = { x0: r.x0 - P, y0: r.y0 - P, x1: r.x1 + P, y1: r.y1 + P };
@@ -25,6 +26,8 @@ export function blocksIn(seed: string, r: Rect): string[] {
     if (!hits(cellRect(seed, i, j), pr)) continue;
     for (const b of cellBlocks(seed, i, j)) if (b.foot.some(f => hits(f, pr))) out.push(b.id);
   }
+  // roundabouts' centre islands lie on the arterials, outside every cell
+  for (const rb of roundaboutsIn(seed, pr)) if (hits(rb.island, pr)) out.push(`r${rb.i},${rb.j}`);
   return out.sort();
 }
 

@@ -9,7 +9,7 @@ import type { Rect, WCrossing, BlockRec, WorldCell } from './types';
 const SEEDS = ['1', '2', '3', '7', 'city'];
 const gaps = Array.from({ length: CROSSING_GAP[1] - CROSSING_GAP[0] + 1 }, (_, i) => CROSSING_GAP[0] + i);
 const inRect = (r: Rect, x: number, y: number) => x >= r.x0 && x < r.x1 && y >= r.y0 && y < r.y1;
-const inFoot = (b: BlockRec, x: number, y: number) => b.foot.some(r => inRect(r, x, y));
+const inFoot = (b: BlockRec, x: number, y: number) => b.foot.some(r => inRect(r, x, y)) && !b.cut?.some(r => inRect(r, x, y));
 const key = (c: WCrossing) => `${c.axis}:${c.band0}-${c.band1}@${c.at}`;
 const crossRect = (c: WCrossing): Rect => c.axis === 'h'
   ? { x0: c.at, x1: c.at + CROSSING_LEN, y0: c.band0, y1: c.band1 }
@@ -49,7 +49,9 @@ test('worldCell: walk ring of width sw around every lot, roads elsewhere', () =>
         if (out) break;
         d++;
       }
-      assert.equal(c.cls, d <= b.sw ? 'walk' : 'lot', `${s} ${x},${y} d=${d} sw=${b.sw}`);
+      // walk iff within sw of the outside, or paved (a footprint cell inside a roundabout's R)
+      const paved = !!b.paved?.some(q => inRect(q, x, y));
+      assert.equal(c.cls, d <= b.sw || paved ? 'walk' : 'lot', `${s} ${x},${y} d=${d} sw=${b.sw}`);
       assert.equal(c.cls === 'lot', lotOf(b, x, y));
     }
   }

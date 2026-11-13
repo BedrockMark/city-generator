@@ -10,7 +10,10 @@ const R = (a: number, b: number) => Array.from({ length: b - a + 1 }, (_, k) => 
 const SEEDS = R(1, 30).map(String);
 const CELLS = R(-3, 3).flatMap(i => R(-3, 3).map(j => [i, j] as const));
 const inRect = (r: Rect, x: number, y: number) => x >= r.x0 && x < r.x1 && y >= r.y0 && y < r.y1;
-const inFoot = (b: BlockRec, x: number, y: number) => b.foot.some(r => inRect(r, x, y));
+const inFoot = (b: BlockRec, x: number, y: number) => b.foot.some(r => inRect(r, x, y)) && !b.cut?.some(r => inRect(r, x, y));
+// a probe whose lot / sidewalk status a roundabout corner (cut road, paved sidewalk) may change: within sw + 1 of one
+const nearRb = (b: BlockRec, x: number, y: number) => [...(b.cut ?? []), ...(b.paved ?? [])]
+  .some(r => x >= r.x0 - b.sw - 1 && x < r.x1 + b.sw + 1 && y >= r.y0 - b.sw - 1 && y < r.y1 + b.sw + 1);
 
 function bbox(rs: readonly Rect[]): Rect {
   return { x0: Math.min(...rs.map(r => r.x0)), y0: Math.min(...rs.map(r => r.y0)), x1: Math.max(...rs.map(r => r.x1)), y1: Math.max(...rs.map(r => r.y1)) };
@@ -31,10 +34,11 @@ function checkLot(seed: string, b: BlockRec) {
   assert.ok(h >= lotH[0] && h <= lotH[1], `${b.id} lot height ${h} not in ${lotH}`);
   // lotOf agrees with the bbox for the rect case
   if (b.shape === 'rect') {
-    assert.ok(lotOf(b, bb.x0 + b.sw, bb.y0 + b.sw));
-    assert.ok(!lotOf(b, bb.x0 + b.sw - 1, bb.y0 + b.sw));
-    assert.ok(lotOf(b, bb.x1 - b.sw - 1, bb.y1 - b.sw - 1));
-    assert.ok(!lotOf(b, bb.x1 - b.sw, bb.y1 - b.sw - 1));
+    const probe = (x: number, y: number, lot: boolean) => { if (!nearRb(b, x, y)) assert.equal(lotOf(b, x, y), lot, `${b.id} lotOf ${x},${y}`); };
+    probe(bb.x0 + b.sw, bb.y0 + b.sw, true);
+    probe(bb.x0 + b.sw - 1, bb.y0 + b.sw, false);
+    probe(bb.x1 - b.sw - 1, bb.y1 - b.sw - 1, true);
+    probe(bb.x1 - b.sw, bb.y1 - b.sw - 1, false);
   }
 }
 
@@ -110,7 +114,8 @@ test('ids are stable and blockById / blockAt agree', () => {
       assert.deepEqual(b.cell, [i, j]);
       assert.deepEqual(blockById(s, b.id), b);
       for (const r of b.foot) for (const [x, y] of [[r.x0, r.y0], [r.x1 - 1, r.y1 - 1], [(r.x0 + r.x1) >> 1, (r.y0 + r.y1) >> 1]]) {
-        assert.equal(blockAt(s, x, y)?.id, b.id);
+        if (inFoot(b, x, y)) assert.equal(blockAt(s, x, y)?.id, b.id);
+        else assert.notEqual(blockAt(s, x, y)?.id, b.id);    // cut out by a roundabout
       }
     }
   }
@@ -142,7 +147,7 @@ test('a jog block has two rects sharing an edge, and about JOG_CHANCE of cuts jo
       // lotOf on the union: the straight-side corner cell is sidewalk and the cell sw in from it is lot
       const bb = bbox(b.foot), sx = shareH ? (a0 === b0 ? bb.x0 : bb.x1 - 1) : bb.x0, sy = shareH ? bb.y0 : (a0 === b0 ? bb.y0 : bb.y1 - 1);
       const ix = sx === bb.x0 ? sx + b.sw : sx - b.sw, iy = sy === bb.y0 ? sy + b.sw : sy - b.sw;
-      assert.ok(!lotOf(b, sx, sy) && lotOf(b, ix, iy), `${b.id} lotOf at the straight corner`);
+      if (!nearRb(b, sx, sy) && !nearRb(b, ix, iy)) assert.ok(!lotOf(b, sx, sy) && lotOf(b, ix, iy), `${b.id} lotOf at the straight corner`);
       assert.ok(b.why.some(w => w.includes('错开')), `${b.id} why lacks the jog`);
     }
   }
@@ -156,7 +161,13 @@ test('negative cells split like positive ones', () => {
     const bs = cellBlocks(s, -2, -3);
     assert.ok(bs.length > 0);
     for (const b of bs) checkLot(s, b);
-    for (const b of bs) assert.equal(blockAt(s, b.foot[0].x0, b.foot[0].y0)?.id, b.id);
+    for (const b of bs) {
+      // the first footprint cell not cut out by a roundabout (the corner, unless a roundabout cut it)
+      const f = b.foot[0];
+      let p: [number, number] | null = null;
+      for (let y = f.y0; y < f.y1 && !p; y++) for (let x = f.x0; x < f.x1 && !p; x++) if (inFoot(b, x, y)) p = [x, y];
+      assert.equal(blockAt(s, ...p!)?.id, b.id);
+    }
   }
 });
 
