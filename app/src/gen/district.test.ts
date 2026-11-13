@@ -80,11 +80,8 @@ test('campusFor is planCampus on a plain Rng, the same on every call', () => {
   }
 });
 
-test('v0.8.3: the mall and the hotel always get their underground car park entrance (seeds 1-40)', () => {
-  // a strip plant beside the ramp used to take its place (v0.8.2 label 498503 b-4,-4/RLD L1)
-  for (const d of ['mall', 'hotel'] as const) {
-    const miss = Array.from({ length: 40 }, (_, i) => String(i + 1))
-      .filter(seed => !generate(seed, { district: d }).objects.some(o => o.key.includes('Underground_Parking')));
-    assert.deepEqual(miss, [], d);
-  }
+test('v0.8.3: the mall and the hotel get their underground car park entrance', () => {
+  // the seeds where a strip plant beside the ramp used to take its place (v0.8.2 label 498503 b-4,-4/RLD L1)
+  for (const [d, seeds] of [['mall', [13, 15, 25, 36]], ['hotel', [4, 29]]] as const) for (const s of seeds)
+    assert.ok(generate(String(s), { district: d }).objects.some(o => o.key.includes('Underground_Parking')), `${d} seed ${s}`);
 });

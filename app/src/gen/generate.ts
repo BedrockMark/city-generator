@@ -118,6 +118,8 @@ export function generateBase(seed: string, opts: GenOptions, win?: BlockWindow):
     on('walk', r => walkers(L, sb, r, own));
   }
   explainGround(L, sb, runs);
+  // every hold (reserveCampus) is released by the placement it was held for
+  if (sb.feet.some(f => f.hold)) throw new Error(`unreleased hold: ${sb.feet.filter(f => f.hold).map(f => f.cls)}`);
   sb.finish();
   // the window's params sit beside the generator's, never over them
   const clash = win && Object.keys(win.params).find(k => ['district', 'shape', 'interior', 'roads', 'sidewalk', 'buildings'].includes(k));

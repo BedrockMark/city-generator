@@ -381,14 +381,11 @@ test('a roundabout corner block: nothing on the roundabout road, the roundabout 
 // v0.8.3 (v0.8.2 label 498503 b-4,-4/RLD L1: 地下停车场入口呢？): a strip plant in the 1-column gap beside the ramp
 // overhung its footprint, and the ramp, placed after the yard, did not fit. Hotels have the same ramp.
 test('every city mall has its underground car park entrance', () => {
-  const miss: string[] = [];
-  let n = 0;
-  for (let s = 1; s <= 20; s++) for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++)
-    for (const b of cellBlocks(String(s), i, j)) if (b.district === 'mall' || b.district === 'hotel') {
-      n++;
-      if (!generateBlock(String(s), b.id).scene.objects.some(o => o.key.includes('Underground_Parking'))) miss.push(`${s} ${b.id} (${b.district})`);
-    }
-  assert.ok(n > 40, `only ${n} malls and hotels`);
-  assert.deepEqual(miss, []);
-  assert.ok(generateBlock('498503', 'b-4,-4/RLD').scene.objects.some(o => o.key.includes('Underground_Parking')), 'label 498503 b-4,-4/RLD');
+  // the label's block and the city malls / hotels that had lost it before v0.8.3 (the full sweep is in cityregress)
+  const cases = ['498503 b-4,-4/RLD', '1 b0,0/LLD', '8 b-2,2/RLD', '12 b2,-1/RLD', '1 b-1,-2/RRD', '20 b-1,-1/RRD'];
+  for (const c of cases) {
+    const [seed, id] = c.split(' ');
+    assert.ok(['mall', 'hotel'].includes(blockById(seed, id).district ?? ''), `${c} is a mall or hotel`);
+    assert.ok(generateBlock(seed, id).scene.objects.some(o => o.key.includes('Underground_Parking')), c);
+  }
 });
