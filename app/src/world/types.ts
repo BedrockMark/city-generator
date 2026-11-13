@@ -21,4 +21,4 @@ export interface BlockRec {
 }
 export type WorldCls = 'road' | 'walk' | 'lot';
 export interface WorldCell { cls: WorldCls; block?: string; arterial?: boolean }
-export interface WCrossing { axis: 'h' | 'v'; band0: number; band1: number; at: number }   // world coords, like gen/layout Crossing
+export interface WCrossing { axis: 'h' | 'v'; band0: number; band1: number; at: number; why?: string }   // world coords, like gen/layout Crossing

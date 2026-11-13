@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import { assembleChunk, chunkOf, chunkRect, getChunk, trimBlock, worldInfo, type Chunk } from './chunk';
 import { assembleRegion, blocksIn } from './region';
 import { _clearWindowCache, generateBlock, ownerCell } from './window';
-import { _clearBlockCache, blockById } from './blocks';
+import { _clearBlockCache, blockById, cellBlocks } from './blocks';
+import { roundabout, type Roundabout } from './roundabout';
+import { campusFor } from '../gen/district';
 import { ownerOf, ownerRaster, worldCell } from './cells';
 import { paintGround } from './ground';
 import { zoneAt, zoneValue } from './zone';
@@ -110,8 +112,66 @@ test('worldInfo explains lots, sidewalks, streets and arterials', () => {
   const s = check('street');
   assert.equal(s.cls, 'road');
   assert.ok(s.why.some(l => l.includes('支路')));
-  // every arterial cell of two regions gets an arterial line (exhaustive)
+  // every 5th arterial cell (both axes) of three regions gets an arterial line (worldInfo paints a 1 x 1 ground for
+  // lane lines / zebras, ~13 ms a cell, so the exhaustive scan of v0.8.1 is thinned out)
   for (const [seed, x0, y0] of [[SEED, -30, -200], [SEED, 190, -20], ['7', -60, -60]] as const)
-    for (let y = y0; y < y0 + 100; y++) for (let x = x0; x < x0 + 100; x++)
+    for (let y = y0; y < y0 + 100; y += 5) for (let x = x0; x < x0 + 100; x += 5)
       if (worldCell(seed, x, y).arterial) assert.ok(worldInfo(seed, x, y).why.some(l => /主干道 -?\d+/.test(l)), `${seed} ${x},${y}`);
+});
+
+test('worldInfo explains roundabouts, zebras, lane lines, segment jogs and landmarks', () => {
+  // a roundabout: its R's road cells say roundabout r<i>,<j>, also the cells cut out of a corner block
+  let rbDone = false;
+  for (let s = 1; s <= 12 && !rbDone; s++) for (let i = -2; i <= 2 && !rbDone; i++) for (let j = -2; j <= 2 && !rbDone; j++) {
+    const seed = String(s);
+    const rb: Roundabout | null = roundabout(seed, i, j);
+    if (!rb) continue;
+    const parts = new Set<string>();
+    for (let y: number = rb.R.y0; y < rb.R.y1; y++) for (let x: number = rb.R.x0; x < rb.R.x1; x++) {
+      if (worldCell(seed, x, y).block) continue;
+      const w = worldInfo(seed, x, y).why;
+      assert.ok(w.some(l => l.includes(`环岛 r${i},${j}`)), `${seed} ${x},${y}`);
+      assert.ok(!w.some(l => l.startsWith('支路')), `${seed} ${x},${y} is no side street`);
+      for (const p of ['臂', '环道', '角']) if (w.some(l => l.includes(`的${p}`))) parts.add(p);
+    }
+    assert.deepEqual([...parts].sort(), ['环道', '臂', '角'].sort());
+    rbDone = true;
+  }
+  assert.ok(rbDone, 'a roundabout was found');
+  // zebras, lane lines, jogs, landmark and reach over the 1 / 7 regions
+  const seen = { zebra: false, line: false, jog: false, reach: false, fail: false, landmark: false };
+  for (const seed of ['1', '7']) {
+    const g = paintGround(seed, { x0: -70, y0: -50, x1: 70, y1: 50 });
+    for (let y = 0; y < 100; y++) for (let x = 0; x < 140; x++) {
+      const m = g.mark[y][x], wx = x - 70, wy = y - 50;
+      if (m === 'zebra' && !seen.zebra) {
+        const w = worldInfo(seed, wx, wy).why;
+        assert.ok(w.some(l => l.includes('横道') && l.includes('概率')), w.join('|'));
+        seen.zebra = true;
+      } else if ((m === 'dash' || m === 'centre') && !seen.line && worldCell(seed, wx, wy).arterial) {
+        const w = worldInfo(seed, wx, wy).why;
+        assert.ok(w.some(l => l.includes(m === 'centre' ? '双实线' : '虚线')), w.join('|'));
+        seen.line = true;
+      }
+    }
+    for (let y = -50; y < 50 && !seen.jog; y++) for (let x = -70; x < 70 && !seen.jog; x++) {
+      if (!worldCell(seed, x, y).arterial) continue;
+      const w = worldInfo(seed, x, y).why;
+      if (w.some(l => l.includes('错位'))) seen.jog = true;
+    }
+  }
+  assert.ok(seen.zebra && seen.line && seen.jog, JSON.stringify(seen));
+  // a block cell carries the reach line; a district block names its landmark sprite (campusFor)
+  for (let s = 1; s <= 20 && !seen.landmark; s++) for (let i = -2; i <= 2 && !seen.landmark; i++) for (let j = -2; j <= 2; j++) {
+    const seed = String(s), d = cellBlocks(seed, i, j).find(b => b.district);
+    if (!d) continue;
+    const f = d.foot[0], k = campusFor(`${seed}/${d.id}`, d.district!), key = k.items[0].plan.parts[0].key;
+    const info = worldInfo(seed, f.x0 + d.sw, f.y0 + d.sw);
+    assert.equal(info.blockId, d.id);
+    assert.ok(info.why.some(l => l.includes(key)), key);
+    assert.ok(info.why.some(l => l.includes('可达') || l.includes('C26')));
+    seen.landmark = true;
+    break;
+  }
+  assert.ok(seen.landmark);
 });

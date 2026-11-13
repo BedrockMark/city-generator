@@ -141,6 +141,9 @@ export function ownerRaster(seed: string, r: Rect): string[][] {
   return out;
 }
 
+/** Name of a junction's arm by the corridor it ends (end 'a': the corridor's west / north end). */
+const armName = (axis: 'h' | 'v', end: 'a' | 'b'): string => (axis === 'h' ? (end === 'a' ? '西臂' : '东臂') : end === 'a' ? '北臂' : '南臂');
+
 /** Zebra crossings (CROSSING_LEN cells along the road, the full road width across) intersecting r.
  *  Corridors are found on r padded by ANALYSIS_PAD. A crossing is drawn at a corridor end whose next cell is a
  *  junction (road in no corridor) when the corridor runs on for >= CROSSING_MIN_RUN cells; whether and where is
@@ -163,9 +166,9 @@ export function crossingsIn(seed: string, r: Rect): WCrossing[] {
   }
   const out: WCrossing[] = [];
   // a crossing of corridor s at raster position p (along the corridor), kept when it intersects r
-  const add = (s: Seg, p: number) => {
+  const add = (s: Seg, p: number, why: string) => {
     const o = s.axis === 'h' ? pr.x0 : pr.y0, ob = s.axis === 'h' ? pr.y0 : pr.x0;
-    const c: WCrossing = { axis: s.axis, band0: s.band0 + ob, band1: s.band1 + ob, at: p + o };
+    const c: WCrossing = { axis: s.axis, band0: s.band0 + ob, band1: s.band1 + ob, at: p + o, why };
     const cr = s.axis === 'h'
       ? { x0: c.at, x1: c.at + CROSSING_LEN, y0: c.band0, y1: c.band1 }
       : { x0: c.band0, x1: c.band1, y0: c.at, y1: c.at + CROSSING_LEN };
@@ -183,9 +186,11 @@ export function crossingsIn(seed: string, r: Rect): WCrossing[] {
       for (let k = s.band0; k < s.band1 && rb; k++) { const [x, y] = at(j, k); rb = rbm[y][x]; }
       if (rb) {
         const [x, y] = at(j, s.band0), q = roundaboutAt(seed, x + pr.x0, y + pr.y0)!;
-        if (hash01(seed, 'xing', 'rb', q.i, q.j, s.axis, end) >= CROSSING_CHANCE.arterial) continue;
+        const h = hash01(seed, 'xing', 'rb', q.i, q.j, s.axis, end);
+        if (h >= CROSSING_CHANCE.arterial) continue;
         const gap = hashInt(seed, CROSSING_GAP[0], CROSSING_GAP[1], 'xgap', 'rb', q.i, q.j, s.axis, end);
-        add(s, end === 'a' ? s.a + gap : s.b - CROSSING_LEN - gap);
+        add(s, end === 'a' ? s.a + gap : s.b - CROSSING_LEN - gap,
+          `横道：环岛 r${q.i},${q.j} 的${armName(s.axis, end)}（${s.axis === 'h' ? '横向' : '竖向'}主干道在这里通进环岛），散列 ${h.toFixed(2)} < 概率 ${CROSSING_CHANCE.arterial}，离环岛 ${gap} 格`);
         continue;
       }
       let junction = true;
@@ -208,9 +213,11 @@ export function crossingsIn(seed: string, r: Rect): WCrossing[] {
       const wx = jx + pr.x0, wy = jy + pr.y0;                 // the junction's first world cell
       const [cx, cy] = at(end === 'a' ? s.a : s.b - 1, s.band0);
       const kind = ras.art[cy][cx] ? 'arterial' : 'street';
-      if (hash01(seed, 'xing', wx, wy, s.axis) >= CROSSING_CHANCE[kind]) continue;
+      const h = hash01(seed, 'xing', wx, wy, s.axis);
+      if (h >= CROSSING_CHANCE[kind]) continue;
       const gap = hashInt(seed, CROSSING_GAP[0], CROSSING_GAP[1], 'xgap', wx, wy, s.axis);
-      add(s, end === 'a' ? s.a + gap : s.b - CROSSING_LEN - gap);
+      add(s, end === 'a' ? s.a + gap : s.b - CROSSING_LEN - gap,
+        `横道：路口 (${wx},${wy}) 的${armName(s.axis, end)}（${kind === 'arterial' ? '主干道' : '支路'}），散列 ${h.toFixed(2)} < 概率 ${CROSSING_CHANCE[kind]}，离路口 ${gap} 格`);
     }
   }
   return out.sort((p, q) => (p.axis < q.axis ? -1 : p.axis > q.axis ? 1 : p.band0 - q.band0 || p.at - q.at));

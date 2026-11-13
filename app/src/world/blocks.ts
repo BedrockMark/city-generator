@@ -291,9 +291,10 @@ function placeDistrict(c: Ctx, r: Rect, kind: DistrictKind, root: string[]): boo
   const cw1 = cutWhy(c, '', axis, Math.min(end(axis, foot), end(axis, rest.r)), reason);
   const cw2 = cutWhy(c, res.path[0], axis2, Math.min(end(axis2, foot), end(axis2, bandRest.r)), reason);
   const fw = foot.x1 - foot.x0, fh = foot.y1 - foot.y0;
+  const k = campusFor(`${seed}/b${i},${j}/${res.path}D`, kind), sprite = k.items[0].plan.parts[0].key;
   const cuts = axis === 'v' ? `先竖切出宽 ${fw} 的带，再横切出高 ${fh} 的一块` : `先横切出高 ${fh} 的带，再竖切出宽 ${fw} 的一块`;
   leaf(c, res.path + 'D', [foot], [...root, cw1, cw2,
-    `特色街区：${name}（散列抽中，概率 ${DISTRICT_CHANCE[c.zone]}），园区地块 ${fw - 2 * sw}×${fh - 2 * sw}，预留在格的${where}角（${cuts}）`],
+    `特色街区：${name}（散列抽中，概率 ${DISTRICT_CHANCE[c.zone]}），园区地块 ${fw - 2 * sw}×${fh - 2 * sw}，预留在格的${where}角（${cuts}）；地标 ${sprite}（${k.items[0].plan.label}），园区 ${k.W}×${k.H}（campusFor 按街区种子抽到）`],
   'rect', { district: kind });
   split(c, bandRest.r, bandRest.path, [...root, cw1, cw2]);
   split(c, rest.r, rest.path, [...root, cw1]);

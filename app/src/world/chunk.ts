@@ -1,10 +1,12 @@
 // Chunk API (v0.8.1): the world cut into CHUNK x CHUNK cell chunks, each assembled from the blocks that own its
 // cells. A chunk is a pure function of (seed, cx, cy, options), independent of cache state and request order.
-import { arterialWhy, cellAt, hLine, vLine } from './arterials';
+import { arterialWhy, cellAt, hLine, vLine, vWidth, hWidth } from './arterials';
+import { roundaboutAt, roundaboutWhy, type Roundabout } from './roundabout';
+import { blockReach } from './reach';
 import { ZONE_NAME, blockById } from './blocks';
-import { ownerOf, ownerRaster, worldCell } from './cells';
-import { ARTERIAL_SPACING, CHUNK, STREET_WIDTH } from './config';
-import { paintGround } from './ground';
+import { crossingsIn, ownerOf, ownerRaster, worldCell } from './cells';
+import { ARTERIAL_LANE, ARTERIAL_SPACING, CHUNK, STREET_WIDTH } from './config';
+import { arterialLanes, paintGround } from './ground';
 import { blocksIn } from './region';
 import { generateBlock, ownerCell, type CityOptions } from './window';
 import { zoneAt, zoneValue } from './zone';
@@ -98,8 +100,8 @@ export function getBlock(seed: string, blockId: string, opts: CityOptions = {}):
 export interface WorldInfo { cls: WorldCls; blockId?: string; owner: string; zone: ZoneKind; z: number; level: number; why: string[] }
 
 /** Arterial lines through (x, y): vertical line i on the segment j covering y (x inside its band), horizontal alike. */
-function arterialsAt(seed: string, x: number, y: number): string[] {
-  const out: string[] = [];
+function arterialsAt(seed: string, x: number, y: number): { text: string; axis: 'v' | 'h'; n: number }[] {
+  const out: { text: string; axis: 'v' | 'h'; n: number }[] = [];
   const i0 = Math.floor(x / ARTERIAL_SPACING.x), j0 = Math.floor(y / ARTERIAL_SPACING.y);
   for (let i = i0 - 2; i <= i0 + 2; i++) for (let j = j0 - 2; j <= j0 + 2; j++) {
     // segment j of vertical line i lies between the horizontal lines j and j + 1 (either neighbouring cell column)
@@ -108,29 +110,65 @@ function arterialsAt(seed: string, x: number, y: number): string[] {
     const [t0, t1, b0, b1] = [hLine(seed, j, i - 1), hLine(seed, j, i), hLine(seed, j + 1, i - 1), hLine(seed, j + 1, i)];
     const ya = Math.min(t0.y0, t1.y0), yb = Math.max(b0.y0 + b0.h, b1.y0 + b1.h);
     const v = vLine(seed, i, j);
-    if (y >= ya && y < yb && x >= v.x0 && x < v.x0 + v.w) out.push(arterialWhy(seed, 'v', i));
+    if (y >= ya && y < yb && x >= v.x0 && x < v.x0 + v.w) out.push({ text: arterialWhy(seed, 'v', i, j), axis: 'v', n: i });
   }
   for (let j = j0 - 2; j <= j0 + 2; j++) for (let i = i0 - 2; i <= i0 + 2; i++) {
     const [l0, l1, r0, r1] = [vLine(seed, i, j - 1), vLine(seed, i, j), vLine(seed, i + 1, j - 1), vLine(seed, i + 1, j)];
     const xa = Math.min(l0.x0, l1.x0), xb = Math.max(r0.x0 + r0.w, r1.x0 + r1.w);
     const h = hLine(seed, j, i);
-    if (x >= xa && x < xb && y >= h.y0 && y < h.y0 + h.h) out.push(arterialWhy(seed, 'h', j));
+    if (x >= xa && x < xb && y >= h.y0 && y < h.y0 + h.h) out.push({ text: arterialWhy(seed, 'h', j, i), axis: 'h', n: j });
   }
-  return [...new Set(out)];
+  return out.filter((o, k) => out.findIndex(p => p.text === o.text) === k);
+}
+
+/** Which part of roundabout rb the road cell (x, y) is (spec 4): the ring inside the dashed ellipse, an arm (the
+ *  arterial's band outside it), or a corner (the rest: the rounded road corner cut out of a corner block). */
+function roundaboutPart(rb: Roundabout, x: number, y: number): string {
+  const u = x - rb.R.x0, v = y - rb.R.y0;
+  if (u >= 2 && u <= rb.wv + 9 && v >= 2 && v <= rb.wh + 7) return '环道（绕中心岛一圈的车道，虚线在内外圈之间）';
+  const inV = x >= rb.x0 && x < rb.x0 + rb.wv, inH = y >= rb.y0 && y < rb.y0 + rb.wh;
+  if (inV || inH) return `臂（${inV ? '竖向' : '横向'}主干道通进环岛的一段）`;
+  return '角（环岛的圆角，从角街区里切出来的马路）';
+}
+
+/** Lane-line explanation of a road cell with mark 'dash' / 'centre', or null. */
+function laneWhy(seed: string, x: number, y: number, mark: string, arts: { axis: 'v' | 'h'; n: number }[]): string | null {
+  if (mark !== 'dash' && mark !== 'centre') return null;
+  const a = arts[0];
+  if (!a) return mark === 'dash' ? `车道线：支路（宽 ${STREET_WIDTH} 格）只有一条虚线中线，两个方向各 ${(STREET_WIDTH - 1) / 2} 格` : null;
+  const w = a.axis === 'v' ? vWidth(seed, a.n) : hWidth(seed, a.n), n = arterialLanes(w);
+  return mark === 'centre'
+    ? `车道线：双实线，隔开两个方向（每个方向 ${n} 条车道，每条车道宽 ${ARTERIAL_LANE} 格，线各占一格）`
+    : `车道线：虚线，分隔同一个方向的相邻车道（每个方向 ${n} 条车道，每条车道宽 ${ARTERIAL_LANE} 格，线各占一格）`;
 }
 
 export function worldInfo(seed: string, x: number, y: number): WorldInfo {
   const wc = worldCell(seed, x, y), owner = ownerOf(seed, x, y);
   const zone = zoneAt(seed, x, y), z = zoneValue(seed, x, y);
   const why = [`分区：${ZONE_NAME[zone]}（z = ${z.toFixed(2)}）`];
+  const rb = wc.block ? null : roundaboutAt(seed, x, y);
+  const arts = wc.arterial ? arterialsAt(seed, x, y) : [];
   if (wc.block) {
     const b = blockById(seed, wc.block);
-    why.push(...b.why, `街区 ${b.id}：${b.shape}，人行道 ${b.sw} 格，铺地 ${b.paving}`);
+    why.push(...b.why, `街区 ${b.id}：${b.shape}，人行道 ${b.sw} 格，铺地 ${b.paving}`, blockReach(seed, b.id).why);
+  } else if (rb) {
+    // a road cell of a roundabout's R, also where it is cut out of a corner block (that cell lies in an arterial cell)
+    why.push(roundaboutWhy(seed, rb), `这一格是环岛 r${rb.i},${rb.j} 的${roundaboutPart(rb, x, y)}`);
   } else if (wc.arterial) {
-    why.push(...arterialsAt(seed, x, y));
+    why.push(...arts.map(a => a.text));
   } else {
     const ij = cellAt(seed, x, y)!;
     why.push(`支路：主干道格 (${ij[0]},${ij[1]}) 里切出来的马路，宽 ${STREET_WIDTH} 格`);
+  }
+  if (!wc.block) {
+    const g = paintGround(seed, { x0: x, y0: y, x1: x + 1, y1: y + 1 }), mark = g.mark[0][0];
+    if (mark === 'zebra') {
+      const c = crossingsIn(seed, { x0: x, y0: y, x1: x + 1, y1: y + 1 })[0];
+      why.push(c?.why ?? '横道');
+    } else {
+      const l = laneWhy(seed, x, y, mark, arts);
+      if (l) why.push(l);
+    }
   }
   if (!wc.block) why.push(`这一格归 ${owner}（最近的人行道，spec 2.3）`);
   const info: WorldInfo = { cls: wc.cls, owner, zone, z, level: 0, why };
