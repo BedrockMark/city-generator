@@ -82,6 +82,14 @@ export function centreVignettes(L: Layout, plan: BlockPlan, sb: SceneBuilder, r:
 
 const T = TILE, C = '3_City_Props/', G = '17_Garden/';
 
+/** the sprites a centre piece is drawn from (also the roundabout island's, roundabout.ts) */
+export function centrePieces(): { fountains: string[]; statues: string[] } {
+  return {
+    fountains: [...variants(C + 'Fountain'), G + 'Fountain_1_1', G + 'Fountain_2_1', G + 'Fountain_3_1'].filter(hasSprite),
+    statues: [G + 'Angel_Statue_1', G + 'Angel_Statue_2', G + 'Grey_Statue', G + 'Light_Brown_Statue'].filter(hasSprite),
+  };
+}
+
 /** the centre piece, benches facing it, corner trees with flower beds, cafe tables, people */
 function plazaContents(plan: BlockPlan, sb: SceneBuilder, r: Rng, a: CentreArea, gid: string) {
   const X0 = a.x0 * T, X1 = a.x1 * T, Y0 = a.y0 * T, Y1 = a.y1 * T, w = a.x1 - a.x0;
@@ -89,8 +97,7 @@ function plazaContents(plan: BlockPlan, sb: SceneBuilder, r: Rng, a: CentreArea,
   // the middle of the part in sight: buildings south of the centre may cover its last CENTRE_OVERHANG rows
   const Yv = (a.y1 - CENTRE_OVERHANG) * T, cx = (X0 + X1) / 2, cy = (Y0 + Yv) / 2;
   const width = (k: string) => spr(k).bb[2] - spr(k).bb[0];
-  const fountains = [...variants(C + 'Fountain'), G + 'Fountain_1_1', G + 'Fountain_2_1', G + 'Fountain_3_1'].filter(hasSprite);
-  const statues = [G + 'Angel_Statue_1', G + 'Angel_Statue_2', G + 'Grey_Statue', G + 'Light_Brown_Statue'].filter(hasSprite);
+  const { fountains, statues } = centrePieces();
   const pergola = G + 'Pergola_Example';
   const piece = r.choose('centre.piece', {}, { weights: [['fountain', 3], ['statue', 2], ['pavilion', 1]] as const });
   // the pergola only on a plaza at least 4 cells wider than it, else a kiosk

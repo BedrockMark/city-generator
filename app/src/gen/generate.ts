@@ -19,6 +19,7 @@ import { PREFS } from './learn/prefs';
 import { markNovel } from './learn/novelty';
 import { planCampus, campusFor, districtVignettes, isDistrict, resetDistrictIds } from './district';
 import { centreVignettes } from './centre';
+import { roundaboutIsland } from './roundabout';
 
 export const VERSION = '0.8.2';
 
@@ -60,7 +61,9 @@ export function generateBase(seed: string, opts: GenOptions, win?: BlockWindow):
   const kits = { r: expStream(rng, EXP05, opts.novelty), p: Math.min(1, kitChance(opts.novelty) * (win?.city?.gen.kit ?? 1)) };
   // city mode: a notch island (world/blocks.ts) is a little square, no buildings, no yard (0.8.1-hotfix1)
   const island = win !== undefined && L.shape === 'island';
-  const main: BlockPlan = island ? { buildings: [], zones: [], yard: L.cls.map(row => row.map(() => false)), yb: new Map(), yt: new Map() }
+  // city mode: a roundabout's centre island (world/roundabout.ts): lawn, a centre piece and trees, nobody walks there
+  const rbIsland = win !== undefined && L.shape === 'roundabout';
+  const main: BlockPlan = island || rbIsland ? { buildings: [], zones: [], yard: L.cls.map(row => row.map(() => false)), yb: new Map(), yt: new Map() }
     : planMainBlock(L, rng, composite, kits, campus, win?.city);
   const neigh: BlockPlan = win ? { buildings: [], zones: [], yard: L.cls.map(row => row.map(() => false)), yb: new Map(), yt: new Map() }
     : planNeighbours(L, rng, composite, kits);
@@ -75,7 +78,7 @@ export function generateBase(seed: string, opts: GenOptions, win?: BlockWindow):
   const on = (label: string, fn: (r: Rng) => void) => { const r = rng.fork(label); sb.inStream(r.stream, () => fn(r)); };
   // exp-06 (adopted): touching gardens share one path (decided on its own stream)
   const e06 = expStream(rng, 'exp-06', opts.novelty);
-  if (!island) on('yard', r => yardSpaces(L, main, sb, r, e06));
+  if (!island && !rbIsland) on('yard', r => yardSpaces(L, main, sb, r, e06));
   // v0.8.2 city mode: the big block's centre plaza / garden (never with a campus)
   if (main.centre) on('centre', r => centreVignettes(L, main, sb, r));
   // exp-08: the campus grounds (driveways cut the curb, so before the curb runs)
@@ -96,17 +99,22 @@ export function generateBase(seed: string, opts: GenOptions, win?: BlockWindow):
     islandSquare(L, sb, r, { x0: L.bx0 - L.sw, y0: L.by0 - L.sw, x1: L.bx1 + L.sw, y1: L.by1 + L.sw }, lot, 'block',
       `小岛街区（街角被一条短街切出来的小地块，地块 ${w}×${h}，放不下楼）：做成小广场`);
   });
-  on('cross', r => crossingVignettes(L, sb, r));
-  on('zones', r => zoneVignettes(L, main, sb, r));
-  on('bus', r => busStop(L, sb, r, own));
-  on('fronts', r => frontVignettes(L, main, sb, r));
+  if (rbIsland) on('roundabout', r => roundaboutIsland(L, sb, r));
+  else {
+    on('cross', r => crossingVignettes(L, sb, r));
+    on('zones', r => zoneVignettes(L, main, sb, r));
+    on('bus', r => busStop(L, sb, r, own));
+    on('fronts', r => frontVignettes(L, main, sb, r));
+  }
   if (!win) {
     on('nfronts', r => frontVignettes(L, { ...neigh, buildings: neigh.buildings.filter(b => b.side === 'S') }, sb, r));
   }
-  on('curb', r => curbStrips(L, sb, r, own));
-  on('cars', r => cars(L, sb, r, own));
-  on('road', r => roadDetails(L, sb, r));
-  on('walk', r => walkers(L, sb, r, own));
+  if (!rbIsland) {
+    on('curb', r => curbStrips(L, sb, r, own));
+    on('cars', r => cars(L, sb, r, own));
+    on('road', r => roadDetails(L, sb, r));
+    on('walk', r => walkers(L, sb, r, own));
+  }
   explainGround(L, sb, runs);
   sb.finish();
   // the window's params sit beside the generator's, never over them
