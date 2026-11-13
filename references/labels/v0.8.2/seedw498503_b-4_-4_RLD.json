@@ -1,0 +1,42 @@
+{
+ "version": "0.8.2",
+ "seed": "w498503_b-4_-4_RLD",
+ "labels": [
+  {
+   "id": "L1",
+   "created": "2026-11-12T23:10:09.590Z",
+   "version": "0.8.2",
+   "seed": "498503/b-4,-4/RLD",
+   "novelty": 0.1,
+   "options": {
+    "novelty": 0.1,
+    "prune": true,
+    "pruneDraft": false,
+    "prefs": true,
+    "district": "mall"
+   },
+   "scene": "seedw498503_b-4_-4_RLD_dmall.scene.json",
+   "verdict": "bad",
+   "tags": [],
+   "text": "地下停车场入口呢？",
+   "target": {
+    "kind": "region",
+    "rect": {
+     "x0": 512,
+     "y0": 672,
+     "x1": 528,
+     "y1": 688
+    },
+    "objects": [],
+    "gids": [],
+    "zones": [
+     "z8"
+    ]
+   },
+   "world": {
+    "seed": "498503",
+    "blockId": "b-4,-4/RLD"
+   }
+  }
+ ]
+}
