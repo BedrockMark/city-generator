@@ -9,6 +9,11 @@
 //   roads:         every 4-connected road component of the area touches its border; every block with a lot cell in the
 //                  area has a sidewalk cell that has a road cell as 4-neighbour
 //   ranges:        (v0.8.2) every non-district, non-island block with a lot in the area has a lot within cellLotRange
+//   roundabouts:   (v0.8.3) every roundabout meeting the area: no lot cell of another block inside its R, the four arms
+//                  aligned (vLine x0 equal above / below, hLine y0 equal left / right), the island block r<i>,<j> exists
+//                  and its scene has no buildings
+//   ramps:         (v0.8.3) every generated mall / hotel block has an Underground_Parking object
+//   C26 (world/reach.ts blockReach) is only reported (count and examples), never fails the run
 //   centreReach:   (v0.8.2) the centre of every generated block with b.centre is reachable from the street (centreReachable)
 // --prev <dir> adds a comparison table against an older cityregress output directory.
 // --jobs n splits the seeds over n child processes (as regress.ts snapshot-par); a child is `--shard k/n --child`.
@@ -22,6 +27,9 @@ import { assembleRegion, blocksIn } from '../src/world/region';
 import { generateBlock, _clearWindowCache } from '../src/world/window';
 import { blockById, cellLotRange, _clearBlockCache } from '../src/world/blocks';
 import { blockRaster, classRaster, ownerRaster } from '../src/world/cells';
+import { blockReach } from '../src/world/reach';
+import { roundaboutsIn } from '../src/world/roundabout';
+import { vLine, hLine } from '../src/world/arterials';
 import { CHUNK, CENTRE_MIN } from '../src/world/config';
 import { centreReachable } from '../src/gen/centre';
 import { TILE } from '../src/gen/types';
@@ -57,7 +65,8 @@ interface SeedStat {
   lotW: number[]; lotH: number[]; zones: Record<string, number>; jog: number;
   violations: Record<string, number>; violationsTotal: number;
   seam: Check; unique: Check; locality: Check | null; roads: Check; sidewalks: Check;
-  ranges: Check; centreReach: Check;
+  ranges: Check; centreReach: Check; roundabouts?: Check; ramps?: Check;
+  rbCount?: Record<string, number>; c26?: { checked: number; bad: number; exempt: number; examples: { id: string; why: string }[] };
   byT: { t: number; w: number; h: number }[];
   districts: Record<string, number>;
   centres: { plaza: number; garden: number; carved: number };
@@ -69,7 +78,11 @@ function runSeed(seed: string, idx: number): SeedStat {
   const t0 = performance.now();
   // block generation timed one by one (the chunks then hit the cache), chunk assembly timed separately
   const ids = blocksIn(seed, R), bt: number[] = [];
-  for (const id of ids) { const t = performance.now(); generateBlock(seed, id); bt.push(performance.now() - t); }
+  for (const id of ids) {
+    const t = performance.now();
+    try { generateBlock(seed, id); } catch (e) { throw new Error(`seed ${seed} block ${id} threw: ${(e as Error).message}`); }
+    bt.push(performance.now() - t);
+  }
   const chunks = new Map<string, string>(), ct: number[] = [];
   const ground = Array.from({ length: 2 }, () => Array.from({ length: W }, () => Array<unknown>(W).fill(undefined)));
   const objIds: string[] = [], got: string[] = [];
@@ -155,9 +168,15 @@ function runSeed(seed: string, idx: number): SeedStat {
     h: Math.max(...b.foot.map(f => f.y1)) - Math.min(...b.foot.map(f => f.y0)) - 2 * b.sw });
   const owner = ownerRaster(seed, R), viol: Record<string, number> = {}, violBy = new Map<string, number>();
   const dist: Record<string, number> = {}, centres = { plaza: 0, garden: 0, carved: 0 };
-  const badReach: string[] = [];
+  const badReach: string[] = [], noRamp: string[] = [];
+  let nRamp = 0;
   for (const id of ids) {
     const { scene, ox, oy } = generateBlock(seed, id);
+    const bd = blockById(seed, id).district;
+    if (bd === 'mall' || bd === 'hotel') {
+      nRamp++;
+      if (!scene.objects.some(o => o.key.includes('Underground_Parking'))) noRamp.push(id);
+    }
     for (const v of scene.audit?.violations ?? []) {
       const x = ox - R.x0 + Math.floor((v.rect.x0 + v.rect.x1) / 2 / TILE), y = oy - R.y0 + Math.floor((v.rect.y0 + v.rect.y1) / 2 / TILE);
       if (x >= 0 && y >= 0 && x < W && y < W && owner[y][x] === id) { viol[v.c] = (viol[v.c] ?? 0) + 1; violBy.set(id, (violBy.get(id) ?? 0) + 1); }
@@ -171,7 +190,7 @@ function runSeed(seed: string, idx: number): SeedStat {
   }
   // district blocks (kind@zone) among the blocks with a lot in the area
   for (const b of blocks) if (b.district) { const k = `${b.district}@${b.zone}`; dist[k] = (dist[k] ?? 0) + 1; }
-  const plain = blocks.filter(b => !b.district && b.shape !== 'island');
+  const plain = blocks.filter(b => !b.district && b.shape !== 'island' && b.shape !== 'roundabout');
   const byT = plain.map(b => ({ t: cellLotRange(seed, ...b.cell).t, ...lotSize(b) }));
   const outOfRange = plain.filter(b => {
     const r = cellLotRange(seed, ...b.cell), z = lotSize(b);
@@ -180,6 +199,37 @@ function runSeed(seed: string, idx: number): SeedStat {
   const ranges: Check = { ok: outOfRange.length === 0, detail: `${plain.length} blocks, ${outOfRange.length} lot outside cellLotRange${outOfRange.length ? ` (${outOfRange.slice(0, 3).map(b => { const z = lotSize(b), r = cellLotRange(seed, ...b.cell); return `${b.id} ${z.w}x${z.h} vs ${r.lotW}/${r.lotH}`; }).join('; ')})` : ''}` };
   const nCentre = centres.plaza + centres.garden;
   const centreReach: Check = { ok: badReach.length === 0, detail: `${nCentre} centres, ${badReach.length} not reachable from the street${badReach.length ? ` (${badReach.slice(0, 3).join(' ')})` : ''}` };
+  const ramps: Check = { ok: noRamp.length === 0, detail: `${nRamp} mall / hotel blocks, ${noRamp.length} without an Underground_Parking object${noRamp.length ? ` (${noRamp.slice(0, 3).join(' ')})` : ''}` };
+
+  // roundabouts meeting the area: R holds no lot cell of another block, the arms line up, the island block is empty
+  const rbs = roundaboutsIn(seed, R), rbCount: Record<string, number> = {}, rbBad: string[] = [];
+  for (const rb of rbs) {
+    const k = `${rb.wv}x${rb.wh}`; rbCount[k] = (rbCount[k] ?? 0) + 1;
+    const own = `r${rb.i},${rb.j}`, errs: string[] = [];
+    const rc = classRaster(seed, rb.R), rbk = blockRaster(seed, rb.R);
+    let foreign = 0;
+    for (let y = 0; y < rc.length; y++) for (let x = 0; x < rc[y].length; x++) if (rc[y][x] === 'lot' && rbk[y][x] !== own) foreign++;
+    if (foreign) errs.push(`${foreign} foreign lot cells in R`);
+    if (vLine(seed, rb.i, rb.j - 1).x0 !== vLine(seed, rb.i, rb.j).x0) errs.push('vertical arms not aligned');
+    if (hLine(seed, rb.j, rb.i - 1).y0 !== hLine(seed, rb.j, rb.i).y0) errs.push('horizontal arms not aligned');
+    try {
+      const ib = blockById(seed, own);
+      const sc = generateBlock(seed, own).scene;
+      if (ib.shape !== 'roundabout') errs.push('island block has the wrong shape');
+      if (sc.buildings?.length) errs.push(`island has ${sc.buildings.length} buildings`);
+    } catch (e) { errs.push(`island block: ${(e as Error).message}`); }
+    if (errs.length) rbBad.push(`${own} ${errs.join(', ')}`);
+  }
+  const roundabouts: Check = { ok: rbBad.length === 0, detail: `${rbs.length} roundabouts, ${rbBad.length} bad${rbBad.length ? ` (${rbBad.slice(0, 3).join('; ')})` : ''}` };
+
+  // C26 (report only; roundabout islands are exempt)
+  const c26 = { checked: 0, bad: 0, exempt: 0, examples: [] as { id: string; why: string }[] };
+  for (const b of blocks) {
+    const r = blockReach(seed, b.id);
+    if (r.exempt) { c26.exempt++; continue; }
+    c26.checked++;
+    if (!r.ok) { c26.bad++; if (c26.examples.length < 10) c26.examples.push({ id: b.id, why: r.why }); }
+  }
   const bigB = blocks.filter(b => { const z = lotSize(b); return z.w >= CENTRE_MIN.w && z.h >= CENTRE_MIN.h; });
   const big = { blocks: bigB.length, violations: bigB.reduce((p, b) => p + (violBy.get(b.id) ?? 0), 0) };
   const sum = (v: number[]) => v.reduce((p, q) => p + q, 0);
@@ -188,7 +238,7 @@ function runSeed(seed: string, idx: number): SeedStat {
     ms: { total: performance.now() - t0, blockAvg: sum(bt) / bt.length, blockMax: Math.max(...bt), chunkAvg: sum(ct) / ct.length, chunkMax: Math.max(...ct) },
     lotW, lotH, zones, jog: blocks.filter(b => b.shape === 'jog').length,
     violations: viol, violationsTotal: sum(Object.values(viol)),
-    seam, unique, locality: loc, roads, sidewalks, ranges, centreReach, byT, districts: dist, centres, big,
+    seam, unique, locality: loc, roads, sidewalks, ranges, centreReach, roundabouts, ramps, rbCount, c26, byT, districts: dist, centres, big,
   };
 }
 
@@ -225,13 +275,13 @@ function finish(t0: number): void {
   const fmt = (v: number[]) => (v.length ? `${v[0]} / ${v[Math.floor(v.length / 2)]} / ${v[v.length - 1]}` : '-');
   let failed = false;
   L.push(`# 世界回归 ${new Date().toISOString()}`, '', `种子 ${seeds.length} 个（${seeds.join(' ')}），每个区块 cx, cy in [-2, 2]（世界格 [${R.x0}, ${R.x1})^2），局部性检查前 ${Math.min(locality, seeds.length)} 个种子。`, '');
-  L.push('## 检查', '', '| 种子 | 接缝 | 物件唯一 | 局部性 | 马路连通 | 人行道通马路 | 地块在范围 | 中心可达 |', '|---|---|---|---|---|---|---|---|');
+  L.push('## 检查', '', '| 种子 | 接缝 | 物件唯一 | 局部性 | 马路连通 | 人行道通马路 | 地块在范围 | 中心可达 | 环岛 | 停车场入口 |', '|---|---|---|---|---|---|---|---|---|---|');
   const cell = (c: Check | null) => (c ? `${mark(c.ok)}` : '-');
   for (const s of stats) {
-    L.push(`| ${s.seed} | ${cell(s.seam)} | ${cell(s.unique)} | ${cell(s.locality)} | ${cell(s.roads)} | ${cell(s.sidewalks)} | ${cell(s.ranges)} | ${cell(s.centreReach)} |`);
+    L.push(`| ${s.seed} | ${cell(s.seam)} | ${cell(s.unique)} | ${cell(s.locality)} | ${cell(s.roads)} | ${cell(s.sidewalks)} | ${cell(s.ranges)} | ${cell(s.centreReach)} | ${cell(s.roundabouts ?? null)} | ${cell(s.ramps ?? null)} |`);
   }
   L.push('');
-  const checks: [string, (s: SeedStat) => Check | null][] = [['接缝', s => s.seam], ['物件唯一', s => s.unique], ['局部性', s => s.locality], ['马路连通', s => s.roads], ['人行道通马路', s => s.sidewalks], ['地块在范围', s => s.ranges], ['中心可达', s => s.centreReach]];
+  const checks: [string, (s: SeedStat) => Check | null][] = [['接缝', s => s.seam], ['物件唯一', s => s.unique], ['局部性', s => s.locality], ['马路连通', s => s.roads], ['人行道通马路', s => s.sidewalks], ['地块在范围', s => s.ranges], ['中心可达', s => s.centreReach], ['环岛', s => s.roundabouts ?? null], ['停车场入口', s => s.ramps ?? null]];
   for (const [name, f] of checks) {
     const rs = stats.map(s => [s.seed, f(s)] as const).filter((x): x is [string, Check] => !!x[1]);
     const bad = rs.filter(([, c]) => !c.ok);
@@ -263,6 +313,15 @@ function finish(t0: number): void {
   const dn = sum(Object.values(dk));
   L.push('## 特色街区', '', `- 合计 ${dn} 个，占街区 ${pct(dn)}`);
   for (const [k, n] of Object.entries(dk).sort()) L.push(`  - ${k}：${n}`);
+  L.push('');
+  const rbk: Record<string, number> = {};
+  for (const s of stats) for (const [k, n] of Object.entries(s.rbCount ?? {})) rbk[k] = (rbk[k] ?? 0) + n;
+  L.push('## 环岛', '', `- 合计 ${sum(Object.values(rbk))} 个（与区域相交的），按 wv × wh：${Object.entries(rbk).sort().map(([k, n]) => `${k} ${n}`).join('，') || '-'}`, '');
+  const c26 = stats.filter(s => s.c26);
+  const c26bad = sum(c26.map(s => s.c26!.bad));
+  L.push('## C26 街区可达（只报告，不设门槛）', '', `- ${c26.length} 个种子：检查 ${sum(c26.map(s => s.c26!.checked))} 个街区，豁免（环岛小岛）${sum(c26.map(s => s.c26!.exempt))} 个，违规 ${c26bad} 个`);
+  let shown = 0;
+  for (const s of c26) for (const e of s.c26!.examples) if (shown++ < 10) L.push(`  - ${s.seed} ${e.id}：${e.why}`);
   L.push('');
   const cs = { plaza: sum(stats.map(s => s.centres.plaza)), garden: sum(stats.map(s => s.centres.garden)), carved: sum(stats.map(s => s.centres.carved)) };
   L.push('## 中心广场', '', `- 广场 ${cs.plaza} 个，中庭 ${cs.garden} 个，实际刻出 ${cs.carved} 个`, '');

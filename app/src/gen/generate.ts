@@ -21,7 +21,7 @@ import { planCampus, campusFor, districtVignettes, reserveCampus, isDistrict, re
 import { centreVignettes } from './centre';
 import { roundaboutIsland } from './roundabout';
 
-export const VERSION = '0.8.2';
+export const VERSION = '0.8.3';
 
 export function generate(seed: string, options: Partial<GenOptions> = {}): Scene {
   return generateBase(seed, withDefaults(options));
